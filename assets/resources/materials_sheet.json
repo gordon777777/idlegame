@@ -1,0 +1,75 @@
+{
+  "frames": {
+    "magic_ore_icon": {
+      "frame": {"x": 0, "y": 448, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "enchanted_wood_icon": {
+      "frame": {"x": 64, "y": 192, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "arcane_crystal_icon": {
+      "frame": {"x": 512, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "mystic_planks_icon": {
+      "frame": {"x": 256, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "refined_crystal_icon": {
+      "frame": {"x": 448, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "arcane_essence_icon": {
+      "frame": {"x": 576, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "magical_potion_icon": {
+      "frame": {"x": 384, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "enchanted_artifact_icon": {
+      "frame": {"x": 192, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "magical_construct_icon": {
+      "frame": {"x": 320, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    }
+  },
+  "meta": {
+    "app": "Materials Sprite Sheet",
+    "version": "1.0",
+    "image": "materials_sheet.png",
+    "format": "RGBA8888",
+    "size": {"w": 640, "h": 640},
+    "scale": "1"
+  }
+}

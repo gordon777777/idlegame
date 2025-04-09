@@ -1,0 +1,138 @@
+{
+  "frames": {
+    "magic_forge": {
+      "frame": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "wood_enchanter": {
+      "frame": {"x": 64, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "crystal_refinery": {
+      "frame": {"x": 128, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "alchemy_lab": {
+      "frame": {"x": 192, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "enchanting_tower": {
+      "frame": {"x": 256, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "arcane_workshop": {
+      "frame": {"x": 320, "y": 0, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "magic_mine": {
+      "frame": {"x": 0, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "enchanted_forest": {
+      "frame": {"x": 64, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "crystal_mine": {
+      "frame": {"x": 128, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "mana_well": {
+      "frame": {"x": 192, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "wizard_tower": {
+      "frame": {"x": 256, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "arcane_library": {
+      "frame": {"x": 320, "y": 64, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "mystic_garden": {
+      "frame": {"x": 0, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "crystal_garden": {
+      "frame": {"x": 64, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "mana_fountain": {
+      "frame": {"x": 128, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "magic_academy": {
+      "frame": {"x": 192, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "research_lab": {
+      "frame": {"x": 256, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    },
+    "storage_vault": {
+      "frame": {"x": 320, "y": 128, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
+    }
+  },
+  "meta": {
+    "app": "Buildings Sprite Sheet",
+    "version": "1.0",
+    "image": "buildings_sheet.png",
+    "format": "RGBA8888",
+    "size": {"w": 384, "h": 192},
+    "scale": "1"
+  }
+}
