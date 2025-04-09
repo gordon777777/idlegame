@@ -1,0 +1,543 @@
+import Building from '../entities/Building';
+
+/**
+ * System for managing buildings in the game
+ */
+export default class BuildingSystem {
+  /**
+   * @param {Phaser.Scene} scene - The scene this system belongs to
+   * @param {ResourceSystem} resourceSystem - Reference to the resource system
+   * @param {PopulationSystem} populationSystem - Reference to the population system
+   */
+  constructor(scene, resourceSystem, populationSystem = null) {
+    this.scene = scene;
+    this.resourceSystem = resourceSystem;
+    this.populationSystem = populationSystem;
+    this.buildings = new Map();
+    this.buildingTypes = this.defineBuildingTypes();
+    this.selectedBuilding = null;
+    this.placementMode = false;
+    this.placementGhost = null;
+    this.gridSize = 64; // Size of placement grid
+  }
+
+  /**
+   * Define all available building types
+   * @returns {Object} - Map of building types
+   */
+  defineBuildingTypes() {
+    return {
+      // Basic resource producers
+      magic_forge: {
+        name: 'Magic Forge',
+        type: 'production',
+        sprite: 'magic_forge',
+        recipe: {
+          input: { magic_ore: 2 },
+          output: { arcane_essence: 1 }
+        },
+        productionInterval: 3000,
+        cost: { magic_ore: 20, enchanted_wood: 10 },
+        description: '將原始魔法礦石轉化為奧術精華。'
+      },
+
+      wood_enchanter: {
+        name: 'Wood Enchanter',
+        type: 'production',
+        sprite: 'wood_enchanter',
+        recipe: {
+          input: { enchanted_wood: 3 },
+          output: { mystic_planks: 1 }
+        },
+        productionInterval: 4000,
+        cost: { enchanted_wood: 25, arcane_crystal: 5 },
+        description: '將附魔木材加工成神秘木板。'
+      },
+
+      crystal_refinery: {
+        name: 'Crystal Refinery',
+        type: 'production',
+        sprite: 'crystal_refinery',
+        recipe: {
+          input: { arcane_crystal: 2 },
+          output: { refined_crystal: 1 }
+        },
+        productionInterval: 5000,
+        cost: { arcane_crystal: 15, magic_ore: 10 },
+        description: '將原始奧術水晶提煉成純淨形態。'
+      },
+
+      // Intermediate producers
+      alchemy_lab: {
+        name: 'Alchemy Lab',
+        type: 'production',
+        sprite: 'alchemy_lab',
+        recipe: {
+          input: { arcane_essence: 2, refined_crystal: 1 },
+          output: { magical_potion: 1 }
+        },
+        productionInterval: 8000,
+        cost: { arcane_essence: 15, refined_crystal: 10, mystic_planks: 5 },
+        description: '使用精華和水晶製作魔法藥水。'
+      },
+
+      enchanting_tower: {
+        name: 'Enchanting Tower',
+        type: 'production',
+        sprite: 'enchanting_tower',
+        recipe: {
+          input: { mystic_planks: 2, refined_crystal: 1 },
+          output: { enchanted_artifact: 1 }
+        },
+        productionInterval: 10000,
+        cost: { mystic_planks: 20, refined_crystal: 10, arcane_essence: 5 },
+        description: '使用神秘材料創造附魔神器。'
+      },
+
+      // Advanced producers
+      arcane_workshop: {
+        name: 'Arcane Workshop',
+        type: 'production',
+        sprite: 'arcane_workshop',
+        recipe: {
+          input: { magical_potion: 1, enchanted_artifact: 1 },
+          output: { magical_construct: 1 }
+        },
+        productionInterval: 15000,
+        cost: { magical_potion: 10, enchanted_artifact: 10, refined_crystal: 20 },
+        description: '使用藥水和神器創造魔法構造體。'
+      },
+
+      // Resource collectors
+      magic_mine: {
+        name: 'Magic Mine',
+        type: 'collector',
+        sprite: 'magic_mine',
+        recipe: {
+          input: {},
+          output: { magic_ore: 1 }
+        },
+        productionInterval: 2000,
+        cost: { enchanted_wood: 15 },
+        description: '從地下開採魔法礦石。'
+      },
+
+      enchanted_forest: {
+        name: 'Enchanted Forest',
+        type: 'collector',
+        sprite: 'enchanted_forest',
+        recipe: {
+          input: {},
+          output: { enchanted_wood: 1 }
+        },
+        productionInterval: 2000,
+        cost: { magic_ore: 15 },
+        description: '種植並收穫附魔木材。'
+      },
+
+      crystal_mine: {
+        name: 'Crystal Mine',
+        type: 'collector',
+        sprite: 'crystal_mine',
+        recipe: {
+          input: {},
+          output: { arcane_crystal: 1 }
+        },
+        productionInterval: 3000,
+        cost: { magic_ore: 10, enchanted_wood: 10 },
+        description: '從深層地下開採奧術水晶。'
+      },
+
+      // 新增建築 - 資源收集器
+      mana_well: {
+        name: 'Mana Well',
+        type: 'collector',
+        sprite: 'mana_well',
+        recipe: {
+          input: {},
+          output: { mana: 1 }
+        },
+        productionInterval: 1500,
+        cost: { magic_ore: 5, arcane_crystal: 5 },
+        description: '從地下抽取魔力能量。'
+      },
+
+      mystic_garden: {
+        name: 'Mystic Garden',
+        type: 'collector',
+        sprite: 'mystic_garden',
+        recipe: {
+          input: { mana: 1 },
+          output: { enchanted_wood: 2 }
+        },
+        productionInterval: 4000,
+        cost: { enchanted_wood: 20, mana: 10 },
+        description: '使用魔力加速生長附魔植物。'
+      },
+
+      crystal_garden: {
+        name: 'Crystal Garden',
+        type: 'collector',
+        sprite: 'crystal_garden',
+        recipe: {
+          input: { mana: 1 },
+          output: { arcane_crystal: 2 }
+        },
+        productionInterval: 5000,
+        cost: { arcane_crystal: 20, mana: 15 },
+        description: '使用魔力培養奧術水晶。'
+      },
+
+      // 新增建築 - 特殊建築
+      wizard_tower: {
+        name: 'Wizard Tower',
+        type: 'special',
+        sprite: 'wizard_tower',
+        recipe: {
+          input: { mana: 2 },
+          output: { research_point: 1 }
+        },
+        productionInterval: 10000,
+        cost: { arcane_essence: 30, refined_crystal: 20, mystic_planks: 25 },
+        description: '產生研究點數，用於解鎖新技術。'
+      },
+
+      arcane_library: {
+        name: 'Arcane Library',
+        type: 'special',
+        sprite: 'arcane_library',
+        recipe: {
+          input: { research_point: 1 },
+          output: { knowledge: 1 }
+        },
+        productionInterval: 15000,
+        cost: { mystic_planks: 40, enchanted_artifact: 5 },
+        description: '將研究點數轉化為知識，提高所有建築效率。'
+      },
+
+      mana_fountain: {
+        name: 'Mana Fountain',
+        type: 'special',
+        sprite: 'mana_fountain',
+        recipe: {
+          input: { arcane_essence: 1, refined_crystal: 1 },
+          output: { mana: 5 }
+        },
+        productionInterval: 6000,
+        cost: { arcane_essence: 25, refined_crystal: 25 },
+        description: '將奧術精華和精煉水晶轉化為大量魔力。'
+      },
+
+      // 新增建築 - 高級建築
+      magic_academy: {
+        name: 'Magic Academy',
+        type: 'advanced',
+        sprite: 'magic_academy',
+        recipe: {
+          input: { knowledge: 1, mana: 5 },
+          output: { wizard: 1 }
+        },
+        productionInterval: 30000,
+        cost: { knowledge: 10, magical_potion: 20, enchanted_artifact: 15 },
+        description: '訓練法師，提高城市的魔法產出。'
+      },
+
+      research_lab: {
+        name: 'Research Lab',
+        type: 'advanced',
+        sprite: 'research_lab',
+        recipe: {
+          input: { knowledge: 2, magical_potion: 1 },
+          output: { research_point: 5 }
+        },
+        productionInterval: 20000,
+        cost: { knowledge: 15, magical_potion: 25, refined_crystal: 30 },
+        description: '進行高級魔法研究，產生大量研究點數。'
+      },
+
+      storage_vault: {
+        name: 'Storage Vault',
+        type: 'utility',
+        sprite: 'storage_vault',
+        recipe: {
+          input: {},
+          output: {}
+        },
+        productionInterval: 0,
+        cost: { mystic_planks: 30, refined_crystal: 20, arcane_essence: 15 },
+        description: '增加資源存儲上限，防止資源浪費。'
+      },
+
+      // 住房建築
+      housing_district: {
+        name: 'Housing District',
+        type: 'housing',
+        sprite: 'housing_district',
+        recipe: {
+          input: {},
+          output: {}
+        },
+        productionInterval: 0,
+        cost: { enchanted_wood: 20, magic_ore: 10 },
+        housingCapacity: 10,
+        description: '為普通居民提供住所，增加人口上限。'
+      },
+
+      wizard_quarters: {
+        name: 'Wizard Quarters',
+        type: 'housing',
+        sprite: 'wizard_quarters',
+        recipe: {
+          input: {},
+          output: {}
+        },
+        productionInterval: 0,
+        cost: { mystic_planks: 30, refined_crystal: 15, magical_potion: 5 },
+        housingCapacity: 5,
+        specialHousing: 'wizard',
+        description: '為法師提供特別的住所，提高法師的效率。'
+      }
+    };
+  }
+
+  /**
+   * Create a new building
+   * @param {string} type - Building type key
+   * @param {Object} position - {x, y} position in the game world
+   * @returns {Building|null} - The created building or null if failed
+   */
+  createBuilding(type, position) {
+    const buildingType = this.buildingTypes[type];
+    if (!buildingType) return null;
+
+    // Check if we have enough resources to build
+    if (!this.resourceSystem.hasResources(buildingType.cost)) {
+      console.log('Not enough resources to build', buildingType.name);
+      return null;
+    }
+
+    // Consume resources
+    this.resourceSystem.consumeResources(buildingType.cost);
+
+    // Create the building
+    const building = new Building({
+      ...buildingType,
+      id: `${type}_${Date.now()}`,
+      position
+    }, this.scene);
+
+    // Add to building collection
+    this.buildings.set(building.id, building);
+
+    // 處理特殊建築類型
+    if (buildingType.type === 'housing' && this.populationSystem) {
+      // 增加住房容量
+      this.populationSystem.increaseHousingCapacity(buildingType.housingCapacity || 0);
+    } else {
+      // 分配工人到建築
+      if (this.populationSystem) {
+        const hasWorkers = this.populationSystem.assignWorkersToBulding(building.id, type);
+        if (!hasWorkers) {
+          // 如果沒有足夠的工人，建築將處於非活動狀態
+          building.isActive = false;
+          console.log(`Building ${buildingType.name} created but inactive due to insufficient workers`);
+        } else {
+          building.isActive = true;
+        }
+      }
+
+      // Register production chain with resource system
+      this.resourceSystem.addProductionChain(building);
+    }
+
+    return building;
+  }
+
+  /**
+   * Enter building placement mode
+   * @param {string} type - Building type to place
+   */
+  enterPlacementMode(type) {
+    if (!this.buildingTypes[type]) return;
+
+    this.placementMode = true;
+    this.placementBuildingType = type;
+
+    // Create ghost sprite for placement
+    const buildingType = this.buildingTypes[type];
+    this.placementGhost = this.scene.add.sprite(0, 0, buildingType.sprite)
+      .setAlpha(0.5);
+
+    // Add cost display
+    const costText = Object.entries(buildingType.cost)
+      .map(([resource, amount]) => `${resource}: ${amount}`)
+      .join('\n');
+
+    this.placementCostText = this.scene.add.text(0, 0, costText, {
+      fontSize: '12px',
+      fill: '#ffffff',
+      backgroundColor: '#000000'
+    });
+  }
+
+  /**
+   * Update ghost position during placement
+   * @param {number} x - Mouse/pointer x position
+   * @param {number} y - Mouse/pointer y position
+   */
+  updatePlacementGhost(x, y) {
+    if (!this.placementMode || !this.placementGhost) return;
+
+    // Snap to grid
+    const gridX = Math.floor(x / this.gridSize) * this.gridSize + this.gridSize / 2;
+    const gridY = Math.floor(y / this.gridSize) * this.gridSize + this.gridSize / 2;
+
+    this.placementGhost.setPosition(gridX, gridY);
+    this.placementCostText.setPosition(gridX - 30, gridY + 30);
+
+    // Check if we can place here (no collision with other buildings)
+    const canPlace = this.canPlaceAt(gridX, gridY);
+
+    // Check if we have resources
+    const hasResources = this.resourceSystem.hasResources(
+      this.buildingTypes[this.placementBuildingType].cost
+    );
+
+    // Update ghost appearance
+    this.placementGhost.setTint(canPlace && hasResources ? 0xffffff : 0xff0000);
+  }
+
+  /**
+   * Check if a building can be placed at the given position
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @returns {boolean} - Whether placement is valid
+   */
+  canPlaceAt(x, y) {
+    // Check if position is within map bounds
+    if (x < 0 || y < 0 || x > this.scene.scale.width || y > this.scene.scale.height) {
+      return false;
+    }
+
+    // Check for collision with other buildings
+    for (const building of this.buildings.values()) {
+      const distance = Phaser.Math.Distance.Between(
+        x, y, building.position.x, building.position.y
+      );
+
+      if (distance < this.gridSize) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Place building at current ghost position
+   * @returns {Building|null} - The placed building or null if failed
+   */
+  placeBuilding() {
+    if (!this.placementMode || !this.placementGhost) return null;
+
+    const position = {
+      x: this.placementGhost.x,
+      y: this.placementGhost.y
+    };
+
+    if (!this.canPlaceAt(position.x, position.y)) {
+      return null;
+    }
+
+    // Create the actual building
+    const building = this.createBuilding(this.placementBuildingType, position);
+
+    // Exit placement mode
+    this.exitPlacementMode();
+
+    return building;
+  }
+
+  /**
+   * Exit building placement mode
+   */
+  exitPlacementMode() {
+    this.placementMode = false;
+
+    if (this.placementGhost) {
+      this.placementGhost.destroy();
+      this.placementGhost = null;
+    }
+
+    if (this.placementCostText) {
+      this.placementCostText.destroy();
+      this.placementCostText = null;
+    }
+  }
+
+  /**
+   * Select a building by ID
+   * @param {string} id - Building ID
+   */
+  selectBuilding(id) {
+    this.selectedBuilding = this.buildings.get(id) || null;
+
+    if (this.selectedBuilding) {
+      // Notify UI system about selection
+      this.scene.uiManager.showBuildingInfo(this.selectedBuilding.getInfo());
+    }
+  }
+
+  /**
+   * Upgrade the currently selected building
+   * @returns {boolean} - Whether upgrade was successful
+   */
+  upgradeSelectedBuilding() {
+    if (!this.selectedBuilding) return false;
+
+    const buildingType = this.buildingTypes[this.selectedBuilding.type];
+    const upgradeCost = {};
+
+    // Calculate upgrade cost based on original cost and level
+    Object.entries(this.selectedBuilding.cost).forEach(([resource, amount]) => {
+      upgradeCost[resource] = Math.ceil(amount * (1 + this.selectedBuilding.level * 0.5));
+    });
+
+    return this.selectedBuilding.upgrade(this.resourceSystem.resources, upgradeCost);
+  }
+
+  /**
+   * Update all buildings
+   * @param {number} time - Current game time
+   * @param {number} delta - Time since last update
+   */
+  update(time, delta) {
+    // 更新所有建築
+    for (const building of this.buildings.values()) {
+      // 如果有人口系統，檢查建築的工人狀態
+      if (this.populationSystem) {
+        // 如果是生產建築，檢查工人狀態
+        if (building.type !== 'housing') {
+          const hasSufficientWorkers = this.populationSystem.hasSufficientWorkers(building.id);
+          const workerEfficiency = this.populationSystem.getBuildingEfficiencyMultiplier(building.id);
+
+          // 更新建築狀態
+          building.setActive(hasSufficientWorkers, workerEfficiency);
+        }
+      }
+
+      // 更新生產
+      const output = building.updateProduction(time, delta, this.resourceSystem);
+
+      if (output) {
+        // 將生產的資源添加到全局池
+        this.resourceSystem.addResources(output);
+      }
+
+      // 如果沒有在生產中，則開始生產
+      if (!building.isProducing && building.isActive) {
+        building.startProduction(this.resourceSystem.resources);
+      }
+    }
+  }
+}
