@@ -12,6 +12,7 @@ export default class GameScene extends Phaser.Scene {
     this.populationSystem = new PopulationSystem();
     this.uiManager = new UIManager(this);
     this.buildingSystem = null; // Will be initialized in create()
+    this.playerGold = 1000; // 初始金幣
   }
 
   preload() {
@@ -55,6 +56,28 @@ export default class GameScene extends Phaser.Scene {
 
     // 初始化市場系統
     this.marketSystem = new MarketSystem();
+
+    // 創建金幣顯示
+    this.goldText = this.add.text(this.scale.width - 20, 20, `金幣: ${this.playerGold}`, {
+      fontSize: '18px',
+      fill: '#ffdd00',
+      fontStyle: 'bold'
+    }).setOrigin(1, 0).setDepth(100);
+
+    // 監聽資源出售事件
+    this.events.on('resourceSold', (profit) => {
+      this.playerGold += profit;
+      this.updateGoldDisplay();
+    });
+
+    // 監聽稅收事件
+    this.events.on('taxCollected', (taxAmount, revenue) => {
+      this.playerGold += taxAmount;
+      this.updateGoldDisplay();
+
+      // 顯示稅收通知
+      this.showTaxNotification(taxAmount, revenue);
+    });
 
     // 初始化建築系統
     this.buildingSystem = new BuildingSystem(this, this.resources, this.populationSystem);
@@ -172,6 +195,73 @@ export default class GameScene extends Phaser.Scene {
       if (this.uiManager.marketPanel && this.uiManager.marketPanel.visible) {
         this.uiManager.createMarketPanel();
       }
+
+      // 更新金幣顯示
+      this.updateGoldDisplay();
     }
+  }
+
+  /**
+   * 更新金幣顯示
+   */
+  updateGoldDisplay() {
+    if (this.goldText) {
+      this.goldText.setText(`金幣: ${Math.floor(this.playerGold)}`);
+    }
+  }
+
+  /**
+   * 顯示稅收通知
+   * @param {number} taxAmount - 稅收金額
+   * @param {number} revenue - 營業額
+   */
+  showTaxNotification(taxAmount, revenue) {
+    // 創建通知背景
+    const notification = this.add.container(this.scale.width / 2, 100);
+
+    const background = this.add.rectangle(0, 0, 400, 100, 0x1a1a1a, 0.9)
+      .setStrokeStyle(2, 0xffdd00);
+
+    // 添加標題
+    const title = this.add.text(0, -30, '月度稅收已發放', {
+      fontSize: '20px',
+      fill: '#ffdd00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加內容
+    const content = this.add.text(0, 5, `本月營業額: ${revenue} 金幣\n稅收 (5%): +${taxAmount} 金幣`, {
+      fontSize: '16px',
+      fill: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5, 0.5);
+
+    notification.add([background, title, content]);
+
+    // 設置消失動畫
+    notification.alpha = 0;
+    notification.y = 50;
+
+    // 添加動畫
+    this.tweens.add({
+      targets: notification,
+      alpha: 1,
+      y: 100,
+      duration: 500,
+      ease: 'Power2',
+      onComplete: () => {
+        // 延遲後消失
+        this.time.delayedCall(5000, () => {
+          this.tweens.add({
+            targets: notification,
+            alpha: 0,
+            y: 50,
+            duration: 500,
+            ease: 'Power2',
+            onComplete: () => notification.destroy()
+          });
+        });
+      }
+    });
   }
 }

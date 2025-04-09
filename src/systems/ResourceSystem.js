@@ -208,6 +208,51 @@ class ResourceSystem {
       consumption: this.consumptionStats
     };
   }
+
+  /**
+   * 出售資源到市場
+   * @param {string} resourceType - 資源類型
+   * @param {number} amount - 出售數量
+   * @param {number} price - 出售價格
+   * @returns {Object} - 交易結果 {success, profit, message}
+   */
+  sellResourceToMarket(resourceType, amount, price) {
+    // 檢查資源是否存在
+    if (!this.resources[resourceType]) {
+      return { success: false, profit: 0, message: '資源不存在' };
+    }
+
+    // 檢查資源數量是否足夠
+    if (this.resources[resourceType].value < amount) {
+      return {
+        success: false,
+        profit: 0,
+        message: '資源不足',
+        available: this.resources[resourceType].value
+      };
+    }
+
+    // 計算利潤
+    const profit = amount * price;
+
+    // 減少資源
+    this.resources[resourceType].value -= amount;
+
+    // 觸發資源出售事件
+    if (window.game && window.game.scene.scenes.length > 0) {
+      const gameScene = window.game.scene.scenes.find(scene => scene.key === 'GameScene');
+      if (gameScene) {
+        gameScene.events.emit('resourceSold', profit);
+      }
+    }
+
+    // 返回交易結果
+    return {
+      success: true,
+      profit: profit,
+      message: `成功出售 ${amount} 個 ${this.resources[resourceType].displayName || resourceType}，獲得 ${profit} 金幣`
+    };
+  }
 }
 
 export default ResourceSystem;

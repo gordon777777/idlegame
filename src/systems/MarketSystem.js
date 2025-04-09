@@ -17,6 +17,15 @@ export default class MarketSystem {
     // 交易歷史
     this.transactionHistory = [];
 
+    // 市場庫存 - 記錄市場中的資源庫存
+    this.marketInventory = {};
+
+    // 月度稅收計算
+    this.monthlyTimer = 0;
+    this.monthlyInterval = config.monthlyInterval || 300000; // 每5分鐘為一個月
+    this.monthlyRevenue = 0; // 月度營業額
+    this.taxRate = 0.05; // 5%稅率
+
     // 需求系統 - 更詳細的需求分類
     this.demands = {
       lower: { // 底層需求
@@ -73,7 +82,7 @@ export default class MarketSystem {
   }
 
   /**
-   * 初始化市場價格
+   * 初始化市場價格和庫存
    */
   initializePrices() {
     // 為每種商品設置初始價格
@@ -85,6 +94,13 @@ export default class MarketSystem {
           demand: 1.0,
           supply: 1.0,
           volatility: this.getVolatilityForResource(resource)
+        };
+
+        // 初始化市場庫存
+        this.marketInventory[resource] = {
+          amount: 100, // 初始庫存
+          maxCapacity: 1000, // 最大庫存容量
+          lastUpdate: Date.now()
         };
       });
     }
@@ -173,6 +189,13 @@ export default class MarketSystem {
       this.consumptionTimer = 0;
       this.processPopulationConsumption(resources, populationSystem);
     }
+
+    // 更新月度稅收
+    this.monthlyTimer += delta;
+    if (this.monthlyTimer >= this.monthlyInterval) {
+      this.monthlyTimer = 0;
+      this.processMonthlyTax();
+    }
   }
 
   /**
@@ -187,11 +210,19 @@ export default class MarketSystem {
       if (!resourceObj) continue;
 
       const resourceCap = resources.resourceCaps[resource] || 1000;
-      const supplyRatio = resourceObj.value / resourceCap;
+      const playerSupplyRatio = resourceObj.value / resourceCap;
+
+      // 獲取市場庫存情況
+      const marketInventoryInfo = this.marketInventory[resource] || { amount: 100, maxCapacity: 1000 };
+      const marketSupplyRatio = marketInventoryInfo.amount / marketInventoryInfo.maxCapacity;
+
+      // 結合玩家資源和市場庫存計算綜合供應比例
+      // 市場庫存影響更大 (70%)，玩家資源影響較小 (30%)
+      const combinedSupplyRatio = (marketSupplyRatio * 0.7) + (playerSupplyRatio * 0.3);
 
       // 根據供需關係調整價格
       // 資源越少，價格越高；資源越多，價格越低
-      const supplyFactor = 1 - supplyRatio; // 0-1，資源越少，值越高
+      const supplyFactor = 1 - combinedSupplyRatio; // 0-1，資源越少，值越高
 
       // 加入隨機波動
       const randomFactor = 1 + (Math.random() * 2 - 1) * priceInfo.volatility;
@@ -203,7 +234,11 @@ export default class MarketSystem {
       priceInfo.currentPrice = Math.max(1, Math.round(newPrice));
 
       // 更新供應因子
-      priceInfo.supply = supplyRatio;
+      priceInfo.supply = combinedSupplyRatio;
+
+      // 更新市場庫存信息
+      priceInfo.marketInventory = marketInventoryInfo.amount;
+      priceInfo.marketCapacity = marketInventoryInfo.maxCapacity;
     }
 
     console.log('市場價格已更新');
@@ -310,7 +345,7 @@ export default class MarketSystem {
   }
 
   /**
-   * 記錄交易
+   * 記錄交易並更新市場庫存
    * @param {string} resourceType - 資源類型
    * @param {number} amount - 交易數量 (正為買入，負為賣出)
    * @param {number} price - 交易價格
@@ -328,6 +363,22 @@ export default class MarketSystem {
     if (this.transactionHistory.length > 100) {
       this.transactionHistory.shift();
     }
+
+    // 更新市場庫存
+    if (this.marketInventory[resourceType]) {
+      // 負數表示消耗，所以市場庫存減少
+      // 正數表示玩家出售，市場庫存增加
+      this.marketInventory[resourceType].amount += amount;
+
+      // 確保庫存不會超出限制
+      this.marketInventory[resourceType].amount = Math.max(0, Math.min(
+        this.marketInventory[resourceType].amount,
+        this.marketInventory[resourceType].maxCapacity
+      ));
+
+      // 更新最後修改時間
+      this.marketInventory[resourceType].lastUpdate = Date.now();
+    }
   }
 
   /**
@@ -340,6 +391,165 @@ export default class MarketSystem {
   }
 
   /**
+   * 玩家出售資源到市場
+   * @param {string} resourceType - 資源類型
+   * @param {number} amount - 出售數量
+   * @param {Object} resources - 資源系統引用
+   * @returns {Object} - 交易結果 {success, profit, message}
+   */
+  playerSellResource(resourceType, amount, resources) {
+    // 檢查市場是否接受這種資源
+    if (!this.prices[resourceType]) {
+      return { success: false, profit: 0, message: '市場不接受這種資源' };
+    }
+
+    // 檢查市場庫存是否足夠
+    const marketInventoryInfo = this.marketInventory[resourceType];
+    if (!marketInventoryInfo) {
+      return { success: false, profit: 0, message: '市場庫存信息不存在' };
+    }
+
+    // 檢查市場庫存是否足夠
+    const remainingCapacity = marketInventoryInfo.maxCapacity - marketInventoryInfo.amount;
+    if (remainingCapacity < amount) {
+      return {
+        success: false,
+        profit: 0,
+        message: '市場庫存空間不足',
+        maxAmount: remainingCapacity
+      };
+    }
+
+    // 獲取當前價格
+    const currentPrice = this.getResourcePrice(resourceType);
+
+    // 計算實際交易價格 (根據數量調整價格)
+    // 大量出售會降低價格
+    const priceAdjustment = Math.max(0.7, 1 - (amount / 1000) * 0.3); // 最多降低30%
+    const actualPrice = Math.floor(currentPrice * priceAdjustment);
+
+    // 計算利潤
+    const profit = amount * actualPrice;
+
+    // 嘗試從玩家資源中扣除
+    const sellResult = resources.sellResourceToMarket(resourceType, amount, actualPrice);
+
+    if (sellResult.success) {
+      // 更新市場庫存和交易記錄
+      this.recordTransaction(resourceType, amount, actualPrice);
+
+      // 更新價格
+      // 大量出售會降低市場價格
+      const priceImpact = Math.min(0.2, (amount / marketInventoryInfo.maxCapacity) * 0.5);
+      this.prices[resourceType].currentPrice = Math.max(
+        1,
+        Math.floor(this.prices[resourceType].currentPrice * (1 - priceImpact))
+      );
+
+      // 增加月度營業額
+      this.monthlyRevenue += profit;
+
+      return sellResult;
+    } else {
+      return sellResult;
+    }
+  }
+
+  /**
+   * 玩家從市場購買資源
+   * @param {string} resourceType - 資源類型
+   * @param {number} amount - 購買數量
+   * @param {Object} resources - 資源系統引用
+   * @param {number} playerGold - 玩家擁有的金幣
+   * @returns {Object} - 交易結果 {success, cost, message, remainingGold}
+   */
+  playerBuyResource(resourceType, amount, resources, playerGold) {
+    // 檢查市場是否有這種資源
+    if (!this.prices[resourceType]) {
+      return { success: false, cost: 0, message: '市場沒有這種資源' };
+    }
+
+    // 檢查市場庫存是否足夠
+    const marketInventoryInfo = this.marketInventory[resourceType];
+    if (!marketInventoryInfo) {
+      return { success: false, cost: 0, message: '市場庫存信息不存在' };
+    }
+
+    // 檢查市場庫存是否足夠
+    if (marketInventoryInfo.amount < amount) {
+      return {
+        success: false,
+        cost: 0,
+        message: '市場庫存不足',
+        availableAmount: marketInventoryInfo.amount
+      };
+    }
+
+    // 獲取當前價格
+    const currentPrice = this.getResourcePrice(resourceType);
+
+    // 計算實際交易價格 (根據數量調整價格)
+    // 大量購買會提高價格
+    const priceAdjustment = Math.min(1.3, 1 + (amount / 1000) * 0.3); // 最多提高30%
+    const actualPrice = Math.ceil(currentPrice * priceAdjustment);
+
+    // 計算總成本
+    const totalCost = amount * actualPrice;
+
+    // 檢查玩家金幣是否足夠
+    if (playerGold < totalCost) {
+      return {
+        success: false,
+        cost: totalCost,
+        message: '金幣不足',
+        maxAffordableAmount: Math.floor(playerGold / actualPrice)
+      };
+    }
+
+    // 檢查玩家資源容量是否足夠
+    const resourceCap = resources.resourceCaps[resourceType] || Infinity;
+    const currentAmount = resources.resources[resourceType]?.value || 0;
+    const remainingCapacity = resourceCap - currentAmount;
+
+    if (remainingCapacity < amount) {
+      return {
+        success: false,
+        cost: 0,
+        message: '資源容量不足',
+        maxAmount: remainingCapacity
+      };
+    }
+
+    // 減少市場庫存
+    marketInventoryInfo.amount -= amount;
+
+    // 增加玩家資源
+    resources.resources[resourceType].value += amount;
+
+    // 記錄交易
+    this.recordTransaction(resourceType, -amount, actualPrice);
+
+    // 更新價格
+    // 大量購買會提高市場價格
+    const priceImpact = Math.min(0.2, (amount / marketInventoryInfo.maxCapacity) * 0.5);
+    this.prices[resourceType].currentPrice = Math.max(
+      1,
+      Math.ceil(this.prices[resourceType].currentPrice * (1 + priceImpact))
+    );
+
+    // 增加月度營業額
+    this.monthlyRevenue += totalCost;
+
+    // 返回交易結果
+    return {
+      success: true,
+      cost: totalCost,
+      message: `成功購買 ${amount} 個 ${resources.resources[resourceType].displayName || resourceType}`,
+      remainingGold: playerGold - totalCost
+    };
+  }
+
+  /**
    * 獲取市場統計信息
    * @returns {Object} - 市場統計
    */
@@ -347,7 +557,8 @@ export default class MarketSystem {
     const stats = {
       prices: {},
       demands: this.demands,
-      recentTransactions: this.transactionHistory.slice(-10)
+      recentTransactions: this.transactionHistory.slice(-10),
+      inventory: this.marketInventory
     };
 
     // 整理價格信息
@@ -356,7 +567,9 @@ export default class MarketSystem {
         currentPrice: priceInfo.currentPrice,
         basePrice: priceInfo.basePrice,
         priceRatio: priceInfo.currentPrice / priceInfo.basePrice,
-        supply: priceInfo.supply
+        supply: priceInfo.supply,
+        marketInventory: this.marketInventory[resource]?.amount || 0,
+        marketCapacity: this.marketInventory[resource]?.maxCapacity || 1000
       };
     }
 
@@ -370,5 +583,41 @@ export default class MarketSystem {
    */
   getClassDemands(socialClass) {
     return this.demands[socialClass] || {};
+  }
+
+  /**
+   * 處理月度稅收
+   */
+  processMonthlyTax() {
+    // 計算稅收
+    const taxAmount = Math.floor(this.monthlyRevenue * this.taxRate);
+
+    // 重置月度營業額
+    const oldRevenue = this.monthlyRevenue;
+    this.monthlyRevenue = 0;
+
+    // 觸發稅收事件
+    if (window.game && window.game.scene.scenes.length > 0) {
+      const gameScene = window.game.scene.scenes.find(scene => scene.key === 'GameScene');
+      if (gameScene && taxAmount > 0) {
+        gameScene.events.emit('taxCollected', taxAmount, oldRevenue);
+      }
+    }
+
+    console.log(`月度稅收處理完成，營業額: ${oldRevenue}，稅收: ${taxAmount}`);
+    return taxAmount;
+  }
+
+  /**
+   * 獲取當前月度稅收信息
+   * @returns {Object} - 稅收信息
+   */
+  getTaxInfo() {
+    return {
+      monthlyRevenue: this.monthlyRevenue,
+      taxRate: this.taxRate,
+      estimatedTax: Math.floor(this.monthlyRevenue * this.taxRate),
+      timeRemaining: this.monthlyInterval - this.monthlyTimer
+    };
   }
 }

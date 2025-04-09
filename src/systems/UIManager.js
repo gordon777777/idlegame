@@ -124,36 +124,82 @@ export default class UIManager {
     if (this.infoPanel) this.infoPanel.destroy();
 
     this.infoPanel = this.scene.add.container(400, 100);
-    const background = this.scene.add.rectangle(0, 0, 300, 200, 0x1a1a1a, 0.9)
+    // 增加背景高度以容納工人信息
+    const background = this.scene.add.rectangle(0, 0, 300, 250, 0x1a1a1a, 0.9)
       .setStrokeStyle(1, 0x4a4a4a);
 
     // Add title
-    const title = this.scene.add.text(0, -80, buildingInfo.name, {
+    const title = this.scene.add.text(0, -110, buildingInfo.name, {
       fontSize: '20px',
       fill: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5, 0);
 
     // Add close button
-    const closeButton = this.scene.add.rectangle(140, -80, 30, 30, 0x4a4a4a)
+    const closeButton = this.scene.add.rectangle(140, -110, 30, 30, 0x4a4a4a)
       .setInteractive()
       .on('pointerdown', () => this.closeBuildingInfo());
 
-    const closeText = this.scene.add.text(140, -80, 'X', {
+    const closeText = this.scene.add.text(140, -110, 'X', {
       fontSize: '18px',
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5);
 
     // Add level
-    const levelText = this.scene.add.text(0, -50, `等級: ${buildingInfo.level}`, {
+    const levelText = this.scene.add.text(0, -80, `等級: ${buildingInfo.level}`, {
       fontSize: '16px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
 
     // Add efficiency
-    const efficiencyText = this.scene.add.text(0, -30, `效率: ${(buildingInfo.efficiency * 100).toFixed(0)}%`, {
+    const efficiencyText = this.scene.add.text(0, -60, `效率: ${(buildingInfo.efficiency * 100).toFixed(0)}%`, {
       fontSize: '16px',
       fill: '#e0e0e0'
+    }).setOrigin(0.5, 0);
+
+    // 添加工人需求信息
+    let workerText = '';
+    if (buildingInfo.type !== 'housing' && this.scene.populationSystem) {
+      // 獲取建築需要的工人信息
+      const workerReq = this.scene.populationSystem.buildingWorkerRequirements[buildingInfo.type];
+      if (workerReq) {
+        // 獲取已分配的工人信息
+        const assignment = this.scene.populationSystem.workerAssignments.get(buildingInfo.id) || {};
+
+        // 按階層統計需求和已分配的工人
+        const classCounts = {
+          lower: { required: 0, assigned: 0 },
+          middle: { required: 0, assigned: 0 },
+          upper: { required: 0, assigned: 0 }
+        };
+
+        // 統計需求工人
+        for (const [workerType, count] of Object.entries(workerReq.workers)) {
+          const socialClass = this.scene.populationSystem.workerTypes[workerType].socialClass;
+          classCounts[socialClass].required += count;
+        }
+
+        // 統計已分配工人
+        for (const [workerType, count] of Object.entries(assignment)) {
+          const socialClass = this.scene.populationSystem.workerTypes[workerType].socialClass;
+          classCounts[socialClass].assigned += count;
+        }
+
+        // 生成工人需求文本
+        workerText = '工人需求:\n';
+        for (const [className, counts] of Object.entries(classCounts)) {
+          if (counts.required > 0) {
+            const classDisplayName = this.getClassDisplayName(className);
+            workerText += `${classDisplayName}: ${counts.assigned}/${counts.required}\n`;
+          }
+        }
+      }
+    }
+
+    const workerInfoText = this.scene.add.text(0, -40, workerText, {
+      fontSize: '14px',
+      fill: '#e0e0e0',
+      align: 'center'
     }).setOrigin(0.5, 0);
 
     // Add recipe info
@@ -171,7 +217,7 @@ export default class UIManager {
       recipeText += `${this.getResourceDisplayName(resource)} x${amount} `;
     });
 
-    const recipe = this.scene.add.text(0, -10, recipeText, {
+    const recipe = this.scene.add.text(0, 10, recipeText, {
       fontSize: '14px',
       fill: '#e0e0e0',
       align: 'center'
@@ -179,22 +225,22 @@ export default class UIManager {
 
     // Add production time
     const productionTime = (buildingInfo.productionInterval / 1000).toFixed(1);
-    const timeText = this.scene.add.text(0, 30, `生產時間: ${productionTime} 秒`, {
+    const timeText = this.scene.add.text(0, 50, `生產時間: ${productionTime} 秒`, {
       fontSize: '14px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
 
     // Add upgrade button
-    const upgradeButton = this.scene.add.rectangle(0, 70, 120, 30, 0x4a4a4a)
+    const upgradeButton = this.scene.add.rectangle(0, 90, 120, 30, 0x4a4a4a)
       .setInteractive()
       .on('pointerdown', () => this.handleBuildingUpgrade(buildingInfo.id));
 
-    const upgradeText = this.scene.add.text(0, 70, '升級', {
+    const upgradeText = this.scene.add.text(0, 90, '升級', {
       fontSize: '16px',
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5);
 
-    this.infoPanel.add([background, title, closeButton, closeText, levelText, efficiencyText, recipe, timeText, upgradeButton, upgradeText]);
+    this.infoPanel.add([background, title, closeButton, closeText, levelText, efficiencyText, workerInfoText, recipe, timeText, upgradeButton, upgradeText]);
   }
 
   handleBuildingSelect(buildingType) {
@@ -521,83 +567,109 @@ export default class UIManager {
       classYPos += 30;
     }
 
-    // 添加工人類型列表標題
-    const workersTitle = this.scene.add.text(-280, -80, '工人類型', {
+    // 添加工人階層列表標題
+    const workersTitle = this.scene.add.text(-280, -80, '工人階層', {
       fontSize: '18px',
       fill: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0, 0.5);
     classElements.push(workersTitle);
 
-    // 添加工人類型列表
-    const workerTypes = Object.entries(stats.workers);
+    // 按階層分組顯示工人
     const workerElements = [];
+    let yPos = -40;
 
-    workerTypes.forEach(([type, data], index) => {
-      const yPos = -40 + (index * 60);
-
-      // 工人名稱和階層
-      const nameText = this.scene.add.text(-280, yPos, data.displayName, {
+    // 遍歷每個階層
+    for (const [className, classData] of Object.entries(stats.socialClasses)) {
+      // 階層標題
+      const classTitle = this.scene.add.text(-280, yPos, classData.name, {
         fontSize: '16px',
-        fill: '#ffffff',
+        fill: this.getClassColor(className),
         fontStyle: 'bold'
       }).setOrigin(0, 0.5);
 
-      // 階層標識
-      const classLabel = this.scene.add.text(-200, yPos, `[${stats.socialClasses[data.socialClass].name}]`, {
-        fontSize: '14px',
-        fill: this.getClassColor(data.socialClass)
-      }).setOrigin(0, 0.5);
-
-      // 工人數量
-      const countText = this.scene.add.text(-280, yPos + 20, `數量: ${data.count} (可用: ${data.available})`, {
+      // 階層總人數
+      const classTotalText = this.scene.add.text(-180, yPos, `總人數: ${classData.count}`, {
         fontSize: '14px',
         fill: '#e0e0e0'
       }).setOrigin(0, 0.5);
 
-      // 經驗值
-      const expText = this.scene.add.text(-120, yPos + 20, `經驗: ${data.experience}`, {
+      // 階層幸福度
+      const happinessColor = this.getHappinessColor(classData.happiness || 50);
+      const happinessText = this.scene.add.text(-50, yPos, `幸福度: ${classData.happiness || 50}%`, {
+        fontSize: '14px',
+        fill: happinessColor
+      }).setOrigin(0, 0.5);
+
+      workerElements.push(classTitle, classTotalText, happinessText);
+
+      // 計算這個階層的可用工人數量
+      let availableWorkers = 0;
+      let totalWorkers = 0;
+
+      // 統計這個階層的工人類型數據
+      for (const workerType of this.scene.populationSystem.socialClasses[className].workerTypes) {
+        const workerData = stats.workers[workerType];
+        if (workerData) {
+          availableWorkers += workerData.available;
+          totalWorkers += workerData.count;
+        }
+      }
+
+      // 顯示可用工人數量
+      const availableText = this.scene.add.text(100, yPos, `可用: ${availableWorkers}/${totalWorkers}`, {
         fontSize: '14px',
         fill: '#e0e0e0'
       }).setOrigin(0, 0.5);
 
-      // 工人描述
-      const descText = this.scene.add.text(-20, yPos, data.description, {
-        fontSize: '14px',
-        fill: '#cccccc',
-        wordWrap: { width: 250 }
-      }).setOrigin(0, 0.5);
+      workerElements.push(availableText);
 
-      // 訓練按鈕
-      if (type !== 'peasant') { // 農民不需要訓練
-        const trainButton = this.scene.add.rectangle(230, yPos, 80, 30, 0x4a4a4a)
+      // 添加吸引移民按鈕 (只為中層和上層添加)
+      if (className === 'middle' || className === 'upper') {
+        const immigrantButton = this.scene.add.rectangle(230, yPos, 120, 30, 0x4a6a4a)
           .setInteractive()
-          .on('pointerdown', () => this.trainWorker(type));
+          .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
 
-        const trainText = this.scene.add.text(230, yPos, '訓練', {
+        const immigrantText = this.scene.add.text(230, yPos, `吸引${this.getClassDisplayName(className)}移民`, {
           fontSize: '14px',
           fill: '#ffffff'
         }).setOrigin(0.5, 0.5);
 
-        workerElements.push(trainButton, trainText);
+        workerElements.push(immigrantButton, immigrantText);
       }
 
-      // 晉升按鈕
-      if (data.canPromote) {
-        const promoteButton = this.scene.add.rectangle(230, yPos + 20, 80, 20, 0x2d6a4a)
-          .setInteractive()
-          .on('pointerdown', () => this.showPromotionOptions(type));
+      // 列出這個階層的工人類型
+      yPos += 30;
+      const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
 
-        const promoteText = this.scene.add.text(230, yPos + 20, '晉升', {
+      for (const workerType of workerTypesInClass) {
+        const data = stats.workers[workerType];
+        if (!data) continue;
+
+        // 工人名稱
+        const nameText = this.scene.add.text(-260, yPos, data.displayName, {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 工人數量
+        const countText = this.scene.add.text(-120, yPos, `數量: ${data.count} (可用: ${data.available})`, {
           fontSize: '12px',
-          fill: '#ffffff'
-        }).setOrigin(0.5, 0.5);
+          fill: '#cccccc'
+        }).setOrigin(0, 0.5);
 
-        workerElements.push(promoteButton, promoteText);
+        // 經驗值
+        const expText = this.scene.add.text(50, yPos, `經驗: ${data.experience}`, {
+          fontSize: '12px',
+          fill: '#cccccc'
+        }).setOrigin(0, 0.5);
+
+        workerElements.push(nameText, countText, expText);
+        yPos += 20;
       }
 
-      workerElements.push(nameText, classLabel, countText, expText, descText);
-    });
+      yPos += 20; // 階層之間的額外空間
+    }
 
     // 添加所有元素到面板
     this.workerPanel.add([background, title, closeButton, closeText, ...classElements, ...workerElements]);
@@ -822,6 +894,207 @@ export default class UIManager {
         errorText.destroy();
       });
     }
+  }
+
+  /**
+   * 顯示吸引移民面板
+   * @param {string} targetClass - 目標階層 ('middle' 或 'upper')
+   */
+  showAttractImmigrantsPanel(targetClass) {
+    // 如果已存在移民面板，先移除
+    if (this.immigrantsPanel) {
+      this.immigrantsPanel.destroy();
+      this.immigrantsPanel = null;
+      return;
+    }
+
+    // 創建面板
+    this.immigrantsPanel = this.scene.add.container(400, 300);
+
+    // 創建背景
+    const background = this.scene.add.rectangle(0, 0, 400, 300, 0x1a1a1a, 0.95)
+      .setStrokeStyle(1, 0x4a4a4a);
+
+    // 添加標題
+    const title = this.scene.add.text(0, -130, `吸引${this.getClassDisplayName(targetClass)}移民`, {
+      fontSize: '20px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0);
+
+    // 添加關閉按鈕
+    const closeButton = this.scene.add.rectangle(180, -130, 30, 30, 0x4a4a4a)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.immigrantsPanel.destroy();
+        this.immigrantsPanel = null;
+      });
+
+    const closeText = this.scene.add.text(180, -130, 'X', {
+      fontSize: '18px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加說明文字
+    const costPerImmigrant = targetClass === 'middle' ? 50 : 200;
+    const infoText = this.scene.add.text(0, -90, `吸引${this.getClassDisplayName(targetClass)}移民\n每位移民需要 ${costPerImmigrant} 金幣`, {
+      fontSize: '16px',
+      fill: '#e0e0e0',
+      align: 'center'
+    }).setOrigin(0.5, 0);
+
+    // 添加金幣顯示
+    const playerGold = this.scene.playerGold || 0;
+    const goldText = this.scene.add.text(0, -40, `目前擁有金幣: ${Math.floor(playerGold)}`, {
+      fontSize: '16px',
+      fill: '#ffdd00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0);
+
+    // 添加數量輸入框
+    const amountLabel = this.scene.add.text(-100, 0, '移民數量:', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0, 0.5);
+
+    let selectedAmount = 1;
+
+    const amountInput = this.scene.add.rectangle(0, 0, 100, 30, 0x2d2d2d)
+      .setInteractive()
+      .on('pointerdown', () => {
+        // 彈出輸入框
+        this.scene.input.keyboard.createTextInput({
+          onTextChanged: (text) => {
+            // 限制只能輸入數字
+            const numericText = text.replace(/[^0-9]/g, '');
+            selectedAmount = parseInt(numericText) || 1;
+            amountText.setText(selectedAmount.toString());
+            updatePreview();
+          }
+        });
+      });
+
+    const amountText = this.scene.add.text(0, 0, '1', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加快速選擇按鈕
+    const quickButtons = [];
+    const quickAmounts = [1, 5, 10, 20];
+    let xPos = 50;
+
+    quickAmounts.forEach(amount => {
+      const quickButton = this.scene.add.rectangle(xPos, 0, 40, 20, 0x4a4a6a)
+        .setInteractive()
+        .on('pointerdown', () => {
+          selectedAmount = amount;
+          amountText.setText(selectedAmount.toString());
+          updatePreview();
+        });
+
+      const quickText = this.scene.add.text(xPos, 0, amount.toString(), {
+        fontSize: '12px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      quickButtons.push(quickButton, quickText);
+      xPos += 45;
+    });
+
+    // 添加預覽區域
+    const previewBackground = this.scene.add.rectangle(0, 50, 350, 60, 0x2d2d2d, 0.7);
+
+    const previewText = this.scene.add.text(0, 50, '選擇移民數量以查看預計成本', {
+      fontSize: '14px',
+      fill: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5, 0.5);
+
+    // 更新預覽函數
+    const updatePreview = () => {
+      const totalCost = selectedAmount * costPerImmigrant;
+      const canAfford = playerGold >= totalCost;
+
+      // 檢查住房容量
+      const availableHousing = this.scene.populationSystem.housingCapacity - this.scene.populationSystem.totalPopulation;
+      const housingLimited = selectedAmount > availableHousing;
+
+      if (housingLimited) {
+        previewText.setText(`住房容量不足！最多可吸引 ${availableHousing} 名移民`);
+        return;
+      }
+
+      if (!canAfford) {
+        previewText.setText(`金幣不足！需要 ${totalCost} 金幣\n目前只有 ${Math.floor(playerGold)} 金幣`);
+      } else {
+        previewText.setText(`吸引 ${selectedAmount} 名 ${this.getClassDisplayName(targetClass)} 移民\n預計成本: ${totalCost} 金幣`);
+      }
+    };
+
+    // 初始化預覽
+    updatePreview();
+
+    // 添加確認按鈕
+    const confirmButton = this.scene.add.rectangle(0, 100, 120, 30, 0x4a6a4a)
+      .setInteractive()
+      .on('pointerdown', () => {
+        // 嘗試吸引移民
+        const result = this.scene.populationSystem.attractImmigrants(
+          targetClass,
+          selectedAmount,
+          this.scene.playerGold
+        );
+
+        if (result.success) {
+          // 更新金幣
+          this.scene.playerGold = result.remainingGold;
+
+          // 顯示成功消息
+          previewText.setText(result.message);
+
+          // 更新金幣顯示
+          goldText.setText(`目前擁有金幣: ${Math.floor(this.scene.playerGold)}`);
+
+          // 更新工人面板
+          setTimeout(() => {
+            this.createWorkerPanel();
+            this.immigrantsPanel.destroy();
+            this.immigrantsPanel = null;
+          }, 1500);
+        } else {
+          // 顯示錯誤消息
+          previewText.setText(result.message);
+        }
+      });
+
+    const confirmText = this.scene.add.text(0, 100, '確認吸引', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加所有元素到面板
+    this.immigrantsPanel.add([
+      background, title, closeButton, closeText, infoText, goldText,
+      amountLabel, amountInput, amountText,
+      ...quickButtons,
+      previewBackground, previewText,
+      confirmButton, confirmText
+    ]);
+  }
+
+  /**
+   * 獲取階層的顯示名稱
+   * @param {string} className - 階層名稱
+   * @returns {string} - 顯示名稱
+   */
+  getClassDisplayName(className) {
+    const classNames = {
+      'lower': '下層階級',
+      'middle': '中層階級',
+      'upper': '上層階級'
+    };
+    return classNames[className] || className;
   }
 
   /**
@@ -1054,7 +1327,17 @@ export default class UIManager {
       fontStyle: 'bold'
     }).setOrigin(0.5, 0.5);
 
-    priceElements.push(transactionTitle);
+    // 添加交易資源按鈕（合併買賣功能）
+    const tradeButton = this.scene.add.rectangle(200, -160, 120, 30, 0x4a6a6a)
+      .setInteractive()
+      .on('pointerdown', () => this.showMarketResourcePanel());
+
+    const tradeButtonText = this.scene.add.text(200, -160, '交易資源', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    priceElements.push(transactionTitle, tradeButton, tradeButtonText);
 
     // 添加最近交易列表
     let transactionYPos = -180;
@@ -1126,5 +1409,791 @@ export default class UIManager {
     };
 
     return nameMap[goodType] || goodType;
+  }
+
+  /**
+   * 顯示市場資源交易面板（合併買賣功能）
+   */
+  showMarketResourcePanel() {
+    // 如果已存在交易面板，先移除
+    if (this.marketResourcePanel) {
+      this.marketResourcePanel.destroy();
+      this.marketResourcePanel = null;
+    }
+
+    // 將面板設為可見
+    console.log('創建市場資源交易面板');
+
+    // 如果已存在出售面板，先移除
+    if (this.sellResourcePanel) {
+      this.sellResourcePanel.destroy();
+      this.sellResourcePanel = null;
+    }
+
+    // 如果已存在購買面板，先移除
+    if (this.buyResourcePanel) {
+      this.buyResourcePanel.destroy();
+      this.buyResourcePanel = null;
+    }
+
+    // 獲取資源列表和市場統計
+    const resources = this.scene.resources.resources;
+    const marketStats = this.scene.marketSystem.getMarketStats();
+    const playerGold = this.scene.playerGold || 0;
+
+    // 創建面板 - 確保它在畫面中央
+    const centerX = this.scene.scale.width / 2;
+    const centerY = this.scene.scale.height / 2;
+    this.marketResourcePanel = this.scene.add.container(centerX, centerY);
+    this.marketResourcePanel.setDepth(100); // 確保面板在最上層
+
+    // 創建背景 - 增加面板寬度以容納買賣功能
+    const background = this.scene.add.rectangle(0, 0, 600, 500, 0x1a1a1a, 0.95)
+      .setStrokeStyle(1, 0x4a4a4a);
+
+    // 添加標題
+    const title = this.scene.add.text(0, -230, '市場資源交易', {
+      fontSize: '22px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0);
+
+    // 添加關閉按鈕
+    const closeButton = this.scene.add.rectangle(280, -230, 30, 30, 0x4a4a4a)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.marketResourcePanel.destroy();
+        this.marketResourcePanel = null;
+      });
+
+    const closeText = this.scene.add.text(280, -230, 'X', {
+      fontSize: '18px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加說明文字
+    const infoText = this.scene.add.text(0, -190, '選擇資源並選擇買入或賣出操作\n大量交易會影響市場價格', {
+      fontSize: '14px',
+      fill: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5, 0);
+
+    // 添加金幣顯示
+    const goldText = this.scene.add.text(0, -160, `目前擁有金幣: ${Math.floor(playerGold)}`, {
+      fontSize: '16px',
+      fill: '#ffdd00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0);
+
+    // 添加資源列表
+    const resourceElements = [];
+    let yPos = -130;
+    let selectedResource = null;
+    let selectedAmount = 0;
+    let tradeMode = null; // 'buy' 或 'sell'
+
+    // 按照資源層級分組顯示
+    const resourcesByTier = {};
+
+    // 分類資源
+    for (const [resourceType, resourceData] of Object.entries(resources)) {
+      const tier = resourceData.tier || 1;
+      if (!resourcesByTier[tier]) resourcesByTier[tier] = [];
+
+      // 只顯示有市場價格的資源
+      if (marketStats.prices[resourceType]) {
+        resourcesByTier[tier].push({ type: resourceType, data: resourceData });
+      }
+    }
+
+    // 創建資源選擇列表
+    for (let tier = 1; tier <= 4; tier++) {
+      if (!resourcesByTier[tier] || resourcesByTier[tier].length === 0) continue;
+
+      // 層級標題
+      const tierTitle = this.scene.add.text(-280, yPos, `第 ${tier} 層資源`, {
+        fontSize: '16px',
+        fill: '#cccccc',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      resourceElements.push(tierTitle);
+      yPos += 25;
+
+      // 顯示該層級的資源
+      for (const { type, data } of resourcesByTier[tier]) {
+        // 資源名稱
+        const nameText = this.scene.add.text(-280, yPos, this.getResourceDisplayName(type), {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 當前擁有數量
+        const amountText = this.scene.add.text(-180, yPos, `擁有: ${Math.floor(data.value)}/${resources.resourceCaps[type] || 'N/A'}`, {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 當前價格
+        const priceInfo = marketStats.prices[type];
+        const priceColor = priceInfo.priceRatio > 1.1 ? '#ff6666' : (priceInfo.priceRatio < 0.9 ? '#66ff66' : '#ffffff');
+        const priceText = this.scene.add.text(-50, yPos, `價格: ${priceInfo.currentPrice}`, {
+          fontSize: '14px',
+          fill: priceColor
+        }).setOrigin(0, 0.5);
+
+        // 市場庫存
+        const inventoryText = this.scene.add.text(70, yPos, `市場: ${priceInfo.marketInventory}/${priceInfo.marketCapacity}`, {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 買入按鈕
+        const buyButton = this.scene.add.rectangle(180, yPos, 60, 20, 0x4a6a6a)
+          .setInteractive()
+          .on('pointerdown', () => {
+            selectedResource = type;
+            tradeMode = 'buy';
+            // 更新選擇狀態
+            resourceElements.forEach(el => {
+              if (el.resourceType === type && el.tradeMode === 'buy') {
+                el.setFillStyle(0x6a8a6a); // 選中狀態
+              } else if (el.resourceType) {
+                if (el.tradeMode === 'buy') {
+                  el.setFillStyle(0x4a6a6a); // 非選中狀態
+                } else if (el.tradeMode === 'sell') {
+                  el.setFillStyle(0x6a4a4a); // 非選中狀態
+                }
+              }
+            });
+            // 更新輸入框和預覽
+            updateTradePreview();
+          });
+
+        buyButton.resourceType = type; // 添加資源類型屬性
+        buyButton.tradeMode = 'buy'; // 添加交易模式屬性
+
+        const buyText = this.scene.add.text(180, yPos, '買入', {
+          fontSize: '12px',
+          fill: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+
+        // 賣出按鈕
+        const sellButton = this.scene.add.rectangle(250, yPos, 60, 20, 0x6a4a4a)
+          .setInteractive()
+          .on('pointerdown', () => {
+            selectedResource = type;
+            tradeMode = 'sell';
+            // 更新選擇狀態
+            resourceElements.forEach(el => {
+              if (el.resourceType === type && el.tradeMode === 'sell') {
+                el.setFillStyle(0x8a4a4a); // 選中狀態
+              } else if (el.resourceType) {
+                if (el.tradeMode === 'sell') {
+                  el.setFillStyle(0x6a4a4a); // 非選中狀態
+                } else if (el.tradeMode === 'buy') {
+                  el.setFillStyle(0x4a6a6a); // 非選中狀態
+                }
+              }
+            });
+            // 更新輸入框和預覽
+            updateTradePreview();
+          });
+
+        sellButton.resourceType = type; // 添加資源類型屬性
+        sellButton.tradeMode = 'sell'; // 添加交易模式屬性
+
+        const sellText = this.scene.add.text(250, yPos, '賣出', {
+          fontSize: '12px',
+          fill: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+
+        resourceElements.push(nameText, amountText, priceText, inventoryText, buyButton, buyText, sellButton, sellText);
+        yPos += 25;
+      }
+
+      yPos += 10; // 層級之間的額外空間
+    }
+
+    // 添加數量輸入框
+    const amountLabel = this.scene.add.text(-100, 120, '交易數量:', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0, 0.5);
+
+    const amountInput = this.scene.add.rectangle(0, 120, 100, 30, 0x2d2d2d)
+      .setInteractive()
+      .on('pointerdown', () => {
+        // 彈出輸入框
+        this.scene.input.keyboard.createTextInput({
+          onTextChanged: (text) => {
+            // 限制只能輸入數字
+            const numericText = text.replace(/[^0-9]/g, '');
+            selectedAmount = parseInt(numericText) || 0;
+            updateTradePreview();
+          }
+        });
+      });
+
+    const amountText = this.scene.add.text(0, 120, '0', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加快速選擇按鈕
+    const quickButtons = [];
+    const quickAmounts = [10, 50, 100, 'Max'];
+    let xPos = 50;
+
+    quickAmounts.forEach(amount => {
+      const quickButton = this.scene.add.rectangle(xPos, 120, 40, 20, 0x4a4a6a)
+        .setInteractive()
+        .on('pointerdown', () => {
+          if (selectedResource) {
+            if (amount === 'Max') {
+              // 根據交易模式設置最大數量
+              if (tradeMode === 'sell') {
+                // 出售模式，最大為玩家所有的資源數量
+                selectedAmount = Math.floor(resources[selectedResource].value);
+              } else if (tradeMode === 'buy') {
+                // 購買模式，計算最大可購買數量
+                const priceInfo = marketStats.prices[selectedResource];
+                const currentPrice = priceInfo.currentPrice;
+                const marketInventory = priceInfo.marketInventory;
+                const resourceCap = this.scene.resources.resourceCaps[selectedResource] || Infinity;
+                const currentAmount = resources[selectedResource].value;
+                const remainingCapacity = resourceCap - currentAmount;
+                const maxAffordable = Math.floor(playerGold / currentPrice);
+
+                // 取最小值：市場庫存、可購買數量、剩餘容量
+                selectedAmount = Math.min(marketInventory, maxAffordable, remainingCapacity);
+              }
+            } else {
+              selectedAmount = amount;
+            }
+            amountText.setText(selectedAmount.toString());
+            updateTradePreview();
+          }
+        });
+
+      const quickText = this.scene.add.text(xPos, 120, amount.toString(), {
+        fontSize: '12px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      quickButtons.push(quickButton, quickText);
+      xPos += 45;
+    });
+
+    // 添加預覽區域
+    const previewBackground = this.scene.add.rectangle(0, 160, 400, 60, 0x2d2d2d, 0.7);
+
+    const previewText = this.scene.add.text(0, 160, '選擇資源、交易模式和數量以查看預覽', {
+      fontSize: '14px',
+      fill: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加確認交易按鈕
+    const tradeConfirmButton = this.scene.add.rectangle(0, 200, 120, 30, 0x6a4a6a)
+      .setInteractive()
+      .on('pointerdown', () => {
+        if (selectedResource && selectedAmount > 0 && tradeMode) {
+          let result;
+
+          if (tradeMode === 'sell') {
+            // 執行出售操作
+            result = this.scene.marketSystem.playerSellResource(
+              selectedResource,
+              selectedAmount,
+              this.scene.resources
+            );
+          } else if (tradeMode === 'buy') {
+            // 執行購買操作
+            result = this.scene.marketSystem.playerBuyResource(
+              selectedResource,
+              selectedAmount,
+              this.scene.resources,
+              this.scene.playerGold
+            );
+
+            // 更新金幣顯示
+            if (result.success) {
+              this.scene.playerGold = result.remainingGold;
+              goldText.setText(`目前擁有金幣: ${Math.floor(this.scene.playerGold)}`);
+            }
+          }
+
+          // 顯示結果
+          previewText.setText(result.message);
+
+          if (result.success) {
+            // 重置選擇
+            selectedResource = null;
+            selectedAmount = 0;
+            tradeMode = null;
+            amountText.setText('0');
+
+            // 更新資源顯示
+            this.updateResources(this.scene.resources.resources);
+
+            // 重新渲染資源列表
+            setTimeout(() => {
+              this.marketResourcePanel.destroy();
+              this.marketResourcePanel = null;
+              this.showMarketResourcePanel();
+            }, 1500);
+          }
+        } else {
+          previewText.setText('請選擇資源、交易模式並輸入有效數量');
+        }
+      });
+
+    const tradeConfirmText = this.scene.add.text(0, 200, '確認交易', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 更新交易預覽函數
+    const updateTradePreview = () => {
+      if (!selectedResource || !tradeMode) {
+        previewText.setText('選擇資源、交易模式和數量以查看預覽');
+        return;
+      }
+
+      if (selectedAmount <= 0) {
+        previewText.setText('請輸入有效的交易數量');
+        return;
+      }
+
+      const resourceData = resources[selectedResource];
+      const priceInfo = marketStats.prices[selectedResource];
+
+      if (!resourceData || !priceInfo) {
+        previewText.setText('無法獲取資源信息');
+        return;
+      }
+
+      if (tradeMode === 'sell') {
+        // 出售模式預覽
+
+        // 檢查數量是否足夠
+        if (resourceData.value < selectedAmount) {
+          previewText.setText(`資源不足！最多可出售 ${Math.floor(resourceData.value)} 個`);
+          return;
+        }
+
+        // 檢查市場庫存是否足夠
+        const marketInventory = priceInfo.marketInventory || 0;
+        const marketCapacity = priceInfo.marketCapacity || 1000;
+        const remainingCapacity = marketCapacity - marketInventory;
+
+        if (remainingCapacity < selectedAmount) {
+          previewText.setText(`市場庫存空間不足！最多可出售 ${remainingCapacity} 個`);
+          return;
+        }
+
+        // 計算實際交易價格 (根據數量調整價格)
+        const priceAdjustment = Math.max(0.7, 1 - (selectedAmount / 1000) * 0.3);
+        const actualPrice = Math.floor(priceInfo.currentPrice * priceAdjustment);
+        const totalProfit = selectedAmount * actualPrice;
+
+        // 顯示預覽信息
+        previewText.setText(
+          `出售 ${selectedAmount} 個 ${resourceData.displayName || selectedResource}\n` +
+          `單價: ${actualPrice} (原價: ${priceInfo.currentPrice})\n` +
+          `預計收益: ${totalProfit} 金幣`
+        );
+      } else if (tradeMode === 'buy') {
+        // 購買模式預覽
+
+        // 檢查市場庫存是否足夠
+        const marketInventory = priceInfo.marketInventory || 0;
+
+        if (marketInventory < selectedAmount) {
+          previewText.setText(`市場庫存不足！最多可購買 ${marketInventory} 個`);
+          return;
+        }
+
+        // 檢查資源容量是否足夠
+        const resourceCap = this.scene.resources.resourceCaps[selectedResource] || Infinity;
+        const currentAmount = resourceData.value;
+        const remainingCapacity = resourceCap - currentAmount;
+
+        if (remainingCapacity < selectedAmount) {
+          previewText.setText(`資源容量不足！最多可購買 ${Math.floor(remainingCapacity)} 個`);
+          return;
+        }
+
+        // 計算實際交易價格 (根據數量調整價格)
+        const priceAdjustment = Math.min(1.3, 1 + (selectedAmount / 1000) * 0.3);
+        const actualPrice = Math.ceil(priceInfo.currentPrice * priceAdjustment);
+        const totalCost = selectedAmount * actualPrice;
+
+        // 檢查金幣是否足夠
+        if (playerGold < totalCost) {
+          const maxAffordable = Math.floor(playerGold / actualPrice);
+          previewText.setText(`金幣不足！最多可購買 ${maxAffordable} 個`);
+          return;
+        }
+
+        // 顯示預覽信息
+        previewText.setText(
+          `購買 ${selectedAmount} 個 ${resourceData.displayName || selectedResource}\n` +
+          `單價: ${actualPrice} (原價: ${priceInfo.currentPrice})\n` +
+          `預計成本: ${totalCost} 金幣`
+        );
+      }
+    };
+
+    // 添加所有元素到面板
+    this.marketResourcePanel.add([
+      background, title, closeButton, closeText, infoText, goldText,
+      ...resourceElements,
+      amountLabel, amountInput, amountText,
+      ...quickButtons,
+      previewBackground, previewText,
+      tradeConfirmButton, tradeConfirmText
+    ]);
+  }
+
+  /**
+   * 顯示購買資源面板
+   */
+  showBuyResourcePanel() {
+    // 如果已存在購買面板，先移除
+    if (this.buyResourcePanel) {
+      this.buyResourcePanel.destroy();
+      this.buyResourcePanel = null;
+      return;
+    }
+
+    // 如果已存在出售面板，先移除
+    if (this.sellResourcePanel) {
+      this.sellResourcePanel.destroy();
+      this.sellResourcePanel = null;
+    }
+
+    // 獲取可購買的資源列表
+    const resources = this.scene.resources.resources;
+    const marketStats = this.scene.marketSystem.getMarketStats();
+    const playerGold = this.scene.playerGold || 0;
+
+    // 創建面板
+    this.buyResourcePanel = this.scene.add.container(400, 300);
+
+    // 創建背景
+    const background = this.scene.add.rectangle(0, 0, 500, 400, 0x1a1a1a, 0.95)
+      .setStrokeStyle(1, 0x4a4a4a);
+
+    // 添加標題
+    const title = this.scene.add.text(0, -180, '從市場購買資源', {
+      fontSize: '20px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0);
+
+    // 添加關閉按鈕
+    const closeButton = this.scene.add.rectangle(230, -180, 30, 30, 0x4a4a4a)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.buyResourcePanel.destroy();
+        this.buyResourcePanel = null;
+      });
+
+    const closeText = this.scene.add.text(230, -180, 'X', {
+      fontSize: '18px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加說明文字
+    const infoText = this.scene.add.text(0, -140, '選擇資源並輸入數量進行購買\n購買大量資源會提高價格', {
+      fontSize: '14px',
+      fill: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5, 0);
+
+    // 添加金幣顯示
+    const goldText = this.scene.add.text(0, -110, `目前擁有金幣: ${Math.floor(playerGold)}`, {
+      fontSize: '16px',
+      fill: '#ffdd00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0);
+
+    // 添加資源列表
+    const resourceElements = [];
+    let yPos = -80;
+    let selectedResource = null;
+    let selectedAmount = 0;
+
+    // 按照資源層級分組顯示
+    const resourcesByTier = {};
+
+    // 分類資源
+    for (const [resourceType, resourceData] of Object.entries(resources)) {
+      const tier = resourceData.tier || 1;
+      if (!resourcesByTier[tier]) resourcesByTier[tier] = [];
+
+      // 只顯示有市場價格的資源
+      if (marketStats.prices[resourceType]) {
+        resourcesByTier[tier].push({ type: resourceType, data: resourceData });
+      }
+    }
+
+    // 創建資源選擇列表
+    for (let tier = 1; tier <= 4; tier++) {
+      if (!resourcesByTier[tier] || resourcesByTier[tier].length === 0) continue;
+
+      // 層級標題
+      const tierTitle = this.scene.add.text(-230, yPos, `第 ${tier} 層資源`, {
+        fontSize: '16px',
+        fill: '#cccccc',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      resourceElements.push(tierTitle);
+      yPos += 25;
+
+      // 顯示該層級的資源
+      for (const { type, data } of resourcesByTier[tier]) {
+        // 資源名稱
+        const nameText = this.scene.add.text(-220, yPos, this.getResourceDisplayName(type), {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 當前擁有數量
+        const amountText = this.scene.add.text(-100, yPos, `擁有: ${Math.floor(data.value)}/${resources.resourceCaps[type] || 'N/A'}`, {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 當前價格
+        const priceInfo = marketStats.prices[type];
+        const priceColor = priceInfo.priceRatio > 1.1 ? '#ff6666' : (priceInfo.priceRatio < 0.9 ? '#66ff66' : '#ffffff');
+        const priceText = this.scene.add.text(0, yPos, `價格: ${priceInfo.currentPrice}`, {
+          fontSize: '14px',
+          fill: priceColor
+        }).setOrigin(0, 0.5);
+
+        // 市場庫存
+        const inventoryText = this.scene.add.text(100, yPos, `市場: ${priceInfo.marketInventory}/${priceInfo.marketCapacity}`, {
+          fontSize: '14px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 選擇按鈕
+        const selectButton = this.scene.add.rectangle(200, yPos, 60, 20, 0x4a4a6a)
+          .setInteractive()
+          .on('pointerdown', () => {
+            selectedResource = type;
+            // 更新選擇狀態
+            resourceElements.forEach(el => {
+              if (el.resourceType === type) {
+                el.setFillStyle(0x6a8a6a); // 選中狀態
+              } else if (el.resourceType) {
+                el.setFillStyle(0x4a4a6a); // 非選中狀態
+              }
+            });
+            // 更新輸入框和預覽
+            updateBuyPreview();
+          });
+
+        selectButton.resourceType = type; // 添加資源類型屬性
+
+        const selectText = this.scene.add.text(200, yPos, '選擇', {
+          fontSize: '12px',
+          fill: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+
+        resourceElements.push(nameText, amountText, priceText, inventoryText, selectButton, selectText);
+        yPos += 25;
+      }
+
+      yPos += 10; // 層級之間的額外空間
+    }
+
+    // 添加數量輸入框
+    const amountLabel = this.scene.add.text(-100, 120, '購買數量:', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0, 0.5);
+
+    const amountInput = this.scene.add.rectangle(0, 120, 100, 30, 0x2d2d2d)
+      .setInteractive()
+      .on('pointerdown', () => {
+        // 彈出輸入框
+        this.scene.input.keyboard.createTextInput({
+          onTextChanged: (text) => {
+            // 限制只能輸入數字
+            const numericText = text.replace(/[^0-9]/g, '');
+            selectedAmount = parseInt(numericText) || 0;
+            updateBuyPreview();
+          }
+        });
+      });
+
+    const amountText = this.scene.add.text(0, 120, '0', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加快速選擇按鈕
+    const quickButtons = [];
+    const quickAmounts = [10, 50, 100, 'Max'];
+    let xPos = 50;
+
+    quickAmounts.forEach(amount => {
+      const quickButton = this.scene.add.rectangle(xPos, 120, 40, 20, 0x4a4a6a)
+        .setInteractive()
+        .on('pointerdown', () => {
+          if (selectedResource) {
+            if (amount === 'Max') {
+              // 計算最大可購買數量
+              const priceInfo = marketStats.prices[selectedResource];
+              const currentPrice = priceInfo.currentPrice;
+              const marketInventory = priceInfo.marketInventory;
+              const resourceCap = this.scene.resources.resourceCaps[selectedResource] || Infinity;
+              const currentAmount = this.scene.resources.resources[selectedResource].value;
+              const remainingCapacity = resourceCap - currentAmount;
+
+              // 根據金幣、市場庫存和資源容量限制計算最大數量
+              const maxByGold = Math.floor(playerGold / currentPrice);
+              const maxByInventory = marketInventory;
+              const maxByCapacity = remainingCapacity;
+
+              selectedAmount = Math.min(maxByGold, maxByInventory, maxByCapacity);
+            } else {
+              selectedAmount = amount;
+            }
+            amountText.setText(selectedAmount.toString());
+            updateBuyPreview();
+          }
+        });
+
+      const quickText = this.scene.add.text(xPos, 120, amount.toString(), {
+        fontSize: '12px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      quickButtons.push(quickButton, quickText);
+      xPos += 45;
+    });
+
+    // 添加預覽區域
+    const previewBackground = this.scene.add.rectangle(0, 160, 400, 60, 0x2d2d2d, 0.7);
+
+    const previewText = this.scene.add.text(0, 160, '選擇資源和數量以查看預計成本', {
+      fontSize: '14px',
+      fill: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5, 0.5);
+
+    // 添加確認購買按鈕
+    const buyConfirmButton = this.scene.add.rectangle(0, 200, 120, 30, 0x6a4a4a)
+      .setInteractive()
+      .on('pointerdown', () => {
+        if (selectedResource && selectedAmount > 0) {
+          // 執行購買操作
+          const result = this.scene.marketSystem.playerBuyResource(
+            selectedResource,
+            selectedAmount,
+            this.scene.resources,
+            this.scene.playerGold
+          );
+
+          // 顯示結果
+          previewText.setText(result.message);
+
+          if (result.success) {
+            // 更新玩家金幣
+            this.scene.playerGold = result.remainingGold;
+            this.scene.updateGoldDisplay();
+
+            // 重置選擇
+            selectedResource = null;
+            selectedAmount = 0;
+            amountText.setText('0');
+
+            // 更新資源顯示
+            this.updateResources(this.scene.resources.resources);
+
+            // 更新金幣顯示
+            goldText.setText(`目前擁有金幣: ${Math.floor(this.scene.playerGold)}`);
+
+            // 重新渲染資源列表
+            setTimeout(() => {
+              this.buyResourcePanel.destroy();
+              this.buyResourcePanel = null;
+              this.showBuyResourcePanel();
+            }, 1500);
+          }
+        } else {
+          previewText.setText('請選擇資源並輸入有效數量');
+        }
+      });
+
+    const buyConfirmText = this.scene.add.text(0, 200, '確認購買', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 更新預覽函數
+    const updateBuyPreview = () => {
+      if (selectedResource && selectedAmount > 0) {
+        const resourceData = resources[selectedResource];
+        const priceInfo = marketStats.prices[selectedResource];
+
+        if (resourceData && priceInfo) {
+          // 檢查市場庫存是否足夠
+          const marketInventory = priceInfo.marketInventory || 0;
+          if (marketInventory < selectedAmount) {
+            previewText.setText(`市場庫存不足！最多可購買 ${marketInventory} 個`);
+            return;
+          }
+
+          // 檢查資源容量是否足夠
+          const resourceCap = this.scene.resources.resourceCaps[selectedResource] || Infinity;
+          const currentAmount = resourceData.value;
+          const remainingCapacity = resourceCap - currentAmount;
+
+          if (remainingCapacity < selectedAmount) {
+            previewText.setText(`資源容量不足！最多可購買 ${Math.floor(remainingCapacity)} 個`);
+            return;
+          }
+
+          // 計算實際交易價格 (根據數量調整價格)
+          const priceAdjustment = Math.min(1.3, 1 + (selectedAmount / 1000) * 0.3);
+          const actualPrice = Math.ceil(priceInfo.currentPrice * priceAdjustment);
+          const totalCost = selectedAmount * actualPrice;
+
+          // 檢查金幣是否足夠
+          if (playerGold < totalCost) {
+            const maxAffordable = Math.floor(playerGold / actualPrice);
+            previewText.setText(`金幣不足！最多可購買 ${maxAffordable} 個`);
+            return;
+          }
+
+          // 顯示預覽信息
+          previewText.setText(
+            `購買 ${selectedAmount} 個 ${resourceData.displayName || selectedResource}\n` +
+            `單價: ${actualPrice} (原價: ${priceInfo.currentPrice})\n` +
+            `預計成本: ${totalCost} 金幣`
+          );
+        }
+      } else {
+        previewText.setText('選擇資源和數量以查看預計成本');
+      }
+    };
+
+    // 添加所有元素到面板
+    this.buyResourcePanel.add([
+      background, title, closeButton, closeText, infoText, goldText,
+      ...resourceElements,
+      amountLabel, amountInput, amountText,
+      ...quickButtons,
+      previewBackground, previewText,
+      buyConfirmButton, buyConfirmText
+    ]);
   }
 }

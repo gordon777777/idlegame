@@ -431,8 +431,67 @@ export default class PopulationSystem {
     // 檢查晉升條件
     this.checkPromotions();
 
+    // 檢查幸福度導致的自動階層轉化
+    this.checkHappinessClassTransitions();
+
     // 檢查退化條件
     this.checkDemotions();
+  }
+
+  /**
+   * 檢查幸福度導致的自動階層轉化
+   */
+  checkHappinessClassTransitions() {
+    // 檢查幸福度高時下層人口自動轉化為上層人口
+
+    // 檢查下層到中層的轉化
+    this.checkClassUpgrade('lower', 'middle');
+
+    // 檢查中層到上層的轉化
+    this.checkClassUpgrade('middle', 'upper');
+  }
+
+  /**
+   * 檢查特定階層的升級
+   * @param {string} fromClass - 原階層
+   * @param {string} toClass - 目標階層
+   */
+  checkClassUpgrade(fromClass, toClass) {
+    // 獲取原階層的幸福度
+    const classHappiness = this.classHappiness[fromClass]?.value || 0;
+
+    // 只有在幸福度足夠高時才會轉化
+    // 下層到中層需要至少 75 幸福度，中層到上層需要至少 85 幸福度
+    const minHappiness = fromClass === 'lower' ? 75 : 85;
+
+    if (classHappiness >= minHappiness) {
+      // 計算轉化機率，幸福度越高機率越大
+      const baseChance = (classHappiness - minHappiness) / 500; // 基礎機率
+      const upgradeChance = Math.min(0.05, baseChance); // 最大 5% 機率
+
+      // 檢查是否觸發轉化
+      if (Math.random() < upgradeChance) {
+        // 獲取這個階層的總人口
+        const stats = this.getPopulationStats();
+        const classPopulation = stats.socialClasses[fromClass]?.count || 0;
+
+        if (classPopulation > 0) {
+          // 轉化一定比例的人口，最多 3%
+          const upgradeRatio = Math.min(0.03, upgradeChance / 2);
+          const upgradeAmount = Math.ceil(classPopulation * upgradeRatio);
+
+          if (upgradeAmount > 0) {
+            // 從原階層移除人口
+            this.removePopulationFromClass(fromClass, upgradeAmount);
+
+            // 將人口添加到目標階層
+            this.addPopulationToClass(toClass, upgradeAmount);
+
+            console.log(`由於 ${fromClass} 階層幸福度高 (${classHappiness.toFixed(1)}), ${upgradeAmount} 人口升級到 ${toClass} 階層`);
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -890,38 +949,72 @@ export default class PopulationSystem {
   }
 
   /**
-   * 訓練特定類型的工人
+   * 吸引特定階層的移民
+   * @param {string} targetClass - 目標階層 ('middle' 或 'upper')
+   * @param {number} count - 移民數量
+   * @param {number} gold - 玩家當前擁有的金幣
+   * @returns {Object} - 包含成功与否、消耗金幣和剩餘金幣的結果
+   */
+  attractImmigrants(targetClass, count, gold) {
+    // 檢查目標階層是否有效
+    if (targetClass !== 'middle' && targetClass !== 'upper') {
+      return { success: false, message: '無效的階層' };
+    }
+
+    // 檢查住房容量
+    const availableHousing = this.housingCapacity - this.totalPopulation;
+    if (availableHousing < count) {
+      return { success: false, message: '住房容量不足' };
+    }
+
+    // 計算所需金幣
+    // 中層移民每人需要 50 金幣，上層移民每人需要 200 金幣
+    const goldPerImmigrant = targetClass === 'middle' ? 50 : 200;
+    const totalCost = count * goldPerImmigrant;
+
+    // 檢查金幣是否足夠
+    if (gold < totalCost) {
+      return {
+        success: false,
+        message: `金幣不足，需要 ${totalCost} 金幣`
+      };
+    }
+
+    // 添加移民到目標階層
+    this.addPopulationToClass(targetClass, count);
+    this.totalPopulation += count;
+
+    // 返回結果
+    return {
+      success: true,
+      message: `成功吸引 ${count} 名 ${this.socialClasses[targetClass].name} 移民`,
+      goldSpent: totalCost,
+      remainingGold: gold - totalCost
+    };
+  }
+
+  /**
+   * 訓練特定階層的工人 (已禁用)
+   * @param {string} targetClass - 目標階層 ('middle' 或 'upper')
+   * @param {number} count - 訓練數量
+   * @param {Object} resources - 可用資源
+   * @returns {boolean} - 是否成功訓練
+   */
+  trainWorkersByClass(targetClass, count, resources) {
+    // 中層和高層工人只能通過幸福度自動轉化或花錢吸引移民
+    return false;
+  }
+
+  /**
+   * 訓練特定類型的工人 (已禁用)
    * @param {string} workerType - 工人類型
    * @param {number} count - 訓練數量
    * @param {Object} resources - 可用資源
    * @returns {boolean} - 是否成功訓練
    */
   trainWorkers(workerType, count, resources) {
-    // 檢查是否有足夠的閒置農民
-    if (this.getAvailableWorkers('peasant') < count) {
-      return false;
-    }
-
-    // 檢查是否有所需資源
-    const requiredResources = this.workerTypes[workerType].requiredResources;
-    if (requiredResources) {
-      for (const [resource, amount] of Object.entries(requiredResources)) {
-        if (!resources[resource] || resources[resource].value < amount * count) {
-          return false;
-        }
-      }
-
-      // 消耗資源
-      for (const [resource, amount] of Object.entries(requiredResources)) {
-        resources[resource].value -= amount * count;
-      }
-    }
-
-    // 減少農民數量，增加特定工人數量
-    this.workerTypes.peasant.count -= count;
-    this.workerTypes[workerType].count += count;
-
-    return true;
+    // 中層和高層工人只能通過幸福度自動轉化或花錢吸引移民
+    return false;
   }
 
   /**
@@ -934,7 +1027,7 @@ export default class PopulationSystem {
   }
 
   /**
-   * 分配工人到建築
+   * 分配工人到建築 (同層職業互通)
    * @param {string} buildingId - 建築ID
    * @param {string} buildingType - 建築類型
    * @returns {boolean} - 是否成功分配
@@ -944,18 +1037,96 @@ export default class PopulationSystem {
     const requirements = this.buildingWorkerRequirements[buildingType];
     if (!requirements) return true; // 如果沒有要求，視為成功
 
-    // 檢查是否有足夠的工人
+    // 按階層統計需要的工人數量
+    const classRequirements = {
+      lower: 0,
+      middle: 0,
+      upper: 0
+    };
+
+    // 統計每個階層需要的工人數量
     for (const [workerType, count] of Object.entries(requirements.workers)) {
-      if (this.getAvailableWorkers(workerType) < count) {
-        return false;
+      const socialClass = this.workerTypes[workerType].socialClass;
+      classRequirements[socialClass] += count;
+    }
+
+    // 檢查每個階層是否有足夠的工人
+    for (const [className, requiredCount] of Object.entries(classRequirements)) {
+      if (requiredCount <= 0) continue;
+
+      // 計算這個階層的可用工人總數
+      let availableWorkers = 0;
+      for (const workerType of this.socialClasses[className].workerTypes) {
+        availableWorkers += this.getAvailableWorkers(workerType);
+      }
+
+      if (availableWorkers < requiredCount) {
+        return false; // 工人不足
       }
     }
 
-    // 分配工人
+    // 分配工人 (同層職業互通)
     const assignment = {};
-    for (const [workerType, count] of Object.entries(requirements.workers)) {
-      assignment[workerType] = count;
-      this.workerTypes[workerType].assigned += count;
+
+    // 按階層分配工人
+    for (const [className, requiredCount] of Object.entries(classRequirements)) {
+      if (requiredCount <= 0) continue;
+
+      // 獲取這個階層的所有工人類型
+      const classWorkerTypes = this.socialClasses[className].workerTypes;
+      let remainingToAssign = requiredCount;
+
+      // 先分配原本需求的工人類型，如果有的話
+      for (const [reqWorkerType, reqCount] of Object.entries(requirements.workers)) {
+        const workerClass = this.workerTypes[reqWorkerType].socialClass;
+        if (workerClass !== className) continue;
+
+        // 如果有足夠的這種工人，就分配這種工人
+        const available = this.getAvailableWorkers(reqWorkerType);
+        const toAssign = Math.min(reqCount, available, remainingToAssign);
+
+        if (toAssign > 0) {
+          assignment[reqWorkerType] = toAssign;
+          this.workerTypes[reqWorkerType].assigned += toAssign;
+          remainingToAssign -= toAssign;
+        }
+      }
+
+      // 如果還需要更多工人，就從同階層的其他工人中分配
+      if (remainingToAssign > 0) {
+        // 先按可用數量排序工人類型，優先使用有更多可用工人的類型
+        const sortedWorkerTypes = [...classWorkerTypes].sort((a, b) => {
+          return this.getAvailableWorkers(b) - this.getAvailableWorkers(a);
+        });
+
+        for (const workerType of sortedWorkerTypes) {
+          if (remainingToAssign <= 0) break;
+
+          const available = this.getAvailableWorkers(workerType);
+          if (available <= 0) continue;
+
+          const toAssign = Math.min(available, remainingToAssign);
+
+          // 如果這種工人已經分配了一些，就增加分配數量
+          if (assignment[workerType]) {
+            assignment[workerType] += toAssign;
+          } else {
+            assignment[workerType] = toAssign;
+          }
+
+          this.workerTypes[workerType].assigned += toAssign;
+          remainingToAssign -= toAssign;
+        }
+      }
+
+      // 如果還是沒有足夠的工人，就失敗
+      if (remainingToAssign > 0) {
+        // 回滿已分配的工人
+        for (const [workerType, count] of Object.entries(assignment)) {
+          this.workerTypes[workerType].assigned -= count;
+        }
+        return false;
+      }
     }
 
     this.workerAssignments.set(buildingId, assignment);
