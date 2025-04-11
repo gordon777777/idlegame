@@ -55,54 +55,49 @@ export default class PopulationSystem {
       lower: {
         name: '底層',
         description: '社會底層，主要從事基礎勞動工作',
-        workerTypes: ['peasant']
+        workerTypes: ['worker', 'technician', 'artisan']
       },
       middle: {
         name: '中層',
         description: '自由民，擁有一定技能的工人和匠人',
-        workerTypes: ['miner', 'woodcutter', 'craftsman']
+        workerTypes: ['technical_staff', 'engineer']
       },
       upper: {
         name: '上層',
         description: '社會精英，包括魔法師和大商人',
-        workerTypes: ['scholar', 'wizard_apprentice', 'wizard', 'merchant']
+        workerTypes: ['boss', 'accountant', 'magic_technician']
       }
     };
 
     // 階層轉化條件
     this.classPromotionRequirements = {
-      // 底層到中層
-      peasant_to_miner: {
-        experience: 10, // 工作經驗
-        resources: { magic_ore: 10, enchanted_wood: 5 },
-        happiness: 60 // 最低幸福度要求
+      // 底層內部晉升
+      worker_to_technician: {
+        experience: 15, // 工作經驗
+        resources: { magic_ore: 5, enchanted_wood: 5 },
+        happiness: 50 // 最低幸福度要求
       },
-      peasant_to_woodcutter: {
-        experience: 10,
-        resources: { magic_ore: 5, enchanted_wood: 10 },
+      technician_to_artisan: {
+        experience: 30,
+        resources: { magic_ore: 10, enchanted_wood: 10, arcane_crystal: 5 },
         happiness: 60
       },
-      // 中層到上層
-      craftsman_to_scholar: {
-        experience: 30,
-        resources: { refined_crystal: 10, arcane_essence: 15, knowledge: 5 },
-        happiness: 75
-      },
-      craftsman_to_wizard_apprentice: {
+      // 中層內部晉升
+      technical_staff_to_engineer: {
         experience: 40,
-        resources: { magical_potion: 5, refined_crystal: 15, knowledge: 10 },
-        happiness: 80
+        resources: { refined_crystal: 10, arcane_essence: 15, knowledge: 5 },
+        happiness: 70
       },
       // 上層內部晉升
-      scholar_to_wizard: {
+      accountant_to_boss: {
         experience: 50,
-        resources: { enchanted_artifact: 2, magical_potion: 10, knowledge: 20 },
-        happiness: 85
+        resources: { refined_crystal: 20, knowledge: 15, magical_potion: 5 },
+        happiness: 80
       },
-      wizard_apprentice_to_wizard: {
+      magic_technician_to_boss: {
         experience: 60,
         resources: { enchanted_artifact: 3, magical_construct: 1, knowledge: 25 },
-        happiness: 90
+        happiness: 85
       }
     };
 
@@ -115,94 +110,100 @@ export default class PopulationSystem {
 
     // 不同類型的工人
     this.workerTypes = {
-      peasant: {
+      // 底層工人
+      worker: {
         count: 10,
         assigned: 0,
-        displayName: '農民',
+        displayName: '工人',
         description: '基礎工人，可以在簡單的建築中工作',
         productionMultiplier: 1.0,
         socialClass: 'lower',
         experience: 0,
         promotionChance: 0.01 // 每次檢查時的晉升機率
       },
-      miner: {
+      technician: {
         count: 0,
         assigned: 0,
-        displayName: '礦工',
-        description: '專門開採礦石和水晶的工人',
+        displayName: '技工',
+        description: '有一定技術的工人，可以操作較複雜的機器',
         productionMultiplier: 1.2,
         requiredResources: { magic_ore: 5, enchanted_wood: 5 },
-        socialClass: 'middle',
+        socialClass: 'lower',
         experience: 0,
-        promotionChance: 0.005,
+        promotionChance: 0.008,
         demotionChance: 0.002 // 每次檢查時的退化機率
       },
-      woodcutter: {
-        count: 0,
-        assigned: 0,
-        displayName: '伐木工',
-        description: '專門收集和處理木材的工人',
-        productionMultiplier: 1.2,
-        requiredResources: { magic_ore: 5, enchanted_wood: 5 },
-        socialClass: 'middle',
-        experience: 0,
-        promotionChance: 0.005,
-        demotionChance: 0.002
-      },
-      craftsman: {
+      artisan: {
         count: 0,
         assigned: 0,
         displayName: '工匠',
-        description: '能夠製作複雜物品的熟練工人',
+        description: '熟練的底層工人，能夠製作較高質量的產品',
         productionMultiplier: 1.5,
-        requiredResources: { arcane_essence: 5, mystic_planks: 5 },
+        requiredResources: { magic_ore: 10, enchanted_wood: 10, arcane_crystal: 5 },
+        socialClass: 'lower',
+        experience: 0,
+        promotionChance: 0.005,
+        demotionChance: 0.001
+      },
+
+      // 中層工人
+      technical_staff: {
+        count: 0,
+        assigned: 0,
+        displayName: '技術人員',
+        description: '中層技術人員，負責操作複雜設備和系統',
+        productionMultiplier: 1.8,
+        requiredResources: { refined_crystal: 5, arcane_essence: 5 },
+        socialClass: 'middle',
+        experience: 0,
+        promotionChance: 0.006,
+        demotionChance: 0.002
+      },
+      engineer: {
+        count: 0,
+        assigned: 0,
+        displayName: '工程師',
+        description: '高級中層技術人員，能夠設計和改進複雜系統',
+        productionMultiplier: 2.2,
+        requiredResources: { refined_crystal: 10, knowledge: 5 },
         socialClass: 'middle',
         experience: 0,
         promotionChance: 0.003,
         demotionChance: 0.001
       },
-      scholar: {
+
+      // 上層工人
+      accountant: {
         count: 0,
         assigned: 0,
-        displayName: '學者',
-        description: '研究魔法和知識的專家',
-        productionMultiplier: 1.8,
-        requiredResources: { refined_crystal: 5, knowledge: 2 },
-        socialClass: 'upper',
-        experience: 0,
-        promotionChance: 0.002,
-        demotionChance: 0.001
-      },
-      wizard_apprentice: {
-        count: 0,
-        assigned: 0,
-        displayName: '法師學徒',
-        description: '正在學習魔法的學徒',
+        displayName: '會計',
+        description: '負責管理財務和資源分配的上層人員',
         productionMultiplier: 2.0,
-        requiredResources: { magical_potion: 2, knowledge: 5 },
+        requiredResources: { knowledge: 10, refined_crystal: 5 },
         socialClass: 'upper',
         experience: 0,
-        promotionChance: 0.002,
+        promotionChance: 0.004,
         demotionChance: 0.001
       },
-      wizard: {
+      magic_technician: {
         count: 0,
         assigned: 0,
-        displayName: '法師',
-        description: '掌握魔法的專家',
-        productionMultiplier: 3.0,
-        requiredResources: { enchanted_artifact: 1, knowledge: 10 },
+        displayName: '魔法技工',
+        description: '掌握魔法技術的上層專家',
+        productionMultiplier: 2.5,
+        requiredResources: { magical_potion: 5, knowledge: 8 },
         socialClass: 'upper',
         experience: 0,
-        demotionChance: 0.0005
+        promotionChance: 0.003,
+        demotionChance: 0.001
       },
-      merchant: {
+      boss: {
         count: 0,
         assigned: 0,
-        displayName: '大商人',
-        description: '富有的商人，能夠提高城市的經濟效率',
-        productionMultiplier: 2.5,
-        requiredResources: { arcane_essence: 10, mystic_planks: 10, refined_crystal: 5 },
+        displayName: '老闆',
+        description: '高層管理者，能夠提高整個城市的生產效率',
+        productionMultiplier: 3.0,
+        requiredResources: { enchanted_artifact: 1, knowledge: 15, magical_potion: 5 },
         socialClass: 'upper',
         experience: 0,
         demotionChance: 0.0005
@@ -224,90 +225,90 @@ export default class PopulationSystem {
     this.buildingWorkerRequirements = {
       // 資源收集器
       magic_mine: {
-        workers: { peasant: 1, miner: 1 },
-        description: '需要1名農民和1名礦工'
+        workers: { worker: 1, technician: 1 },
+        description: '需要1名工人和1名技工'
       },
       enchanted_forest: {
-        workers: { peasant: 1, woodcutter: 1 },
-        description: '需要1名農民和1名伐木工'
+        workers: { worker: 2 },
+        description: '需要2名工人'
       },
       crystal_mine: {
-        workers: { miner: 2 },
-        description: '需要2名礦工'
+        workers: { technician: 2 },
+        description: '需要2名技工'
       },
       mana_well: {
-        workers: { peasant: 1 },
-        description: '需要1名農民'
+        workers: { worker: 1 },
+        description: '需要1名工人'
       },
       mystic_garden: {
-        workers: { woodcutter: 2 },
-        description: '需要2名伐木工'
+        workers: { worker: 1, technician: 1 },
+        description: '需要1名工人和1名技工'
       },
       crystal_garden: {
-        workers: { craftsman: 1 },
+        workers: { artisan: 1 },
         description: '需要1名工匠'
       },
 
       // 生產建築
       magic_forge: {
-        workers: { craftsman: 1, peasant: 1 },
-        description: '需要1名工匠和1名農民'
+        workers: { artisan: 1, worker: 1 },
+        description: '需要1名工匠和1名工人'
       },
       wood_enchanter: {
-        workers: { woodcutter: 1, wizard_apprentice: 1 },
-        description: '需要1名伐木工和1名法師學徒'
+        workers: { technician: 1, magic_technician: 1 },
+        description: '需要1名技工和1名魔法技工'
       },
       crystal_refinery: {
-        workers: { miner: 1, craftsman: 1 },
-        description: '需要1名礦工和1名工匠'
+        workers: { technician: 1, artisan: 1 },
+        description: '需要1名技工和1名工匠'
       },
 
       // 高級建築
       alchemy_lab: {
-        workers: { craftsman: 1, wizard_apprentice: 1 },
-        description: '需要1名工匠和1名法師學徒'
+        workers: { artisan: 1, technical_staff: 1 },
+        description: '需要1名工匠和1名技術人員'
       },
       enchanting_tower: {
-        workers: { wizard_apprentice: 2 },
-        description: '需要2名法師學徒'
+        workers: { magic_technician: 1, technical_staff: 1 },
+        description: '需要1名魔法技工和1名技術人員'
       },
       arcane_workshop: {
-        workers: { craftsman: 1, wizard: 1 },
-        description: '需要1名工匠和1名法師'
+        workers: { artisan: 1, magic_technician: 1 },
+        description: '需要1名工匠和1名魔法技工'
       },
 
       // 特殊建築
       wizard_tower: {
-        workers: { wizard: 1, scholar: 1 },
-        description: '需要1名法師和1名學者'
+        workers: { magic_technician: 1, engineer: 1 },
+        description: '需要1名魔法技工和1名工程師'
       },
       arcane_library: {
-        workers: { scholar: 2 },
-        description: '需要2名學者'
+        workers: { technical_staff: 2 },
+        description: '需要2名技術人員'
       },
       mana_fountain: {
-        workers: { wizard: 1 },
-        description: '需要1名法師'
+        workers: { magic_technician: 1 },
+        description: '需要1名魔法技工'
       },
 
       // 高級建築
       magic_academy: {
-        workers: { scholar: 2, wizard: 1 },
-        description: '需要2名學者和1名法師'
+        workers: { engineer: 1, magic_technician: 1, accountant: 1 },
+        description: '需要1名工程師、1名魔法技工和1名會計'
       },
       research_lab: {
-        workers: { scholar: 3 },
-        description: '需要3名學者'
+        workers: { engineer: 2, technical_staff: 1 },
+        description: '需要2名工程師和1名技術人員'
       },
 
       // 住房建築
       housing_district: {
-        workers: { peasant: 0 }, // 住房不需要工人
+        workers: { worker: 0 }, // 住房不需要工人
         description: '提供居民住所'
       },
       wizard_quarters: {
-        workers: { peasant: 0 }, // 住房不需要工人
-        description: '為法師提供住所'
+        workers: { worker: 0 }, // 住房不需要工人
+        description: '為魔法師提供住所'
       }
     };
   }
@@ -328,8 +329,8 @@ export default class PopulationSystem {
     // 確保不超過住房容量
     if (this.totalPopulation + growth <= this.housingCapacity) {
       this.totalPopulation += growth;
-      // 將新增人口添加為農民
-      this.workerTypes.peasant.count += growth;
+      // 將新增人口添加為工人
+      this.workerTypes.worker.count += growth;
     }
 
     // 更新工作經驗累積
@@ -375,14 +376,14 @@ export default class PopulationSystem {
           if (actualImmigration > 0) {
             this.totalPopulation += actualImmigration;
 
-            // 新移入的人口大部分是農民，但也有一些是中層和上層
+            // 新移入的人口大部分是底層工人，但也有一些是中層和上層
             const lowerClassRatio = 0.7;
             const middleClassRatio = 0.25;
             const upperClassRatio = 0.05;
 
             // 添加底層人口
             const lowerClassAmount = Math.floor(actualImmigration * lowerClassRatio);
-            this.workerTypes.peasant.count += lowerClassAmount;
+            this.workerTypes.worker.count += lowerClassAmount;
 
             // 添加中層人口
             const middleClassAmount = Math.floor(actualImmigration * middleClassRatio);
@@ -498,32 +499,32 @@ export default class PopulationSystem {
    * 檢查工人晉升條件
    */
   checkPromotions() {
-    // 檢查農民升級為礦工或伐木工
-    if (this.workerTypes.peasant.count >= 1) {
-      // 檢查升級為礦工
-      this.checkSpecificPromotion('peasant', 'miner', 'peasant_to_miner');
-
-      // 檢查升級為伐木工
-      this.checkSpecificPromotion('peasant', 'woodcutter', 'peasant_to_woodcutter');
+    // 檢查底層工人內部晉升
+    // 工人升級為技工
+    if (this.workerTypes.worker.count >= 1) {
+      this.checkSpecificPromotion('worker', 'technician', 'worker_to_technician');
     }
 
-    // 檢查工匠升級為學者或法師學徒
-    if (this.workerTypes.craftsman.count >= 1) {
-      // 檢查升級為學者
-      this.checkSpecificPromotion('craftsman', 'scholar', 'craftsman_to_scholar');
-
-      // 檢查升級為法師學徒
-      this.checkSpecificPromotion('craftsman', 'wizard_apprentice', 'craftsman_to_wizard_apprentice');
+    // 技工升級為工匠
+    if (this.workerTypes.technician.count >= 1) {
+      this.checkSpecificPromotion('technician', 'artisan', 'technician_to_artisan');
     }
 
-    // 檢查學者升級為法師
-    if (this.workerTypes.scholar.count >= 1) {
-      this.checkSpecificPromotion('scholar', 'wizard', 'scholar_to_wizard');
+    // 檢查中層工人內部晉升
+    // 技術人員升級為工程師
+    if (this.workerTypes.technical_staff.count >= 1) {
+      this.checkSpecificPromotion('technical_staff', 'engineer', 'technical_staff_to_engineer');
     }
 
-    // 檢查法師學徒升級為法師
-    if (this.workerTypes.wizard_apprentice.count >= 1) {
-      this.checkSpecificPromotion('wizard_apprentice', 'wizard', 'wizard_apprentice_to_wizard');
+    // 檢查上層工人內部晉升
+    // 會計升級為老闆
+    if (this.workerTypes.accountant.count >= 1) {
+      this.checkSpecificPromotion('accountant', 'boss', 'accountant_to_boss');
+    }
+
+    // 魔法技工升級為老闆
+    if (this.workerTypes.magic_technician.count >= 1) {
+      this.checkSpecificPromotion('magic_technician', 'boss', 'magic_technician_to_boss');
     }
   }
 
@@ -621,12 +622,21 @@ export default class PopulationSystem {
 
       if (demotionRoll <= demotionChance) {
         // 確定退化目標
-        let targetType = 'peasant'; // 預設退化為農民
+        let targetType = 'worker'; // 預設退化為工人
 
         if (socialClass === 'upper') {
           // 上層退化到中層，隨機選擇一種中層工人
           const middleClassWorkers = this.socialClasses.middle.workerTypes;
           targetType = middleClassWorkers[Math.floor(Math.random() * middleClassWorkers.length)];
+        } else if (socialClass === 'middle') {
+          // 中層退化到底層，預設為技工
+          targetType = 'technician';
+        } else if (workerType === 'artisan') {
+          // 工匠退化為技工
+          targetType = 'technician';
+        } else if (workerType === 'technician') {
+          // 技工退化為工人
+          targetType = 'worker';
         }
 
         // 退化工人
@@ -906,9 +916,9 @@ export default class PopulationSystem {
     const workerTypes = this.socialClasses[socialClass]?.workerTypes || [];
 
     if (workerTypes.length === 0) {
-      // 如果沒有工人類型，預設添加到農民
-      this.workerTypes.peasant.count += amount;
-      console.log(`添加 ${amount} 人口到農民`);
+      // 如果沒有工人類型，預設添加到工人
+      this.workerTypes.worker.count += amount;
+      console.log(`添加 ${amount} 人口到工人`);
       return;
     }
 
@@ -1277,25 +1287,21 @@ export default class PopulationSystem {
 
     // 檢查是否有可用的晉升路徑
     switch (workerType) {
-      case 'peasant':
-        // 農民可以升級為礦工或伐木工
-        return worker.experience >= 5;
-
-      case 'miner':
-      case 'woodcutter':
-        // 礦工和伐木工可以升級為工匠
+      case 'worker':
+        // 工人可以升級為技工
         return worker.experience >= 15;
 
-      case 'craftsman':
-        // 工匠可以升級為學者或法師學徒
-        return worker.experience >= 25;
+      case 'technician':
+        // 技工可以升級為工匠
+        return worker.experience >= 30;
 
-      case 'scholar':
-        // 學者可以升級為法師
+      case 'technical_staff':
+        // 技術人員可以升級為工程師
         return worker.experience >= 40;
 
-      case 'wizard_apprentice':
-        // 法師學徒可以升級為法師
+      case 'accountant':
+      case 'magic_technician':
+        // 會計和魔法技工可以升級為老闆
         return worker.experience >= 50;
 
       default:
@@ -1315,18 +1321,16 @@ export default class PopulationSystem {
     let requirementKey = null;
 
     // 確定晉升路徑
-    if (fromType === 'peasant' && toType === 'miner') {
-      requirementKey = 'peasant_to_miner';
-    } else if (fromType === 'peasant' && toType === 'woodcutter') {
-      requirementKey = 'peasant_to_woodcutter';
-    } else if (fromType === 'craftsman' && toType === 'scholar') {
-      requirementKey = 'craftsman_to_scholar';
-    } else if (fromType === 'craftsman' && toType === 'wizard_apprentice') {
-      requirementKey = 'craftsman_to_wizard_apprentice';
-    } else if (fromType === 'scholar' && toType === 'wizard') {
-      requirementKey = 'scholar_to_wizard';
-    } else if (fromType === 'wizard_apprentice' && toType === 'wizard') {
-      requirementKey = 'wizard_apprentice_to_wizard';
+    if (fromType === 'worker' && toType === 'technician') {
+      requirementKey = 'worker_to_technician';
+    } else if (fromType === 'technician' && toType === 'artisan') {
+      requirementKey = 'technician_to_artisan';
+    } else if (fromType === 'technical_staff' && toType === 'engineer') {
+      requirementKey = 'technical_staff_to_engineer';
+    } else if (fromType === 'accountant' && toType === 'boss') {
+      requirementKey = 'accountant_to_boss';
+    } else if (fromType === 'magic_technician' && toType === 'boss') {
+      requirementKey = 'magic_technician_to_boss';
     } else {
       // 無效的晉升路徑
       return false;

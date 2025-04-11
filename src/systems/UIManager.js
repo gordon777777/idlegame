@@ -435,6 +435,11 @@ export default class UIManager {
   toggleWorkerPanel() {
     if (this.workerPanel && this.workerPanel.visible) {
       this.workerPanel.visible = false;
+      // 清理事件監聽器
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.scene.input.off('pointermove', this.handleWorkerPanelDrag, this);
+      }
     } else {
       this.createWorkerPanel();
     }
@@ -452,227 +457,145 @@ export default class UIManager {
     // 獲取人口統計
     const stats = this.scene.populationSystem.getPopulationStats();
 
-    // 創建面板
-    this.workerPanel = this.scene.add.container(400, 300);
+    // 創建面板 - 確保面板在屏幕中央
+    const centerX = this.scene.scale.width / 2;
+    const centerY = this.scene.scale.height / 2;
+    this.workerPanel = this.scene.add.container(centerX, centerY);
+    this.workerPanel.setDepth(100); // 確保面板在最上層
 
-    // 創建背景
-    const background = this.scene.add.rectangle(0, 0, 600, 500, 0x1a1a1a, 0.9)
-      .setStrokeStyle(1, 0x4a4a4a);
+    // 創建背景 - 調整大小並增加不透明度使文字更清晰
+    const background = this.scene.add.rectangle(0, 0, 500, 400, 0x000000, 0.9)
+      .setStrokeStyle(2, 0x4a4a4a);
 
-    // 添加標題
-    const title = this.scene.add.text(0, -230, '工人管理', {
+    // 創建標題欄背景 - 用作拖拉區域
+    const titleBar = this.scene.add.rectangle(0, -180, 500, 40, 0x333333)
+      .setStrokeStyle(1, 0x555555);
+
+    // 設置標題欄為可互動元素，使其可拖拉
+    titleBar.setInteractive()
+      .on('pointerdown', (pointer) => {
+        // 記錄拖拉開始時的面板位置和滑鼠偏移量
+        this.isDragging = true;
+        this.dragStartX = this.workerPanel.x;
+        this.dragStartY = this.workerPanel.y;
+        this.dragPointerStartX = pointer.x;
+        this.dragPointerStartY = pointer.y;
+
+        // 設置滑鼠移動事件
+        this.scene.input.on('pointermove', this.handleWorkerPanelDrag, this);
+      });
+
+    // 添加滑鼠釋放事件
+    this.scene.input.on('pointerup', () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.scene.input.off('pointermove', this.handleWorkerPanelDrag, this);
+      }
+    });
+
+    // 添加標題 - 調整位置並增加描邊效果提高可讀性
+    const title = this.scene.add.text(0, -180, '工人管理', {
       fontSize: '24px',
       fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0.5, 0);
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5, 0.5);
 
-    // 添加關閉按鈕
-    const closeButton = this.scene.add.rectangle(280, -230, 30, 30, 0x4a4a4a)
+    // 添加關閉按鈕 - 調整位置
+    const closeButton = this.scene.add.rectangle(230, -180, 30, 30, 0x4a4a4a)
       .setInteractive()
       .on('pointerdown', () => this.toggleWorkerPanel());
 
-    const closeText = this.scene.add.text(280, -230, 'X', {
+    // 添加關閉按鈕文字 - 調整位置並增加描邊效果提高可讀性
+    const closeText = this.scene.add.text(230, -180, 'X', {
       fontSize: '18px',
-      fill: '#ffffff'
+      fill: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 1
     }).setOrigin(0.5, 0.5);
 
-    // 添加階層信息
-    const classElements = [];
-    const classTitle = this.scene.add.text(-280, -200, '人口階層', {
-      fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0, 0.5);
-    classElements.push(classTitle);
+    // 創建選項卡 - 調整位置和大小並增強視覺效果
+    const tabHeight = 36;
+    const tabWidth = 100;
+    const tabY = -140;
+    const tabs = [
+      { id: 'overview', name: '概覽', x: -200, color: 0x3a8c3a },
+      { id: 'lower', name: '底層', x: -100, color: 0x666666 },
+      { id: 'middle', name: '中層', x: 0, color: 0x3a6a8c },
+      { id: 'upper', name: '上層', x: 100, color: 0x8c6a3a }
+    ];
 
-    // 添加每個階層的信息
-    let classYPos = -170;
-    for (const [className, classData] of Object.entries(stats.socialClasses)) {
-      // 階層名稱
-      const classNameText = this.scene.add.text(-280, classYPos, `${classData.name}:`, {
-        fontSize: '16px',
-        fill: '#e0e0e0',
-        fontStyle: 'bold'
-      }).setOrigin(0, 0.5);
+    // 創建選項卡容器
+    const tabContainers = {};
+    let activeTab = 'overview';
+    const tabButtons = [];
+    const tabTexts = [];
 
-      // 人口數量
-      const classCountText = this.scene.add.text(-200, classYPos, `${classData.count} (${classData.percentage})`, {
-        fontSize: '16px',
-        fill: '#e0e0e0'
-      }).setOrigin(0, 0.5);
+    // 創建選項卡按鈕
+    tabs.forEach(tab => {
+      // 創建選項卡背景
+      this.scene.add.rectangle(tab.x, tabY, tabWidth, tabHeight, 0x1a1a1a)
+        .setStrokeStyle(1, 0x4a4a4a);
 
-      // 幸福度
-      const happinessColor = this.getHappinessColor(classData.happiness || 50);
-      const happinessText = this.scene.add.text(-50, classYPos, `幸福度: ${classData.happiness || 50}%`, {
-        fontSize: '16px',
-        fill: happinessColor
-      }).setOrigin(0, 0.5);
+      // 創建選項卡按鈕
+      const tabButton = this.scene.add.rectangle(tab.x, tabY, tabWidth - 4, tabHeight - 4, 0x2d2d2d)
+        .setInteractive()
+        .on('pointerdown', () => {
+          // 切換選項卡
+          activeTab = tab.id;
 
-      // 階層描述
-      const classDescText = this.scene.add.text(80, classYPos, classData.description, {
-        fontSize: '14px',
-        fill: '#cccccc',
-        wordWrap: { width: 200 }
-      }).setOrigin(0, 0.5);
+          // 更新選項卡外觀
+          tabButtons.forEach((btn, i) => {
+            btn.fillColor = tabs[i].id === activeTab ? tabs[i].color : 0x2d2d2d;
+          });
 
-      classElements.push(classNameText, classCountText, happinessText, classDescText);
+          // 顯示/隱藏內容
+          Object.keys(tabContainers).forEach(id => {
+            tabContainers[id].visible = (id === activeTab);
+          });
+        });
 
-      // 如果有需求信息，顯示需求滿足情況
-      if (classData.demands && Object.keys(classData.demands).length > 0) {
-        classYPos += 25;
-
-        // 需求標題
-        const demandsTitle = this.scene.add.text(-260, classYPos, '需求滿足情況:', {
-          fontSize: '14px',
-          fill: '#cccccc',
-          fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-
-        classElements.push(demandsTitle);
-        classYPos += 20;
-
-        // 顯示每種需求的滿足情況
-        for (const [demandType, demandInfo] of Object.entries(classData.demands)) {
-          const demandNameText = this.scene.add.text(-240, classYPos, demandInfo.displayName, {
-            fontSize: '12px',
-            fill: '#e0e0e0'
-          }).setOrigin(0, 0.5);
-
-          // 滿足率
-          const satisfactionColor = this.getSatisfactionColor(demandInfo.satisfaction);
-          const satisfactionText = this.scene.add.text(-120, classYPos, `滿足: ${demandInfo.satisfaction}`, {
-            fontSize: '12px',
-            fill: satisfactionColor
-          }).setOrigin(0, 0.5);
-
-          // 價格適宜度
-          const priceColor = this.getSatisfactionColor(demandInfo.priceScore);
-          const priceText = this.scene.add.text(-20, classYPos, `價格: ${demandInfo.priceScore}`, {
-            fontSize: '12px',
-            fill: priceColor
-          }).setOrigin(0, 0.5);
-
-          // 影響
-          const impactColor = demandInfo.impact >= 0 ? '#99ff99' : '#ff9999';
-          const impactText = this.scene.add.text(80, classYPos, `影響: ${demandInfo.impact > 0 ? '+' : ''}${demandInfo.impact}`, {
-            fontSize: '12px',
-            fill: impactColor
-          }).setOrigin(0, 0.5);
-
-          classElements.push(demandNameText, satisfactionText, priceText, impactText);
-          classYPos += 15;
-        }
+      // 設置初始選中狀態
+      if (tab.id === activeTab) {
+        tabButton.fillColor = tab.color;
       }
 
-      classYPos += 30;
-    }
+      // 創建選項卡文字 - 增加描邊效果提高可讀性
+      const tabText = this.scene.add.text(tab.x, tabY, tab.name, {
+        fontSize: '18px',
+        fontStyle: 'bold',
+        fill: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 2
+      }).setOrigin(0.5, 0.5);
 
-    // 添加工人階層列表標題
-    const workersTitle = this.scene.add.text(-280, -80, '工人階層', {
-      fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0, 0.5);
-    classElements.push(workersTitle);
+      tabButtons.push(tabButton);
+      tabTexts.push(tabText);
 
-    // 按階層分組顯示工人
-    const workerElements = [];
-    let yPos = -40;
+      // 為每個選項卡創建內容容器 - 設置容器位置在選項卡下方
+      tabContainers[tab.id] = this.scene.add.container(0, -100);
+      tabContainers[tab.id].visible = (tab.id === activeTab);
 
-    // 遍歷每個階層
-    for (const [className, classData] of Object.entries(stats.socialClasses)) {
-      // 階層標題
-      const classTitle = this.scene.add.text(-280, yPos, classData.name, {
-        fontSize: '16px',
-        fill: this.getClassColor(className),
-        fontStyle: 'bold'
-      }).setOrigin(0, 0.5);
+      // 不在這裡添加容器到工人面板，而是在後面一次性添加所有容器
+    });
 
-      // 階層總人數
-      const classTotalText = this.scene.add.text(-180, yPos, `總人數: ${classData.count}`, {
-        fontSize: '14px',
-        fill: '#e0e0e0'
-      }).setOrigin(0, 0.5);
+    // 創建概覽選項卡內容
+    this.createOverviewTabContent(tabContainers['overview'], stats);
 
-      // 階層幸福度
-      const happinessColor = this.getHappinessColor(classData.happiness || 50);
-      const happinessText = this.scene.add.text(-50, yPos, `幸福度: ${classData.happiness || 50}%`, {
-        fontSize: '14px',
-        fill: happinessColor
-      }).setOrigin(0, 0.5);
+    // 創建各階層選項卡內容
+    this.createLowerClassTabContent(tabContainers['lower'], stats);
+    this.createMiddleClassTabContent(tabContainers['middle'], stats);
+    this.createUpperClassTabContent(tabContainers['upper'], stats);
 
-      workerElements.push(classTitle, classTotalText, happinessText);
+    // 首先添加背景和基本UI元素到面板
+    this.workerPanel.add([background, titleBar, title, closeButton, closeText, ...tabButtons, ...tabTexts]);
 
-      // 計算這個階層的可用工人數量
-      let availableWorkers = 0;
-      let totalWorkers = 0;
-
-      // 統計這個階層的工人類型數據
-      for (const workerType of this.scene.populationSystem.socialClasses[className].workerTypes) {
-        const workerData = stats.workers[workerType];
-        if (workerData) {
-          availableWorkers += workerData.available;
-          totalWorkers += workerData.count;
-        }
-      }
-
-      // 顯示可用工人數量
-      const availableText = this.scene.add.text(100, yPos, `可用: ${availableWorkers}/${totalWorkers}`, {
-        fontSize: '14px',
-        fill: '#e0e0e0'
-      }).setOrigin(0, 0.5);
-
-      workerElements.push(availableText);
-
-      // 添加吸引移民按鈕 (只為中層和上層添加)
-      if (className === 'middle' || className === 'upper') {
-        const immigrantButton = this.scene.add.rectangle(230, yPos, 120, 30, 0x4a6a4a)
-          .setInteractive()
-          .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
-
-        const immigrantText = this.scene.add.text(230, yPos, `吸引${this.getClassDisplayName(className)}移民`, {
-          fontSize: '14px',
-          fill: '#ffffff'
-        }).setOrigin(0.5, 0.5);
-
-        workerElements.push(immigrantButton, immigrantText);
-      }
-
-      // 列出這個階層的工人類型
-      yPos += 30;
-      const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
-
-      for (const workerType of workerTypesInClass) {
-        const data = stats.workers[workerType];
-        if (!data) continue;
-
-        // 工人名稱
-        const nameText = this.scene.add.text(-260, yPos, data.displayName, {
-          fontSize: '14px',
-          fill: '#e0e0e0'
-        }).setOrigin(0, 0.5);
-
-        // 工人數量
-        const countText = this.scene.add.text(-120, yPos, `數量: ${data.count} (可用: ${data.available})`, {
-          fontSize: '12px',
-          fill: '#cccccc'
-        }).setOrigin(0, 0.5);
-
-        // 經驗值
-        const expText = this.scene.add.text(50, yPos, `經驗: ${data.experience}`, {
-          fontSize: '12px',
-          fill: '#cccccc'
-        }).setOrigin(0, 0.5);
-
-        workerElements.push(nameText, countText, expText);
-        yPos += 20;
-      }
-
-      yPos += 20; // 階層之間的額外空間
-    }
-
-    // 添加所有元素到面板
-    this.workerPanel.add([background, title, closeButton, closeText, ...classElements, ...workerElements]);
+    // 確保tabContainers在最上層，不被背景覆蓋
+    Object.values(tabContainers).forEach(container => {
+      this.workerPanel.add(container);
+    });
   }
 
   /**
@@ -688,6 +611,892 @@ export default class UIManager {
     };
 
     return colors[socialClass] || '#ffffff';
+  }
+
+  /**
+   * 創建底層選項卡內容
+   * @param {Phaser.GameObjects.Container} container - 選項卡容器
+   * @param {Object} stats - 人口統計數據
+   */
+  createLowerClassTabContent(container, stats) {
+    const elements = [];
+    const className = 'lower';
+    const classData = stats.socialClasses[className];
+
+    if (!classData) return;
+
+    // 定義內容的Y軸基準位置，方便統一調整
+    const containY = 80;
+
+    // 先添加內容背景 - 調整透明度和位置
+    const contentBackground = this.scene.add.rectangle(0, containY+40, 460, 280, 0x1a1a1a, 0.7)
+      .setStrokeStyle(1, 0x4a4a4a);
+    // 直接添加到容器中，確保它在最底層
+    container.add(contentBackground);
+
+    // 添加階層標題 - 調整位置以配合新的背景位置
+    const classTitle = this.scene.add.text(-200, containY - 85, classData.name, {
+      fontSize: '20px',
+      fill: this.getClassColor(className),
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層人口信息 - 調整位置
+    const classCountText = this.scene.add.text(-200, containY - 60, `人口: ${classData.count} (${classData.percentage})`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層幸福度 - 調整位置
+    const happinessColor = this.getHappinessColor(classData.happiness || 50);
+    const happinessText = this.scene.add.text(-100, containY - 85, `幸福度: ${classData.happiness || 50}%`, {
+      fontSize: '16px',
+      fill: happinessColor
+    }).setOrigin(0, 0.5);
+
+    // 添加階層描述 - 調整位置
+    const descText = this.scene.add.text(-200, containY, classData.description, {
+      fontSize: '14px',
+      fill: '#cccccc',
+      wordWrap: { width: 500 }
+    }).setOrigin(0, 0.5);
+
+    elements.push(classTitle, classCountText, happinessText, descText);
+
+    // 添加工人類型標題 - 調整位置
+    const workersTitle = this.scene.add.text(-200, containY + 40, '工人類型:', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    elements.push(workersTitle);
+
+    // 計算這個階層的可用工人數量
+    let availableWorkers = 0;
+    let totalWorkers = 0;
+
+    // 統計這個階層的工人類型數據
+    for (const workerType of this.scene.populationSystem.socialClasses[className].workerTypes) {
+      const workerData = stats.workers[workerType];
+      if (workerData) {
+        availableWorkers += workerData.available;
+        totalWorkers += workerData.count;
+      }
+    }
+
+    // 顯示可用工人數量 - 調整位置
+    const availableText = this.scene.add.text(100, containY + 40, `可用工人: ${availableWorkers}/${totalWorkers}`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    elements.push(availableText);
+
+    // 列出這個階層的工人類型 - 調整起始位置
+    let yPos = containY + 80;
+    const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
+
+    for (const workerType of workerTypesInClass) {
+      const data = stats.workers[workerType];
+      if (!data) continue;
+
+      // 工人名稱
+      const nameText = this.scene.add.text(-250, yPos, data.displayName, {
+        fontSize: '16px',
+        fill: '#e0e0e0'
+      }).setOrigin(0, 0.5);
+
+      // 工人數量
+      const countText = this.scene.add.text(-100, yPos, `數量: ${data.count} (可用: ${data.available})`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+
+      // 經驗值
+      const expText = this.scene.add.text(50, yPos, `經驗: ${data.experience}`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+
+      // 添加訓練按鈕
+      const trainButton = this.scene.add.rectangle(180, yPos, 60, 26, 0x4a6a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.trainWorker(workerType));
+
+      const trainText = this.scene.add.text(180, yPos, '訓練', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      // 添加晉升按鈕
+      const promoteButton = this.scene.add.rectangle(270, yPos, 60, 26, 0x6a4a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.showPromotionOptions(workerType));
+
+      const promoteText = this.scene.add.text(270, yPos, '晉升', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      elements.push(nameText, countText, expText, trainButton, trainText, promoteButton, promoteText);
+      yPos += 40;
+    }
+
+    // 添加需求信息
+    if (classData.demands && Object.keys(classData.demands).length > 0) {
+      const demandsTitle = this.scene.add.text(-250, yPos + 20, '需求滿足情況:', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      elements.push(demandsTitle);
+      yPos += 50;
+
+      // 顯示每種需求的滿足情況
+      for (const [_, demandInfo] of Object.entries(classData.demands)) {
+        const demandNameText = this.scene.add.text(-250, yPos, demandInfo.displayName, {
+          fontSize: '16px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 滿足率
+        const satisfactionColor = this.getSatisfactionColor(demandInfo.satisfaction);
+        const satisfactionText = this.scene.add.text(-100, yPos, `滿足: ${demandInfo.satisfaction}`, {
+          fontSize: '14px',
+          fill: satisfactionColor
+        }).setOrigin(0, 0.5);
+
+        // 價格適宜度
+        const priceColor = this.getSatisfactionColor(demandInfo.priceScore);
+        const priceText = this.scene.add.text(20, yPos, `價格: ${demandInfo.priceScore}`, {
+          fontSize: '14px',
+          fill: priceColor
+        }).setOrigin(0, 0.5);
+
+        // 影響
+        const impactColor = demandInfo.impact >= 0 ? '#99ff99' : '#ff9999';
+        const impactText = this.scene.add.text(140, yPos, `影響: ${demandInfo.impact > 0 ? '+' : ''}${demandInfo.impact}`, {
+          fontSize: '14px',
+          fill: impactColor
+        }).setOrigin(0, 0.5);
+
+        elements.push(demandNameText, satisfactionText, priceText, impactText);
+        yPos += 30;
+      }
+    }
+
+    // 添加所有元素到容器
+    container.add(elements);
+  }
+
+  /**
+   * 創建中層選項卡內容
+   * @param {Phaser.GameObjects.Container} container - 選項卡容器
+   * @param {Object} stats - 人口統計數據
+   */
+  createMiddleClassTabContent(container, stats) {
+    const elements = [];
+    const className = 'middle';
+    const classData = stats.socialClasses[className];
+
+    if (!classData) return;
+
+    // 定義內容的Y軸基準位置，方便統一調整
+    const containY = 80;
+
+    // 先添加內容背景 - 調整透明度和位置
+    const contentBackground = this.scene.add.rectangle(0, containY+40, 460, 280, 0x1a1a1a, 0.7)
+      .setStrokeStyle(1, 0x4a4a4a);
+    // 直接添加到容器中，確保它在最底層
+    container.add(contentBackground);
+
+    // 添加階層標題 - 調整位置以配合新的背景位置
+    const classTitle = this.scene.add.text(-200, containY - 85, classData.name, {
+      fontSize: '20px',
+      fill: this.getClassColor(className),
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層人口信息 - 調整位置
+    const classCountText = this.scene.add.text(-200, containY - 60, `人口: ${classData.count} (${classData.percentage})`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層幸福度 - 調整位置
+    const happinessColor = this.getHappinessColor(classData.happiness || 50);
+    const happinessText = this.scene.add.text(-100, containY - 85, `幸福度: ${classData.happiness || 50}%`, {
+      fontSize: '16px',
+      fill: happinessColor
+    }).setOrigin(0, 0.5);
+
+    // 添加階層描述 - 調整位置和寬度
+    const descText = this.scene.add.text(-200, containY, classData.description, {
+      fontSize: '14px',
+      fill: '#cccccc',
+      wordWrap: { width: 380 }
+    }).setOrigin(0, 0.5);
+
+    // 添加吸引移民按鈕 - 調整位置和大小
+    const immigrantButton = this.scene.add.rectangle(150, containY - 60, 100, 26, 0x4a6a4a)
+      .setInteractive()
+      .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
+
+    const immigrantText = this.scene.add.text(150, containY - 60, `吸引${this.getClassDisplayName(className)}移民`, {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    elements.push(classTitle, classCountText, happinessText, descText, immigrantButton, immigrantText);
+
+    // 添加工人類型標題 - 調整位置
+    const workersTitle = this.scene.add.text(-200, 80, '工人類型:', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    elements.push(workersTitle);
+
+    // 計算這個階層的可用工人數量
+    let availableWorkers = 0;
+    let totalWorkers = 0;
+
+    // 統計這個階層的工人類型數據
+    for (const workerType of this.scene.populationSystem.socialClasses[className].workerTypes) {
+      const workerData = stats.workers[workerType];
+      if (workerData) {
+        availableWorkers += workerData.available;
+        totalWorkers += workerData.count;
+      }
+    }
+
+    // 顯示可用工人數量 - 調整位置
+    const availableText = this.scene.add.text(100, 80, `可用工人: ${availableWorkers}/${totalWorkers}`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    elements.push(availableText);
+    
+    // 列出這個階層的工人類型 - 調整起始位置
+    let yPos = containY + 80;
+    const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
+
+    for (const workerType of workerTypesInClass) {
+      const data = stats.workers[workerType];
+      if (!data) continue;
+
+      // 工人名稱
+      const nameText = this.scene.add.text(-250, yPos, data.displayName, {
+        fontSize: '16px',
+        fill: '#e0e0e0'
+      }).setOrigin(0, 0.5);
+
+      // 工人數量
+      const countText = this.scene.add.text(-100, yPos, `數量: ${data.count} (可用: ${data.available})`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+
+      // 經驗值
+      const expText = this.scene.add.text(50, yPos, `經驗: ${data.experience}`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+      let xPos = 140
+      // 添加訓練按鈕
+      const trainButton = this.scene.add.rectangle(xPos, yPos, 50, 20, 0x4a6a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.trainWorker(workerType));
+
+      const trainText = this.scene.add.text(xPos, yPos, '訓練', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+      xPos += 60
+      // 添加晉升按鈕
+      const promoteButton = this.scene.add.rectangle(xPos, yPos, 50, 20, 0x6a4a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.showPromotionOptions(workerType));
+
+      const promoteText = this.scene.add.text(xPos, yPos, '晉升', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      elements.push(nameText, countText, expText, trainButton, trainText, promoteButton, promoteText);
+      yPos += 40;
+    }
+
+    // 添加需求信息
+    if (classData.demands && Object.keys(classData.demands).length > 0) {
+      const demandsTitle = this.scene.add.text(-250, yPos + 20, '需求滿足情況:', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      elements.push(demandsTitle);
+      yPos += 50;
+
+      // 顯示每種需求的滿足情況
+      for (const [_, demandInfo] of Object.entries(classData.demands)) {
+        const demandNameText = this.scene.add.text(-250, yPos, demandInfo.displayName, {
+          fontSize: '16px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 滿足率
+        const satisfactionColor = this.getSatisfactionColor(demandInfo.satisfaction);
+        const satisfactionText = this.scene.add.text(-100, yPos, `滿足: ${demandInfo.satisfaction}`, {
+          fontSize: '14px',
+          fill: satisfactionColor
+        }).setOrigin(0, 0.5);
+
+        // 價格適宜度
+        const priceColor = this.getSatisfactionColor(demandInfo.priceScore);
+        const priceText = this.scene.add.text(20, yPos, `價格: ${demandInfo.priceScore}`, {
+          fontSize: '14px',
+          fill: priceColor
+        }).setOrigin(0, 0.5);
+
+        // 影響
+        const impactColor = demandInfo.impact >= 0 ? '#99ff99' : '#ff9999';
+        const impactText = this.scene.add.text(140, yPos, `影響: ${demandInfo.impact > 0 ? '+' : ''}${demandInfo.impact}`, {
+          fontSize: '14px',
+          fill: impactColor
+        }).setOrigin(0, 0.5);
+
+        elements.push(demandNameText, satisfactionText, priceText, impactText);
+        yPos += 30;
+      }
+    }
+
+    // 添加所有元素到容器
+    container.add(elements);
+  }
+
+  /**
+   * 創建上層選項卡內容
+   * @param {Phaser.GameObjects.Container} container - 選項卡容器
+   * @param {Object} stats - 人口統計數據
+   */
+  createUpperClassTabContent(container, stats) {
+    const elements = [];
+    const className = 'upper';
+    const classData = stats.socialClasses[className];
+
+    if (!classData) return;
+
+    // 定義內容的Y軸基準位置，方便統一調整
+    const containY = 80;
+
+    // 先添加內容背景 - 調整透明度和位置
+    const contentBackground = this.scene.add.rectangle(0, containY+40, 460, 280, 0x1a1a1a, 0.7)
+      .setStrokeStyle(1, 0x4a4a4a);
+    // 將背景放在元素列表的最前面，確保它在最底層
+    container.add(contentBackground);
+
+    // 添加階層標題 - 調整位置以配合新的背景位置
+    const classTitle = this.scene.add.text(-200, containY - 85, classData.name, {
+      fontSize: '20px',
+      fill: this.getClassColor(className),
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層人口信息 - 調整位置
+    const classCountText = this.scene.add.text(-200, containY - 60, `人口: ${classData.count} (${classData.percentage})`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層幸福度 - 調整位置
+    const happinessColor = this.getHappinessColor(classData.happiness || 50);
+    const happinessText = this.scene.add.text(-100, containY - 85, `幸福度: ${classData.happiness || 50}%`, {
+      fontSize: '16px',
+      fill: happinessColor
+    }).setOrigin(0, 0.5);
+
+    // 添加階層描述 - 調整位置和寬度
+    const descText = this.scene.add.text(-200, containY, classData.description, {
+      fontSize: '14px',
+      fill: '#cccccc',
+      wordWrap: { width: 380 }
+    }).setOrigin(0, 0.5);
+
+    // 添加吸引移民按鈕 - 調整位置和大小
+    const immigrantButton = this.scene.add.rectangle(150, containY - 60, 100, 26, 0x4a6a4a)
+      .setInteractive()
+      .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
+
+    const immigrantText = this.scene.add.text(150, containY - 60, `吸引${this.getClassDisplayName(className)}移民`, {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    elements.push(classTitle, classCountText, happinessText, descText, immigrantButton, immigrantText);
+
+    // 添加工人類型標題 - 調整位置
+    const workersTitle = this.scene.add.text(-200, containY + 40, '工人類型:', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    elements.push(workersTitle);
+
+    // 計算這個階層的可用工人數量
+    let availableWorkers = 0;
+    let totalWorkers = 0;
+
+    // 統計這個階層的工人類型數據
+    for (const workerType of this.scene.populationSystem.socialClasses[className].workerTypes) {
+      const workerData = stats.workers[workerType];
+      if (workerData) {
+        availableWorkers += workerData.available;
+        totalWorkers += workerData.count;
+      }
+    }
+
+    // 顯示可用工人數量 - 調整位置
+    const availableText = this.scene.add.text(50, containY + 40, `可用工人: ${availableWorkers}/${totalWorkers}`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    elements.push(availableText);
+    
+    // 列出這個階層的工人類型 - 調整位置和布局
+    let yPos = containY + 80;
+    const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
+
+    for (const workerType of workerTypesInClass) {
+      const data = stats.workers[workerType];
+      if (!data) continue;
+
+      // 工人名稱 - 調整位置
+      const nameText = this.scene.add.text(-200, yPos, data.displayName, {
+        fontSize: '16px',
+        fill: '#e0e0e0'
+      }).setOrigin(0, 0.5);
+
+      // 工人數量 - 調整位置
+      const countText = this.scene.add.text(-80, yPos, `數量: ${data.count} (可用: ${data.available})`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+
+      // 經驗值 - 調整位置
+      const expText = this.scene.add.text(50, yPos, `經驗: ${data.experience}`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+      let xPos = 150;
+      // 添加訓練按鈕 - 調整位置和大小
+      const trainButton = this.scene.add.rectangle(xPos, yPos, 50, 26, 0x4a6a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.trainWorker(workerType));
+
+      const trainText = this.scene.add.text(xPos, yPos, '訓練', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+      xPos += 55;
+
+      // 添加晉升按鈕 - 調整位置和大小
+      const promoteButton = this.scene.add.rectangle(xPos, yPos, 50, 26, 0x6a4a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.showPromotionOptions(workerType));
+
+      const promoteText = this.scene.add.text(xPos, yPos, '晉升', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      elements.push(nameText, countText, expText, trainButton, trainText, promoteButton, promoteText);
+      yPos += 40;
+    }
+
+    // 添加需求信息
+    if (classData.demands && Object.keys(classData.demands).length > 0) {
+      const demandsTitle = this.scene.add.text(-250, yPos + 20, '需求滿足情況:', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      elements.push(demandsTitle);
+      yPos += 50;
+
+      // 顯示每種需求的滿足情況
+      for (const [_, demandInfo] of Object.entries(classData.demands)) {
+        const demandNameText = this.scene.add.text(-250, yPos, demandInfo.displayName, {
+          fontSize: '16px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 滿足率
+        const satisfactionColor = this.getSatisfactionColor(demandInfo.satisfaction);
+        const satisfactionText = this.scene.add.text(-100, yPos, `滿足: ${demandInfo.satisfaction}`, {
+          fontSize: '14px',
+          fill: satisfactionColor
+        }).setOrigin(0, 0.5);
+
+        // 價格適宜度
+        const priceColor = this.getSatisfactionColor(demandInfo.priceScore);
+        const priceText = this.scene.add.text(20, yPos, `價格: ${demandInfo.priceScore}`, {
+          fontSize: '14px',
+          fill: priceColor
+        }).setOrigin(0, 0.5);
+
+        // 影響
+        const impactColor = demandInfo.impact >= 0 ? '#99ff99' : '#ff9999';
+        const impactText = this.scene.add.text(140, yPos, `影響: ${demandInfo.impact > 0 ? '+' : ''}${demandInfo.impact}`, {
+          fontSize: '14px',
+          fill: impactColor
+        }).setOrigin(0, 0.5);
+
+        elements.push(demandNameText, satisfactionText, priceText, impactText);
+        yPos += 30;
+      }
+    }
+
+    // 添加所有元素到容器
+    container.add(elements);
+  }
+
+  /**
+   * 創建概覽選項卡內容
+   * @param {Phaser.GameObjects.Container} container - 選項卡容器
+   * @param {Object} stats - 人口統計數據
+   */
+  createOverviewTabContent(container, stats) {
+    const elements = [];
+
+    // 定義內容的Y軸基準位置，方便統一調整
+    const containY = 80;
+
+    // 先添加內容背景 - 調整透明度和位置
+    const contentBackground = this.scene.add.rectangle(0, containY+40, 460, 280, 0x1a1a1a, 0.7)
+      .setStrokeStyle(1, 0x4a4a4a);
+    // 直接添加到容器中，確保它在最底層
+    container.add(contentBackground);
+
+    // 添加總人口信息 - 調整位置
+    const totalPopText = this.scene.add.text(-200, containY - 85, `總人口: ${stats.total}`, {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    // 添加住房容量信息 - 調整位置
+    const housingText = this.scene.add.text(-200, containY - 50, `住房容量: ${stats.capacity}`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    // 添加總體幸福度 - 調整位置
+    const happinessColor = this.getHappinessColor(stats.happiness);
+    const happinessText = this.scene.add.text(-200, containY-70, `總體幸福度: ${stats.happiness}%`, {
+      fontSize: '16px',
+      fill: happinessColor
+    }).setOrigin(0, 0.5);
+
+    elements.push(totalPopText, housingText, happinessText);
+
+    // 添加階層分布信息 - 調整位置
+    const classDistTitle = this.scene.add.text(-200, containY-20, '階層分布:', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    elements.push(classDistTitle);
+
+    // 顯示每個階層的信息 - 調整位置
+    let yPos = containY + 80;
+    for (const [className, classData] of Object.entries(stats.socialClasses)) {
+      // 階層名稱
+      const classNameText = this.scene.add.text(-200, yPos, `${classData.name}:`, {
+        fontSize: '16px',
+        fill: this.getClassColor(className),
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      // 人口數量
+      const classCountText = this.scene.add.text(-120, yPos, `${classData.count} (${classData.percentage})`, {
+        fontSize: '16px',
+        fill: '#e0e0e0'
+      }).setOrigin(0, 0.5);
+
+      // 幸福度
+      const classHappinessColor = this.getHappinessColor(classData.happiness || 50);
+      const classHappinessText = this.scene.add.text(0, yPos, `幸福度: ${classData.happiness || 50}%`, {
+        fontSize: '16px',
+        fill: classHappinessColor
+      }).setOrigin(0, 0.5);
+
+      elements.push(classNameText, classCountText, classHappinessText);
+
+      // 如果是中層或上層，添加吸引移民按鈕
+      if (className === 'middle' || className === 'upper') {
+        const immigrantButton = this.scene.add.rectangle(200, yPos, 120, 30, 0x4a6a4a)
+          .setInteractive()
+          .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
+
+        const immigrantText = this.scene.add.text(200, yPos, `吸引${this.getClassDisplayName(className)}移民`, {
+          fontSize: '14px',
+          fill: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+
+        elements.push(immigrantButton, immigrantText);
+      }
+
+      yPos += 40;
+    }
+
+    // 添加需求滿足情況標題
+    const demandsTitle = this.scene.add.text(-250, yPos + 20, '需求滿足情況:', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    elements.push(demandsTitle);
+    yPos += 60;
+
+    // 顯示每個階層的需求滿足情況
+    for (const [className, classData] of Object.entries(stats.socialClasses)) {
+      if (classData.demands && Object.keys(classData.demands).length > 0) {
+        // 階層標題
+        const classTitle = this.scene.add.text(-250, yPos, `${classData.name}需求:`, {
+          fontSize: '16px',
+          fill: this.getClassColor(className),
+          fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+
+        elements.push(classTitle);
+        yPos += 25;
+
+        // 顯示每種需求的滿足情況
+        for (const [_, demandInfo] of Object.entries(classData.demands)) {
+          const demandNameText = this.scene.add.text(-230, yPos, demandInfo.displayName, {
+            fontSize: '14px',
+            fill: '#e0e0e0'
+          }).setOrigin(0, 0.5);
+
+          // 滿足率
+          const satisfactionColor = this.getSatisfactionColor(demandInfo.satisfaction);
+          const satisfactionText = this.scene.add.text(-100, yPos, `滿足: ${demandInfo.satisfaction}`, {
+            fontSize: '14px',
+            fill: satisfactionColor
+          }).setOrigin(0, 0.5);
+
+          // 價格適宜度
+          const priceColor = this.getSatisfactionColor(demandInfo.priceScore);
+          const priceText = this.scene.add.text(20, yPos, `價格: ${demandInfo.priceScore}`, {
+            fontSize: '14px',
+            fill: priceColor
+          }).setOrigin(0, 0.5);
+
+          // 影響
+          const impactColor = demandInfo.impact >= 0 ? '#99ff99' : '#ff9999';
+          const impactText = this.scene.add.text(140, yPos, `影響: ${demandInfo.impact > 0 ? '+' : ''}${demandInfo.impact}`, {
+            fontSize: '14px',
+            fill: impactColor
+          }).setOrigin(0, 0.5);
+
+          elements.push(demandNameText, satisfactionText, priceText, impactText);
+          yPos += 20;
+        }
+
+        yPos += 10;
+      }
+    }
+
+    // 添加所有元素到容器
+    container.add(elements);
+  }
+
+  /**
+   * 創建底層選項卡內容
+   * @param {Phaser.GameObjects.Container} container - 選項卡容器
+   * @param {Object} stats - 人口統計數據
+   */
+  createLowerClassTabContent(container, stats) {
+    const elements = [];
+    const className = 'lower';
+    const classData = stats.socialClasses[className];
+
+    if (!classData) return;
+
+    // 定義內容的Y軸基準位置，方便統一調整
+    const containY = 80;
+
+    // 先添加內容背景 - 調整透明度和位置
+    const contentBackground = this.scene.add.rectangle(0, containY+40, 460, 280, 0x1a1a1a, 0.7)
+      .setStrokeStyle(1, 0x4a4a4a);
+    // 直接添加到容器中，確保它在最底層
+    container.add(contentBackground);
+
+    // 添加階層標題 - 調整位置
+    const classTitle = this.scene.add.text(-200, containY - 85, classData.name, {
+      fontSize: '20px',
+      fill: this.getClassColor(className),
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層人口信息 - 調整位置
+    const classCountText = this.scene.add.text(-200, containY - 60, `人口: ${classData.count} (${classData.percentage})`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    // 添加階層幸福度 - 調整位置
+    const happinessColor = this.getHappinessColor(classData.happiness || 50);
+    const happinessText = this.scene.add.text(-100, containY - 85, `幸福度: ${classData.happiness || 50}%`, {
+      fontSize: '16px',
+      fill: happinessColor
+    }).setOrigin(0, 0.5);
+
+    // 添加階層描述 - 調整位置和寬度
+    const descText = this.scene.add.text(-200, containY, classData.description, {
+      fontSize: '14px',
+      fill: '#cccccc',
+      wordWrap: { width: 380 }
+    }).setOrigin(0, 0.5);
+
+    elements.push(classTitle, classCountText, happinessText, descText);
+
+    // 添加工人類型標題 - 調整位置
+    const workersTitle = this.scene.add.text(-200, containY + 40, '工人類型:', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+
+    elements.push(workersTitle);
+
+    // 計算這個階層的可用工人數量
+    let availableWorkers = 0;
+    let totalWorkers = 0;
+
+    // 統計這個階層的工人類型數據
+    for (const workerType of this.scene.populationSystem.socialClasses[className].workerTypes) {
+      const workerData = stats.workers[workerType];
+      if (workerData) {
+        availableWorkers += workerData.available;
+        totalWorkers += workerData.count;
+      }
+    }
+
+    // 顯示可用工人數量 - 調整位置
+    const availableText = this.scene.add.text(50, 10, `可用工人: ${availableWorkers}/${totalWorkers}`, {
+      fontSize: '16px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    elements.push(availableText);
+
+    // 列出這個階層的工人類型 - 調整位置和布局
+    let yPos = containY + 80;
+    const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
+
+    for (const workerType of workerTypesInClass) {
+      const data = stats.workers[workerType];
+      if (!data) continue;
+
+      // 工人名稱 - 調整位置
+      const nameText = this.scene.add.text(-200, yPos, data.displayName, {
+        fontSize: '16px',
+        fill: '#e0e0e0'
+      }).setOrigin(0, 0.5);
+
+      // 工人數量 - 調整位置
+      const countText = this.scene.add.text(-80, yPos, `數量: ${data.count} (可用: ${data.available})`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+
+      // 經驗值 - 調整位置
+      const expText = this.scene.add.text(50, yPos, `經驗: ${data.experience}`, {
+        fontSize: '14px',
+        fill: '#cccccc'
+      }).setOrigin(0, 0.5);
+
+      // 添加訓練按鈕 - 調整位置和大小
+      const trainButton = this.scene.add.rectangle(150, yPos, 60, 26, 0x4a6a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.trainWorker(workerType));
+
+      const trainText = this.scene.add.text(150, yPos, '訓練', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      // 添加晉升按鈕 - 調整位置和大小
+      const promoteButton = this.scene.add.rectangle(220, yPos, 60, 26, 0x6a4a4a)
+        .setInteractive()
+        .on('pointerdown', () => this.showPromotionOptions(workerType));
+
+      const promoteText = this.scene.add.text(220, yPos, '晉升', {
+        fontSize: '14px',
+        fill: '#ffffff'
+      }).setOrigin(0.5, 0.5);
+
+      elements.push(nameText, countText, expText, trainButton, trainText, promoteButton, promoteText);
+      yPos += 40;
+    }
+
+    // 添加需求信息
+    if (classData.demands && Object.keys(classData.demands).length > 0) {
+      const demandsTitle = this.scene.add.text(-250, yPos + 20, '需求滿足情況:', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5);
+
+      elements.push(demandsTitle);
+      yPos += 50;
+
+      // 顯示每種需求的滿足情況
+      for (const [_, demandInfo] of Object.entries(classData.demands)) {
+        const demandNameText = this.scene.add.text(-250, yPos, demandInfo.displayName, {
+          fontSize: '16px',
+          fill: '#e0e0e0'
+        }).setOrigin(0, 0.5);
+
+        // 滿足率
+        const satisfactionColor = this.getSatisfactionColor(demandInfo.satisfaction);
+        const satisfactionText = this.scene.add.text(-100, yPos, `滿足: ${demandInfo.satisfaction}`, {
+          fontSize: '14px',
+          fill: satisfactionColor
+        }).setOrigin(0, 0.5);
+
+        // 價格適宜度
+        const priceColor = this.getSatisfactionColor(demandInfo.priceScore);
+        const priceText = this.scene.add.text(20, yPos, `價格: ${demandInfo.priceScore}`, {
+          fontSize: '14px',
+          fill: priceColor
+        }).setOrigin(0, 0.5);
+
+        // 影響
+        const impactColor = demandInfo.impact >= 0 ? '#99ff99' : '#ff9999';
+        const impactText = this.scene.add.text(140, yPos, `影響: ${demandInfo.impact > 0 ? '+' : ''}${demandInfo.impact}`, {
+          fontSize: '14px',
+          fill: impactColor
+        }).setOrigin(0, 0.5);
+
+        elements.push(demandNameText, satisfactionText, priceText, impactText);
+        yPos += 30;
+      }
+    }
+
+    // 添加所有元素到容器
+    container.add(elements);
   }
 
   /**
@@ -781,51 +1590,48 @@ export default class UIManager {
     const classPromotionRequirements = this.scene.populationSystem.classPromotionRequirements;
 
     switch (workerType) {
-      case 'peasant':
-        // 農民可以升級為礦工或伐木工
+      case 'worker':
+        // 工人可以升級為技工
         options.push({
-          type: 'miner',
-          displayName: this.scene.populationSystem.workerTypes.miner.displayName,
-          resources: classPromotionRequirements.peasant_to_miner.resources
-        });
-
-        options.push({
-          type: 'woodcutter',
-          displayName: this.scene.populationSystem.workerTypes.woodcutter.displayName,
-          resources: classPromotionRequirements.peasant_to_woodcutter.resources
+          type: 'technician',
+          displayName: this.scene.populationSystem.workerTypes.technician.displayName,
+          resources: classPromotionRequirements.worker_to_technician.resources
         });
         break;
 
-      case 'craftsman':
-        // 工匠可以升級為學者或法師學徒
+      case 'technician':
+        // 技工可以升級為工匠
         options.push({
-          type: 'scholar',
-          displayName: this.scene.populationSystem.workerTypes.scholar.displayName,
-          resources: classPromotionRequirements.craftsman_to_scholar.resources
-        });
-
-        options.push({
-          type: 'wizard_apprentice',
-          displayName: this.scene.populationSystem.workerTypes.wizard_apprentice.displayName,
-          resources: classPromotionRequirements.craftsman_to_wizard_apprentice.resources
+          type: 'artisan',
+          displayName: this.scene.populationSystem.workerTypes.artisan.displayName,
+          resources: classPromotionRequirements.technician_to_artisan.resources
         });
         break;
 
-      case 'scholar':
-        // 學者可以升級為法師
+      case 'technical_staff':
+        // 技術人員可以升級為工程師
         options.push({
-          type: 'wizard',
-          displayName: this.scene.populationSystem.workerTypes.wizard.displayName,
-          resources: classPromotionRequirements.scholar_to_wizard.resources
+          type: 'engineer',
+          displayName: this.scene.populationSystem.workerTypes.engineer.displayName,
+          resources: classPromotionRequirements.technical_staff_to_engineer.resources
         });
         break;
 
-      case 'wizard_apprentice':
-        // 法師學徒可以升級為法師
+      case 'accountant':
+        // 會計可以升級為老闆
         options.push({
-          type: 'wizard',
-          displayName: this.scene.populationSystem.workerTypes.wizard.displayName,
-          resources: classPromotionRequirements.wizard_apprentice_to_wizard.resources
+          type: 'boss',
+          displayName: this.scene.populationSystem.workerTypes.boss.displayName,
+          resources: classPromotionRequirements.accountant_to_boss.resources
+        });
+        break;
+
+      case 'magic_technician':
+        // 魔法技工可以升級為老闆
+        options.push({
+          type: 'boss',
+          displayName: this.scene.populationSystem.workerTypes.boss.displayName,
+          resources: classPromotionRequirements.magic_technician_to_boss.resources
         });
         break;
     }
@@ -883,7 +1689,7 @@ export default class UIManager {
       this.createWorkerPanel();
     } else {
       // 顯示錯誤消息
-      const errorText = this.scene.add.text(400, 200, '資源不足或沒有足夠的農民', {
+      const errorText = this.scene.add.text(400, 200, '資源不足或沒有足夠的工人', {
         fontSize: '16px',
         fill: '#ff0000',
         backgroundColor: '#000000'
@@ -1159,12 +1965,38 @@ export default class UIManager {
     const background = this.scene.add.rectangle(0, 0, 700, 550, 0x1a1a1a, 0.9)
       .setStrokeStyle(1, 0x4a4a4a);
 
+    // 創建標題欄背景 - 用作拖拉區域
+    const titleBar = this.scene.add.rectangle(0, -250, 700, 40, 0x333333)
+      .setStrokeStyle(1, 0x555555);
+
+    // 設置標題欄為可互動元素，使其可拖拉
+    titleBar.setInteractive()
+      .on('pointerdown', (pointer) => {
+        // 記錄拖拉開始時的面板位置和滑鼠偏移量
+        this.isMarketDragging = true;
+        this.marketDragStartX = this.marketPanel.x;
+        this.marketDragStartY = this.marketPanel.y;
+        this.marketDragPointerStartX = pointer.x;
+        this.marketDragPointerStartY = pointer.y;
+
+        // 設置滑鼠移動事件
+        this.scene.input.on('pointermove', this.handleMarketPanelDrag, this);
+      });
+
+    // 添加滑鼠釋放事件
+    this.scene.input.on('pointerup', () => {
+      if (this.isMarketDragging) {
+        this.isMarketDragging = false;
+        this.scene.input.off('pointermove', this.handleMarketPanelDrag, this);
+      }
+    });
+
     // 添加標題
     const title = this.scene.add.text(0, -250, '市場統計', {
       fontSize: '24px',
       fill: '#ffffff',
       fontStyle: 'bold'
-    }).setOrigin(0.5, 0);
+    }).setOrigin(0.5, 0.5);
 
     // 添加關閉按鈕
     const closeButton = this.scene.add.rectangle(330, -250, 30, 30, 0x4a4a4a)
@@ -1176,6 +2008,10 @@ export default class UIManager {
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5);
 
+    // 添加資源價格列表
+    const priceElements = [];
+    let yPos = -180;
+
     // 添加市場價格標題
     const priceTitle = this.scene.add.text(-330, -210, '資源價格', {
       fontSize: '18px',
@@ -1183,9 +2019,7 @@ export default class UIManager {
       fontStyle: 'bold'
     }).setOrigin(0, 0.5);
 
-    // 添加資源價格列表
-    const priceElements = [];
-    let yPos = -180;
+    priceElements.push(priceTitle);
 
     // 按照資源層級分組顯示價格
     const resourcesByTier = {};
@@ -1366,7 +2200,7 @@ export default class UIManager {
     }
 
     // 添加所有元素到面板
-    this.marketPanel.add([background, title, closeButton, closeText, ...priceElements]);
+    this.marketPanel.add([background, titleBar, title, closeButton, closeText, ...priceElements]);
   }
 
   /**
@@ -1375,8 +2209,61 @@ export default class UIManager {
   toggleMarketPanel() {
     if (this.marketPanel && this.marketPanel.visible) {
       this.marketPanel.visible = false;
+      // 清理事件監聽器
+      if (this.isMarketDragging) {
+        this.isMarketDragging = false;
+        this.scene.input.off('pointermove', this.handleMarketPanelDrag, this);
+      }
     } else {
       this.createMarketPanel();
+    }
+  }
+
+  /**
+   * 處理工人面板的拖拉
+   * @param {Phaser.Input.Pointer} pointer - 滑鼠指针
+   */
+  handleWorkerPanelDrag(pointer) {
+    if (this.isDragging && this.workerPanel) {
+      // 計算滑鼠移動的距離
+      const dx = pointer.x - this.dragPointerStartX;
+      const dy = pointer.y - this.dragPointerStartY;
+
+      // 更新面板位置，保持滑鼠和面板的相對位置
+      this.workerPanel.x = this.dragStartX + dx;
+      this.workerPanel.y = this.dragStartY + dy;
+    }
+  }
+
+  /**
+   * 處理市場面板的拖拉
+   * @param {Phaser.Input.Pointer} pointer - 滑鼠指针
+   */
+  handleMarketPanelDrag(pointer) {
+    if (this.isMarketDragging && this.marketPanel) {
+      // 計算滑鼠移動的距離
+      const dx = pointer.x - this.marketDragPointerStartX;
+      const dy = pointer.y - this.marketDragPointerStartY;
+
+      // 更新面板位置，保持滑鼠和面板的相對位置
+      this.marketPanel.x = this.marketDragStartX + dx;
+      this.marketPanel.y = this.marketDragStartY + dy;
+    }
+  }
+
+  /**
+   * 處理市場資源交易面板的拖拉
+   * @param {Phaser.Input.Pointer} pointer - 滑鼠指针
+   */
+  handleResourcePanelDrag(pointer) {
+    if (this.isResourceDragging && this.marketResourcePanel) {
+      // 計算滑鼠移動的距離
+      const dx = pointer.x - this.resourceDragPointerStartX;
+      const dy = pointer.y - this.resourceDragPointerStartY;
+
+      // 更新面板位置，保持滑鼠和面板的相對位置
+      this.marketResourcePanel.x = this.resourceDragStartX + dx;
+      this.marketResourcePanel.y = this.resourceDragStartY + dy;
     }
   }
 
@@ -1451,17 +2338,48 @@ export default class UIManager {
     const background = this.scene.add.rectangle(0, 0, 600, 500, 0x1a1a1a, 0.95)
       .setStrokeStyle(1, 0x4a4a4a);
 
+    // 創建標題欄背景 - 用作拖拉區域
+    const titleBar = this.scene.add.rectangle(0, -230, 600, 40, 0x333333)
+      .setStrokeStyle(1, 0x555555);
+
+    // 設置標題欄為可互動元素，使其可拖拉
+    titleBar.setInteractive()
+      .on('pointerdown', (pointer) => {
+        // 記錄拖拉開始時的面板位置和滑鼠偏移量
+        this.isResourceDragging = true;
+        this.resourceDragStartX = this.marketResourcePanel.x;
+        this.resourceDragStartY = this.marketResourcePanel.y;
+        this.resourceDragPointerStartX = pointer.x;
+        this.resourceDragPointerStartY = pointer.y;
+
+        // 設置滑鼠移動事件
+        this.scene.input.on('pointermove', this.handleResourcePanelDrag, this);
+      });
+
+    // 添加滑鼠釋放事件
+    this.scene.input.on('pointerup', () => {
+      if (this.isResourceDragging) {
+        this.isResourceDragging = false;
+        this.scene.input.off('pointermove', this.handleResourcePanelDrag, this);
+      }
+    });
+
     // 添加標題
     const title = this.scene.add.text(0, -230, '市場資源交易', {
       fontSize: '22px',
       fill: '#ffffff',
       fontStyle: 'bold'
-    }).setOrigin(0.5, 0);
+    }).setOrigin(0.5, 0.5);
 
     // 添加關閉按鈕
     const closeButton = this.scene.add.rectangle(280, -230, 30, 30, 0x4a4a4a)
       .setInteractive()
       .on('pointerdown', () => {
+        // 清理事件監聽器
+        if (this.isResourceDragging) {
+          this.isResourceDragging = false;
+          this.scene.input.off('pointermove', this.handleResourcePanelDrag, this);
+        }
         this.marketResourcePanel.destroy();
         this.marketResourcePanel = null;
       });
@@ -1848,7 +2766,7 @@ export default class UIManager {
 
     // 添加所有元素到面板
     this.marketResourcePanel.add([
-      background, title, closeButton, closeText, infoText, goldText,
+      background, titleBar, title, closeButton, closeText, infoText, goldText,
       ...resourceElements,
       amountLabel, amountInput, amountText,
       ...quickButtons,
