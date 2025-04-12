@@ -915,12 +915,51 @@ export default class PopulationSystem {
     // 獲取該階層的工人類型
     const workerTypes = this.socialClasses[socialClass]?.workerTypes || [];
 
-    if (workerTypes.length === 0) {
-      // 如果沒有工人類型，預設添加到工人
-      this.workerTypes.worker.count += amount;
-      console.log(`添加 ${amount} 人口到工人`);
+    if (workerTypes.length != 0) {
+      // 如果沒有工人類型，根據階層選擇適當的預設工人類型
+      let defaultWorkerType = 'worker'; // 預設為底層工人
+
+      if (socialClass === 'middle') {
+        // 中層預設為技術人員
+        defaultWorkerType = 'technical_staff';
+        if (!this.workerTypes[defaultWorkerType]) {
+          DebugUtils.log(`錯誤: 中層預設工人類型 ${defaultWorkerType} 不存在，嘗試使用工程師`, 'ERROR');
+          defaultWorkerType = 'engineer';
+
+          if (!this.workerTypes[defaultWorkerType]) {
+            DebugUtils.log(`錯誤: 中層備用工人類型 ${defaultWorkerType} 也不存在，回退到底層工人`, 'ERROR');
+            defaultWorkerType = 'worker';
+          }
+        }
+      } else if (socialClass === 'upper') {
+        // 上層預設為會計
+        defaultWorkerType = 'accountant';
+        if (!this.workerTypes[defaultWorkerType]) {
+          DebugUtils.log(`錯誤: 上層預設工人類型 ${defaultWorkerType} 不存在，嘗試使用魔法技工`, 'ERROR');
+          defaultWorkerType = 'magic_technician';
+
+          if (!this.workerTypes[defaultWorkerType]) {
+            DebugUtils.log(`錯誤: 上層備用工人類型 ${defaultWorkerType} 也不存在，嘗試使用老闆`, 'ERROR');
+            defaultWorkerType = 'boss';
+
+            if (!this.workerTypes[defaultWorkerType]) {
+              DebugUtils.log(`錯誤: 所有上層工人類型都不存在，回退到底層工人`, 'ERROR');
+              defaultWorkerType = 'worker';
+            }
+          }
+        }
+      }
+
+      // 確保預設工人類型存在
+      if (this.workerTypes[defaultWorkerType]) {
+        this.workerTypes[defaultWorkerType].count += amount;
+        DebugUtils.log(`警告: ${socialClass} 階層沒有工人類型，添加 ${amount} 人口到 ${this.workerTypes[defaultWorkerType].displayName}`, 'WARNING');
+      } else {
+        DebugUtils.log(`嚴重錯誤: 無法找到任何可用的工人類型，無法添加人口`, 'ERROR');
+      }
       return;
     }
+    
 
     // 平均分配到每種工人類型
     const perTypeAmount = Math.floor(amount / workerTypes.length);

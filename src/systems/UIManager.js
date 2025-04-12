@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import Button from '../ui/Button.js';
+import TabButton from '../ui/TabButton.js';
+import TradeButton from '../ui/TradeButton.js';
 
 export default class UIManager {
   constructor(scene) {
@@ -107,16 +110,16 @@ export default class UIManager {
     this.buildingMenu.add(title);
 
     buildings.forEach((building, index) => {
-      const button = this.scene.add.rectangle(0, -130 + (index * 60), 160, 50, 0x2d2d2d)
-        .setInteractive()
-        .on('pointerdown', () => this.handleBuildingSelect(building));
-
-      const text = this.scene.add.text(0, -130 + (index * 60), building, {
+      const buildingBtn = new Button(this.scene, 0, -130 + (index * 60), building, {
+        width: 160,
+        height: 50,
+        backgroundColor: 0x2d2d2d,
         fontSize: '16px',
-        fill: '#e0e0e0'
-      }).setOrigin(0.5, 0.5);
+        textColor: '#e0e0e0',
+        onClick: () => this.handleBuildingSelect(building)
+      });
 
-      this.buildingMenu.add([button, text]);
+      this.buildingMenu.add(buildingBtn.getElements());
     });
   }
 
@@ -136,14 +139,14 @@ export default class UIManager {
     }).setOrigin(0.5, 0);
 
     // Add close button
-    const closeButton = this.scene.add.rectangle(140, -110, 30, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.closeBuildingInfo());
-
-    const closeText = this.scene.add.text(140, -110, 'X', {
+    const closeBtn = new Button(this.scene, 140, -110, 'X', {
+      width: 30,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
       fontSize: '18px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.closeBuildingInfo()
+    });
 
     // Add level
     const levelText = this.scene.add.text(0, -80, `等級: ${buildingInfo.level}`, {
@@ -231,16 +234,16 @@ export default class UIManager {
     }).setOrigin(0.5, 0);
 
     // Add upgrade button
-    const upgradeButton = this.scene.add.rectangle(0, 90, 120, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.handleBuildingUpgrade(buildingInfo.id));
-
-    const upgradeText = this.scene.add.text(0, 90, '升級', {
+    const upgradeBtn = new Button(this.scene, 0, 90, '升級', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
       fontSize: '16px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.handleBuildingUpgrade(buildingInfo.id)
+    });
 
-    this.infoPanel.add([background, title, closeButton, closeText, levelText, efficiencyText, workerInfoText, recipe, timeText, upgradeButton, upgradeText]);
+    this.infoPanel.add([background, title, ...closeBtn.getElements(), levelText, efficiencyText, workerInfoText, recipe, timeText, ...upgradeBtn.getElements()]);
   }
 
   handleBuildingSelect(buildingType) {
@@ -357,27 +360,27 @@ export default class UIManager {
     }).setOrigin(0.5, 0);
 
     // 添加查看工人按鈕 - 向下移動以留出更多空間
-    const viewWorkersButton = this.scene.add.rectangle(60, 120, 80, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.toggleWorkerPanel());
-
-    const buttonText = this.scene.add.text(60, 120, '管理工人', {
+    const viewWorkersBtn = new Button(this.scene, 60, 120, '管理工人', {
+      width: 80,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
       fontSize: '14px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.toggleWorkerPanel()
+    });
 
     // 添加市場按鈕
-    const marketButton = this.scene.add.rectangle(150, 120, 80, 30, 0x4a6a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.toggleMarketPanel());
-
-    const marketButtonText = this.scene.add.text(150, 120, '查看市場', {
+    const marketBtn = new Button(this.scene, 150, 120, '查看市場', {
+      width: 80,
+      height: 30,
+      backgroundColor: 0x4a6a4a,
       fontSize: '14px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.toggleMarketPanel()
+    });
 
     // 將元素添加到容器中
-    this.populationPanel.add([background, title, populationText, housingText, happinessText, viewWorkersButton, buttonText, marketButton, marketButtonText]);
+    this.populationPanel.add([background, title, populationText, housingText, happinessText, ...viewWorkersBtn.getElements(), ...marketBtn.getElements()]);
 
     // 存儲引用以便更新
     this.populationPanel.populationText = populationText;
@@ -503,18 +506,14 @@ export default class UIManager {
     }).setOrigin(0.5, 0.5);
 
     // 添加關閉按鈕 - 調整位置
-    const closeButton = this.scene.add.rectangle(230, -180, 30, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.toggleWorkerPanel());
-
-    // 添加關閉按鈕文字 - 調整位置並增加描邊效果提高可讀性
-    const closeText = this.scene.add.text(230, -180, 'X', {
+    const closeBtn = new Button(this.scene, 230, -180, 'X', {
+      width: 30,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
       fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 1
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.toggleWorkerPanel()
+    });
 
     // 創建選項卡 - 調整位置和大小並增強視覺效果
     const tabHeight = 36;
@@ -531,48 +530,34 @@ export default class UIManager {
     const tabContainers = {};
     let activeTab = 'overview';
     const tabButtons = [];
-    const tabTexts = [];
 
     // 創建選項卡按鈕
     tabs.forEach(tab => {
-      // 創建選項卡背景
-      this.scene.add.rectangle(tab.x, tabY, tabWidth, tabHeight, 0x1a1a1a)
-        .setStrokeStyle(1, 0x4a4a4a);
-
       // 創建選項卡按鈕
-      const tabButton = this.scene.add.rectangle(tab.x, tabY, tabWidth - 4, tabHeight - 4, 0x2d2d2d)
-        .setInteractive()
-        .on('pointerdown', () => {
+      const tabBtn = new TabButton(this.scene, tab.x, tabY, tab.name, {
+        id: tab.id,
+        width: tabWidth,
+        height: tabHeight,
+        backgroundColor: 0x2d2d2d,
+        activeColor: tab.color,
+        isActive: tab.id === activeTab,
+        onClick: (id) => {
           // 切換選項卡
-          activeTab = tab.id;
+          activeTab = id;
 
           // 更新選項卡外觀
-          tabButtons.forEach((btn, i) => {
-            btn.fillColor = tabs[i].id === activeTab ? tabs[i].color : 0x2d2d2d;
+          tabButtons.forEach((btn) => {
+            btn.setActive(btn.getId() === activeTab);
           });
 
           // 顯示/隱藏內容
           Object.keys(tabContainers).forEach(id => {
             tabContainers[id].visible = (id === activeTab);
           });
-        });
+        }
+      });
 
-      // 設置初始選中狀態
-      if (tab.id === activeTab) {
-        tabButton.fillColor = tab.color;
-      }
-
-      // 創建選項卡文字 - 增加描邊效果提高可讀性
-      const tabText = this.scene.add.text(tab.x, tabY, tab.name, {
-        fontSize: '18px',
-        fontStyle: 'bold',
-        fill: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 2
-      }).setOrigin(0.5, 0.5);
-
-      tabButtons.push(tabButton);
-      tabTexts.push(tabText);
+      tabButtons.push(tabBtn);
 
       // 為每個選項卡創建內容容器 - 設置容器位置在選項卡下方
       tabContainers[tab.id] = this.scene.add.container(0, -100);
@@ -590,7 +575,12 @@ export default class UIManager {
     this.createUpperClassTabContent(tabContainers['upper'], stats);
 
     // 首先添加背景和基本UI元素到面板
-    this.workerPanel.add([background, titleBar, title, closeButton, closeText, ...tabButtons, ...tabTexts]);
+    const tabElements = [];
+    tabButtons.forEach(btn => {
+      tabElements.push(...btn.getElements());
+    });
+
+    this.workerPanel.add([background, titleBar, title, ...closeBtn.getElements(), ...tabElements]);
 
     // 確保tabContainers在最上層，不被背景覆蓋
     Object.values(tabContainers).forEach(container => {
@@ -720,26 +710,23 @@ export default class UIManager {
       }).setOrigin(0, 0.5);
 
       // 添加訓練按鈕
-      const trainButton = this.scene.add.rectangle(180, yPos, 60, 26, 0x4a6a4a)
-        .setInteractive()
-        .on('pointerdown', () => this.trainWorker(workerType));
-
-      const trainText = this.scene.add.text(180, yPos, '訓練', {
-        fontSize: '14px',
-        fill: '#ffffff'
-      }).setOrigin(0.5, 0.5);
+      const trainBtn = new Button(this.scene, 180, yPos, '訓練', {
+        width: 60,
+        height: 26,
+        backgroundColor: 0x4a6a4a,
+        onClick: () => this.trainWorker(workerType)
+      });
 
       // 添加晉升按鈕
-      const promoteButton = this.scene.add.rectangle(270, yPos, 60, 26, 0x6a4a4a)
-        .setInteractive()
-        .on('pointerdown', () => this.showPromotionOptions(workerType));
+      const promoteBtn = new Button(this.scene, 270, yPos, '晉升', {
+        width: 60,
+        height: 26,
+        backgroundColor: 0x6a4a4a,
+        onClick: () => this.showPromotionOptions(workerType)
+      });
 
-      const promoteText = this.scene.add.text(270, yPos, '晉升', {
-        fontSize: '14px',
-        fill: '#ffffff'
-      }).setOrigin(0.5, 0.5);
-
-      elements.push(nameText, countText, expText, trainButton, trainText, promoteButton, promoteText);
+      // 將按鈕元素添加到元素列表
+      elements.push(nameText, countText, expText, ...trainBtn.getElements(), ...promoteBtn.getElements());
       yPos += 40;
     }
 
@@ -840,16 +827,16 @@ export default class UIManager {
     }).setOrigin(0, 0.5);
 
     // 添加吸引移民按鈕 - 調整位置和大小
-    const immigrantButton = this.scene.add.rectangle(150, containY - 60, 100, 26, 0x4a6a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
-
-    const immigrantText = this.scene.add.text(150, containY - 60, `吸引${this.getClassDisplayName(className)}移民`, {
+    const immigrantBtn = new Button(this.scene, 150, containY - 60, `吸引${this.getClassDisplayName(className)}移民`, {
+      width: 150,
+      height: 26,
+      backgroundColor: 0x4a6a4a,
       fontSize: '14px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.showAttractImmigrantsPanel(className)
+    });
 
-    elements.push(classTitle, classCountText, happinessText, descText, immigrantButton, immigrantText);
+    elements.push(classTitle, classCountText, happinessText, descText, ...immigrantBtn.getElements());
 
     // 添加工人類型標題 - 調整位置
     const workersTitle = this.scene.add.text(-200, 80, '工人類型:', {
@@ -880,7 +867,7 @@ export default class UIManager {
     }).setOrigin(0, 0.5);
 
     elements.push(availableText);
-    
+
     // 列出這個階層的工人類型 - 調整起始位置
     let yPos = containY + 80;
     const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
@@ -1068,7 +1055,7 @@ export default class UIManager {
     }).setOrigin(0, 0.5);
 
     elements.push(availableText);
-    
+
     // 列出這個階層的工人類型 - 調整位置和布局
     let yPos = containY + 80;
     const workerTypesInClass = this.scene.populationSystem.socialClasses[className].workerTypes;
@@ -1243,16 +1230,16 @@ export default class UIManager {
 
       // 如果是中層或上層，添加吸引移民按鈕
       if (className === 'middle' || className === 'upper') {
-        const immigrantButton = this.scene.add.rectangle(200, yPos, 120, 30, 0x4a6a4a)
-          .setInteractive()
-          .on('pointerdown', () => this.showAttractImmigrantsPanel(className));
-
-        const immigrantText = this.scene.add.text(200, yPos, `吸引${this.getClassDisplayName(className)}移民`, {
+        const immigrantBtn = new Button(this.scene, 200, yPos, `吸引${this.getClassDisplayName(className)}移民`, {
+          width: 120,
+          height: 30,
+          backgroundColor: 0x4a6a4a,
           fontSize: '14px',
-          fill: '#ffffff'
-        }).setOrigin(0.5, 0.5);
+          textColor: '#ffffff',
+          onClick: () => this.showAttractImmigrantsPanel(className)
+        });
 
-        elements.push(immigrantButton, immigrantText);
+        elements.push(...immigrantBtn.getElements());
       }
 
       yPos += 40;
@@ -1428,26 +1415,23 @@ export default class UIManager {
       }).setOrigin(0, 0.5);
 
       // 添加訓練按鈕 - 調整位置和大小
-      const trainButton = this.scene.add.rectangle(150, yPos, 60, 26, 0x4a6a4a)
-        .setInteractive()
-        .on('pointerdown', () => this.trainWorker(workerType));
-
-      const trainText = this.scene.add.text(150, yPos, '訓練', {
-        fontSize: '14px',
-        fill: '#ffffff'
-      }).setOrigin(0.5, 0.5);
+      const trainBtn = new Button(this.scene, 150, yPos, '訓練', {
+        width: 60,
+        height: 26,
+        backgroundColor: 0x4a6a4a,
+        onClick: () => this.trainWorker(workerType)
+      });
 
       // 添加晉升按鈕 - 調整位置和大小
-      const promoteButton = this.scene.add.rectangle(220, yPos, 60, 26, 0x6a4a4a)
-        .setInteractive()
-        .on('pointerdown', () => this.showPromotionOptions(workerType));
+      const promoteBtn = new Button(this.scene, 220, yPos, '晉升', {
+        width: 60,
+        height: 26,
+        backgroundColor: 0x6a4a4a,
+        onClick: () => this.showPromotionOptions(workerType)
+      });
 
-      const promoteText = this.scene.add.text(220, yPos, '晉升', {
-        fontSize: '14px',
-        fill: '#ffffff'
-      }).setOrigin(0.5, 0.5);
-
-      elements.push(nameText, countText, expText, trainButton, trainText, promoteButton, promoteText);
+      // 將按鈕元素添加到元素列表
+      elements.push(nameText, countText, expText, ...trainBtn.getElements(), ...promoteBtn.getElements());
       yPos += 40;
     }
 
@@ -1527,17 +1511,15 @@ export default class UIManager {
     }).setOrigin(0.5, 0);
 
     // 添加關閉按鈕
-    const closeButton = this.scene.add.rectangle(180, -130, 30, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => {
+    const closeBtn = new Button(this.scene, 180, -130, 'X', {
+      width: 30,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
+      onClick: () => {
         this.promotionPanel.destroy();
         this.promotionPanel = null;
-      });
-
-    const closeText = this.scene.add.text(180, -130, 'X', {
-      fontSize: '18px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      }
+    });
 
     // 添加晉升選項
     const optionElements = [];
@@ -1564,20 +1546,18 @@ export default class UIManager {
       }).setOrigin(0, 0.5);
 
       // 確認按鈕
-      const confirmButton = this.scene.add.rectangle(120, yPos, 100, 40, 0x2d6a4a)
-        .setInteractive()
-        .on('pointerdown', () => this.promoteWorker(workerType, option.type));
+      const confirmBtn = new Button(this.scene, 120, yPos, '確認晉升', {
+        width: 100,
+        height: 40,
+        backgroundColor: 0x2d6a4a,
+        onClick: () => this.promoteWorker(workerType, option.type)
+      });
 
-      const confirmText = this.scene.add.text(120, yPos, '確認晉升', {
-        fontSize: '14px',
-        fill: '#ffffff'
-      }).setOrigin(0.5, 0.5);
-
-      optionElements.push(nameText, reqText, confirmButton, confirmText);
+      optionElements.push(nameText, reqText, ...confirmBtn.getElements());
     });
 
     // 添加所有元素到面板
-    this.promotionPanel.add([background, title, closeButton, closeText, ...optionElements]);
+    this.promotionPanel.add([background, title, ...closeBtn.getElements(), ...optionElements]);
   }
 
   /**
@@ -1729,17 +1709,16 @@ export default class UIManager {
     }).setOrigin(0.5, 0);
 
     // 添加關閉按鈕
-    const closeButton = this.scene.add.rectangle(180, -130, 30, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => {
+    const closeBtn = new Button(this.scene, 180, -130, 'X', {
+      width: 30,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
+      fontSize: '18px',
+      onClick: () => {
         this.immigrantsPanel.destroy();
         this.immigrantsPanel = null;
-      });
-
-    const closeText = this.scene.add.text(180, -130, 'X', {
-      fontSize: '18px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      }
+    });
 
     // 添加說明文字
     const costPerImmigrant = targetClass === 'middle' ? 50 : 200;
@@ -1842,9 +1821,11 @@ export default class UIManager {
     updatePreview();
 
     // 添加確認按鈕
-    const confirmButton = this.scene.add.rectangle(0, 100, 120, 30, 0x4a6a4a)
-      .setInteractive()
-      .on('pointerdown', () => {
+    const confirmBtn = new Button(this.scene, 0, 100, '確認吸引', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a6a4a,
+      onClick: () => {
         // 嘗試吸引移民
         const result = this.scene.populationSystem.attractImmigrants(
           targetClass,
@@ -1872,20 +1853,16 @@ export default class UIManager {
           // 顯示錯誤消息
           previewText.setText(result.message);
         }
-      });
-
-    const confirmText = this.scene.add.text(0, 100, '確認吸引', {
-      fontSize: '16px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      }
+    });
 
     // 添加所有元素到面板
     this.immigrantsPanel.add([
-      background, title, closeButton, closeText, infoText, goldText,
+      background, title, ...closeBtn.getElements(), infoText, goldText,
       amountLabel, amountInput, amountText,
       ...quickButtons,
       previewBackground, previewText,
-      confirmButton, confirmText
+      ...confirmBtn.getElements()
     ]);
   }
 
@@ -1999,14 +1976,14 @@ export default class UIManager {
     }).setOrigin(0.5, 0.5);
 
     // 添加關閉按鈕
-    const closeButton = this.scene.add.rectangle(330, -250, 30, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => this.toggleMarketPanel());
-
-    const closeText = this.scene.add.text(330, -250, 'X', {
+    const closeBtn = new Button(this.scene, 330, -250, 'X', {
+      width: 30,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
       fontSize: '18px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.toggleMarketPanel()
+    });
 
     // 添加資源價格列表
     const priceElements = [];
@@ -2162,16 +2139,16 @@ export default class UIManager {
     }).setOrigin(0.5, 0.5);
 
     // 添加交易資源按鈕（合併買賣功能）
-    const tradeButton = this.scene.add.rectangle(200, -160, 120, 30, 0x4a6a6a)
-      .setInteractive()
-      .on('pointerdown', () => this.showMarketResourcePanel());
-
-    const tradeButtonText = this.scene.add.text(200, -160, '交易資源', {
+    const tradeBtn = new Button(this.scene, 200, -160, '交易資源', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a6a6a,
       fontSize: '14px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      textColor: '#ffffff',
+      onClick: () => this.showMarketResourcePanel()
+    });
 
-    priceElements.push(transactionTitle, tradeButton, tradeButtonText);
+    priceElements.push(transactionTitle, ...tradeBtn.getElements());
 
     // 添加最近交易列表
     let transactionYPos = -180;
@@ -2200,7 +2177,7 @@ export default class UIManager {
     }
 
     // 添加所有元素到面板
-    this.marketPanel.add([background, titleBar, title, closeButton, closeText, ...priceElements]);
+    this.marketPanel.add([background, titleBar, title, ...closeBtn.getElements(), ...priceElements]);
   }
 
   /**
@@ -2372,9 +2349,13 @@ export default class UIManager {
     }).setOrigin(0.5, 0.5);
 
     // 添加關閉按鈕
-    const closeButton = this.scene.add.rectangle(280, -230, 30, 30, 0x4a4a4a)
-      .setInteractive()
-      .on('pointerdown', () => {
+    const closeBtn = new Button(this.scene, 280, -230, 'X', {
+      width: 30,
+      height: 30,
+      backgroundColor: 0x4a4a4a,
+      fontSize: '18px',
+      textColor: '#ffffff',
+      onClick: () => {
         // 清理事件監聽器
         if (this.isResourceDragging) {
           this.isResourceDragging = false;
@@ -2382,12 +2363,8 @@ export default class UIManager {
         }
         this.marketResourcePanel.destroy();
         this.marketResourcePanel = null;
-      });
-
-    const closeText = this.scene.add.text(280, -230, 'X', {
-      fontSize: '18px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      }
+    });
 
     // 添加說明文字
     const infoText = this.scene.add.text(0, -190, '選擇資源並選擇買入或賣出操作\n大量交易會影響市場價格', {
@@ -2405,6 +2382,7 @@ export default class UIManager {
 
     // 添加資源列表
     const resourceElements = [];
+    const tradeButtons = [];
     let yPos = -130;
     let selectedResource = null;
     let selectedAmount = 0;
@@ -2466,67 +2444,64 @@ export default class UIManager {
           fill: '#e0e0e0'
         }).setOrigin(0, 0.5);
 
-        // 買入按鈕
-        const buyButton = this.scene.add.rectangle(180, yPos, 60, 20, 0x4a6a6a)
-          .setInteractive()
-          .on('pointerdown', () => {
-            selectedResource = type;
+        // 買入和賣出按鈕
+        const buyBtn = new TradeButton(this.scene, 180, yPos, '買入', {
+          resourceType: type,
+          tradeMode: 'buy',
+          width: 60,
+          height: 20,
+          backgroundColor: 0x4a6a6a,
+          selectedColor: 0x6a8a6a,
+          fontSize: '12px',
+          textColor: '#ffffff',
+          onClick: (resourceType) => {
+            selectedResource = resourceType;
             tradeMode = 'buy';
             // 更新選擇狀態
-            resourceElements.forEach(el => {
-              if (el.resourceType === type && el.tradeMode === 'buy') {
-                el.setFillStyle(0x6a8a6a); // 選中狀態
-              } else if (el.resourceType) {
-                if (el.tradeMode === 'buy') {
-                  el.setFillStyle(0x4a6a6a); // 非選中狀態
-                } else if (el.tradeMode === 'sell') {
-                  el.setFillStyle(0x6a4a4a); // 非選中狀態
+            tradeButtons.forEach(btn => {
+              if (btn.resourceType === resourceType) {
+                btn.setSelected(btn.tradeMode === 'buy');
+              } else {
+                if (btn.tradeMode === 'buy') {
+                  btn.setSelected(false);
                 }
               }
             });
             // 更新輸入框和預覽
             updateTradePreview();
-          });
+          }
+        });
 
-        buyButton.resourceType = type; // 添加資源類型屬性
-        buyButton.tradeMode = 'buy'; // 添加交易模式屬性
-
-        const buyText = this.scene.add.text(180, yPos, '買入', {
+        const sellBtn = new TradeButton(this.scene, 250, yPos, '賣出', {
+          resourceType: type,
+          tradeMode: 'sell',
+          width: 60,
+          height: 20,
+          backgroundColor: 0x6a4a4a,
+          selectedColor: 0x8a4a4a,
           fontSize: '12px',
-          fill: '#ffffff'
-        }).setOrigin(0.5, 0.5);
-
-        // 賣出按鈕
-        const sellButton = this.scene.add.rectangle(250, yPos, 60, 20, 0x6a4a4a)
-          .setInteractive()
-          .on('pointerdown', () => {
-            selectedResource = type;
+          textColor: '#ffffff',
+          onClick: (resourceType) => {
+            selectedResource = resourceType;
             tradeMode = 'sell';
             // 更新選擇狀態
-            resourceElements.forEach(el => {
-              if (el.resourceType === type && el.tradeMode === 'sell') {
-                el.setFillStyle(0x8a4a4a); // 選中狀態
-              } else if (el.resourceType) {
-                if (el.tradeMode === 'sell') {
-                  el.setFillStyle(0x6a4a4a); // 非選中狀態
-                } else if (el.tradeMode === 'buy') {
-                  el.setFillStyle(0x4a6a6a); // 非選中狀態
+            tradeButtons.forEach(btn => {
+              if (btn.resourceType === resourceType) {
+                btn.setSelected(btn.tradeMode === 'sell');
+              } else {
+                if (btn.tradeMode === 'sell') {
+                  btn.setSelected(false);
                 }
               }
             });
             // 更新輸入框和預覽
             updateTradePreview();
-          });
+          }
+        });
 
-        sellButton.resourceType = type; // 添加資源類型屬性
-        sellButton.tradeMode = 'sell'; // 添加交易模式屬性
+        tradeButtons.push(buyBtn, sellBtn);
 
-        const sellText = this.scene.add.text(250, yPos, '賣出', {
-          fontSize: '12px',
-          fill: '#ffffff'
-        }).setOrigin(0.5, 0.5);
-
-        resourceElements.push(nameText, amountText, priceText, inventoryText, buyButton, buyText, sellButton, sellText);
+        resourceElements.push(nameText, amountText, priceText, inventoryText, ...buyBtn.getElements(), ...sellBtn.getElements());
         yPos += 25;
       }
 
@@ -2564,9 +2539,13 @@ export default class UIManager {
     let xPos = 50;
 
     quickAmounts.forEach(amount => {
-      const quickButton = this.scene.add.rectangle(xPos, 120, 40, 20, 0x4a4a6a)
-        .setInteractive()
-        .on('pointerdown', () => {
+      const quickBtn = new Button(this.scene, xPos, 120, amount.toString(), {
+        width: 40,
+        height: 20,
+        backgroundColor: 0x4a4a6a,
+        fontSize: '12px',
+        textColor: '#ffffff',
+        onClick: () => {
           if (selectedResource) {
             if (amount === 'Max') {
               // 根據交易模式設置最大數量
@@ -2592,14 +2571,10 @@ export default class UIManager {
             amountText.setText(selectedAmount.toString());
             updateTradePreview();
           }
-        });
+        }
+      });
 
-      const quickText = this.scene.add.text(xPos, 120, amount.toString(), {
-        fontSize: '12px',
-        fill: '#ffffff'
-      }).setOrigin(0.5, 0.5);
-
-      quickButtons.push(quickButton, quickText);
+      quickButtons.push(...quickBtn.getElements());
       xPos += 45;
     });
 
@@ -2613,9 +2588,13 @@ export default class UIManager {
     }).setOrigin(0.5, 0.5);
 
     // 添加確認交易按鈕
-    const tradeConfirmButton = this.scene.add.rectangle(0, 200, 120, 30, 0x6a4a6a)
-      .setInteractive()
-      .on('pointerdown', () => {
+    const tradeConfirmBtn = new Button(this.scene, 0, 200, '確認交易', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x6a4a6a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => {
         if (selectedResource && selectedAmount > 0 && tradeMode) {
           let result;
 
@@ -2665,12 +2644,8 @@ export default class UIManager {
         } else {
           previewText.setText('請選擇資源、交易模式並輸入有效數量');
         }
-      });
-
-    const tradeConfirmText = this.scene.add.text(0, 200, '確認交易', {
-      fontSize: '16px',
-      fill: '#ffffff'
-    }).setOrigin(0.5, 0.5);
+      }
+    });
 
     // 更新交易預覽函數
     const updateTradePreview = () => {
@@ -2766,12 +2741,12 @@ export default class UIManager {
 
     // 添加所有元素到面板
     this.marketResourcePanel.add([
-      background, titleBar, title, closeButton, closeText, infoText, goldText,
+      background, titleBar, title, ...closeBtn.getElements(), infoText, goldText,
       ...resourceElements,
       amountLabel, amountInput, amountText,
       ...quickButtons,
       previewBackground, previewText,
-      tradeConfirmButton, tradeConfirmText
+      ...tradeConfirmBtn.getElements()
     ]);
   }
 
