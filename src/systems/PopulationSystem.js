@@ -1,3 +1,5 @@
+import DebugUtils from '../utils/DebugUtils';
+
 /**
  * 人口系統 - 管理城市的居民和工人
  */
@@ -6,6 +8,11 @@ export default class PopulationSystem {
    * @param {Object} config - 系統配置
    */
   constructor(config = {}) {
+    // 確保 DebugUtils 已經初始化
+    if (DebugUtils && !DebugUtils.initialized) {
+      DebugUtils.init();
+    }
+
     // 總人口
     this.totalPopulation = config.initialPopulation || 10;
     this.housingCapacity = config.initialHousingCapacity || 20;
@@ -694,7 +701,24 @@ export default class PopulationSystem {
       }
 
       // 確保在0-100範圍內
-      this.classHappiness[className].value = Math.max(0, Math.min(100, classNewHappiness));
+      classNewHappiness = Math.max(0, Math.min(100, classNewHappiness));
+
+      // 考慮現有幸福度進行平滑過渡
+      const currentHappiness = this.classHappiness[className].value;
+      const happinessChangeRate = 0.2; // 幸福度變化率，可以調整
+
+      // 幸福度統合計算，結合現有幸福度和新計算的幸福度
+      const newHappiness = currentHappiness + (classNewHappiness - currentHappiness) * happinessChangeRate;
+
+      // 更新幸福度值
+      this.classHappiness[className].value = newHappiness;
+
+      // 安全地使用 DebugUtils
+      if (DebugUtils && DebugUtils.log) {
+        DebugUtils.log(`${className} 階層幸福度: ${currentHappiness.toFixed(2)} -> ${newHappiness.toFixed(2)}`, 'HAPPINESS');
+      } else {
+        console.log(`${className} 階層幸福度: ${currentHappiness.toFixed(2)} -> ${newHappiness.toFixed(2)}`);
+      }
     }
 
     // 計算統合幸福度 - 根據人口比例加權平均
@@ -710,10 +734,28 @@ export default class PopulationSystem {
     }
 
     // 計算加權平均幸福度
+    let targetHappiness;
     if (totalPopulation > 0) {
-      this.happinessLevel = totalWeightedHappiness / totalPopulation;
+      targetHappiness = totalWeightedHappiness / totalPopulation;
     } else {
-      this.happinessLevel = 50; // 預設值
+      targetHappiness = 50; // 預設值
+    }
+
+    // 考慮現有總體幸福度進行平滑過渡
+    const currentHappiness = this.happinessLevel;
+    const overallHappinessChangeRate = 0.15; // 總體幸福度變化率，可以調整
+
+    // 統合計算新的幸福度
+    const newHappiness = currentHappiness + (targetHappiness - currentHappiness) * overallHappinessChangeRate;
+
+    // 更新總體幸福度
+    this.happinessLevel = newHappiness;
+
+    // 安全地使用 DebugUtils
+    if (DebugUtils && DebugUtils.log) {
+      DebugUtils.log(`總體幸福度: ${currentHappiness.toFixed(2)} -> ${newHappiness.toFixed(2)}`, 'HAPPINESS');
+    } else {
+      console.log(`總體幸福度: ${currentHappiness.toFixed(2)} -> ${newHappiness.toFixed(2)}`);
     }
 
     // 如果幸福度非常低，觸發人口流失
@@ -730,16 +772,25 @@ export default class PopulationSystem {
       if (!this.classHappiness[className]) continue;
 
       // 更新市場因素值
-      const currentValue = this.classHappiness[className].factors.market.value;
-      const newValue = currentValue + impactData.totalImpact;
+      const currentMarketValue = this.classHappiness[className].factors.market.value;
+
+      // 計算新的市場因素值，但考慮平滑過渡
+      const marketChangeRate = 0.3; // 市場因素變化率，可以調整
+      const targetMarketValue = currentMarketValue + impactData.totalImpact;
+      const newMarketValue = currentMarketValue + (targetMarketValue - currentMarketValue) * marketChangeRate;
 
       // 確保在0-100範圍內
-      this.classHappiness[className].factors.market.value = Math.max(0, Math.min(100, newValue));
+      this.classHappiness[className].factors.market.value = Math.max(0, Math.min(100, newMarketValue));
 
       // 存儲需求滿足情況
       this.classHappiness[className].demands = impactData.demandImpacts;
 
-      console.log(`${className} 階層市場幸福度影響: ${impactData.totalImpact.toFixed(2)}, 新市場因素值: ${this.classHappiness[className].factors.market.value.toFixed(2)}`);
+      // 安全地使用 DebugUtils
+      if (DebugUtils && DebugUtils.log) {
+        DebugUtils.log(`${className} 階層市場幸福度: ${currentMarketValue.toFixed(2)} -> ${newMarketValue.toFixed(2)} (影響: ${impactData.totalImpact.toFixed(2)})`, 'HAPPINESS');
+      } else {
+        console.log(`${className} 階層市場幸福度: ${currentMarketValue.toFixed(2)} -> ${newMarketValue.toFixed(2)} (影響: ${impactData.totalImpact.toFixed(2)})`);
+      }
     }
 
     // 重新計算統合幸福度
@@ -750,14 +801,15 @@ export default class PopulationSystem {
    * 檢查不幸福的影響
    */
   checkUnhappyEffects() {
+    const stats = this.getPopulationStats();
     // 檢查每個階層的幸福度
     for (const [className, classHappiness] of Object.entries(this.classHappiness)) {
       // 如果幸福度非常低，觸發人口流失
-      if (classHappiness.value < 20) {
+      if (classHappiness.value < 20 && stats.socialClasses[className]?.count>0) {
         this.triggerClassPopulationLoss(className);
       }
       // 如果幸福度低，觸發階層退化
-      else if (classHappiness.value < 35 && className !== 'lower') {
+      else if (classHappiness.value < 35 && className !== 'lower' && stats.socialClasses[className]?.count>0) {
         this.triggerClassDemotion(className);
       }
     }
@@ -768,27 +820,31 @@ export default class PopulationSystem {
    * @param {string} className - 階層名稱
    */
   triggerClassPopulationLoss(className) {
+    // 先檢查這個階層的總人口
+    const stats = this.getPopulationStats();
+    const classPopulation = stats.socialClasses[className]?.count || 0;
+
+    // 確保人口數大於0
+    if (classPopulation <= 0) {
+      console.log(`警告: 嘗試觸發 ${className} 階層人口流失，但人口數為 ${classPopulation}`, 'WARNING');
+      return;
+    }
+
     // 幸福度低時，有一定機率失去人口
     const classHappiness = this.classHappiness[className].value;
     const lossChance = Math.max(0, (30 - classHappiness) / 100);
 
     if (Math.random() < lossChance) {
-      // 獲取這個階層的總人口
-      const stats = this.getPopulationStats();
-      const classPopulation = stats.socialClasses[className]?.count || 0;
+      // 流失一定比例的人口，最多8%
+      const lossRatio = Math.min(0.08, lossChance / 1.5);
+      const lossAmount = Math.ceil(classPopulation * lossRatio);
 
-      if (classPopulation > 0) {
-        // 流失一定比例的人口，最多8%
-        const lossRatio = Math.min(0.08, lossChance / 1.5);
-        const lossAmount = Math.ceil(classPopulation * lossRatio);
+      if (lossAmount > 0) {
+        // 移除人口
+        this.removePopulationFromClass(className, lossAmount);
+        this.totalPopulation -= lossAmount;
 
-        if (lossAmount > 0) {
-          // 移除人口
-          this.removePopulationFromClass(className, lossAmount);
-          this.totalPopulation -= lossAmount;
-
-          console.log(`由於 ${className} 階層幸福度低 (${classHappiness.toFixed(1)}), 流失了 ${lossAmount} 人口`);
-        }
+        console.log(`由於 ${className} 階層幸福度低 (${classHappiness.toFixed(1)}), 流失了 ${lossAmount} 人口`, 'POPULATION');
       }
     }
   }
@@ -798,32 +854,36 @@ export default class PopulationSystem {
    * @param {string} className - 階層名稱
    */
   triggerClassDemotion(className) {
+    // 先檢查這個階層的總人口
+    const stats = this.getPopulationStats();
+    const classPopulation = stats.socialClasses[className]?.count || 0;
+
+    // 確保人口數大於0
+    if (classPopulation <= 0) {
+      console.log(`警告: 嘗試觸發 ${className} 階層退化，但人口數為 ${classPopulation}`, 'WARNING');
+      return;
+    }
+
     // 幸福度低時，有一定機率退化到下一個階層
     const classHappiness = this.classHappiness[className].value;
     const demotionChance = Math.max(0, (40 - classHappiness) / 200);
 
     if (Math.random() < demotionChance) {
-      // 獲取這個階層的總人口
-      const stats = this.getPopulationStats();
-      const classPopulation = stats.socialClasses[className]?.count || 0;
+      // 退化一定比例的人口，最多5%
+      const demotionRatio = Math.min(0.05, demotionChance);
+      const demotionAmount = Math.ceil(classPopulation * demotionRatio);
 
-      if (classPopulation > 0) {
-        // 退化一定比例的人口，最多5%
-        const demotionRatio = Math.min(0.05, demotionChance);
-        const demotionAmount = Math.ceil(classPopulation * demotionRatio);
+      if (demotionAmount > 0) {
+        // 確定目標階層
+        const targetClass = className === 'upper' ? 'middle' : 'lower';
 
-        if (demotionAmount > 0) {
-          // 確定目標階層
-          const targetClass = className === 'upper' ? 'middle' : 'lower';
+        // 從高階層移除人口
+        this.removePopulationFromClass(className, demotionAmount);
 
-          // 從高階層移除人口
-          this.removePopulationFromClass(className, demotionAmount);
+        // 將人口添加到低階層
+        this.addPopulationToClass(targetClass, demotionAmount);
 
-          // 將人口添加到低階層
-          this.addPopulationToClass(targetClass, demotionAmount);
-
-          console.log(`由於 ${className} 階層幸福度低 (${classHappiness.toFixed(1)}), ${demotionAmount} 人口退化到 ${targetClass} 階層`);
-        }
+        console.log(`由於 ${className} 階層幸福度低 (${classHappiness.toFixed(1)}), ${demotionAmount} 人口退化到 ${targetClass} 階層`, 'POPULATION');
       }
     }
   }
@@ -832,6 +892,12 @@ export default class PopulationSystem {
    * 觸發人口流失
    */
   triggerPopulationLoss() {
+    // 確保總人口數大於0
+    if (this.totalPopulation <= 0) {
+      console.log(`警告: 嘗試觸發人口流失，但總人口數為 ${this.totalPopulation}`, 'WARNING');
+      return;
+    }
+
     // 幸福度低時，有一定機率失去人口
     const lossChance = Math.max(0, (30 - this.happinessLevel) / 100);
 
@@ -846,7 +912,7 @@ export default class PopulationSystem {
         // 先從上層開始流失
         this.removePopulationFromClass('upper', lossAmount);
 
-        console.log(`由於幸福度低 (${this.happinessLevel.toFixed(1)}), 流失了 ${lossAmount} 人口`);
+        console.log(`由於幸福度低 (${this.happinessLevel.toFixed(1)}), 流失了 ${lossAmount} 人口`, 'POPULATION');
       }
     }
   }
@@ -858,6 +924,12 @@ export default class PopulationSystem {
    * @returns {number} - 實際移除數量
    */
   removePopulationFromClass(socialClass, amount) {
+    // 確保移除數量大於0
+    if (amount <= 0) {
+      console.log(`警告: 嘗試從 ${socialClass} 階層移除非正數人口 (${amount})`, 'WARNING');
+      return 0;
+    }
+
     let remainingToRemove = amount;
 
     // 獲取該階層的工人類型
@@ -865,11 +937,13 @@ export default class PopulationSystem {
 
     // 如果指定階層沒有足夠的人口，則從下一個階層移除
     if (workerTypes.length === 0) {
+      console.log(`警告: ${socialClass} 階層沒有工人類型，嘗試從下一階層移除`, 'WARNING');
       if (socialClass === 'upper') {
         return this.removePopulationFromClass('middle', amount);
       } else if (socialClass === 'middle') {
         return this.removePopulationFromClass('lower', amount);
       } else {
+        console.log(`警告: 已經是最低階層，無法移除人口`, 'WARNING');
         return 0; // 沒有更低的階層了
       }
     }
@@ -888,7 +962,7 @@ export default class PopulationSystem {
         worker.count -= removeFromThisType;
         remainingToRemove -= removeFromThisType;
 
-        console.log(`從 ${worker.displayName} 移除了 ${removeFromThisType} 人口`);
+        console.log(`從 ${worker.displayName} 移除了 ${removeFromThisType} 人口`, 'POPULATION');
       }
     }
 
@@ -923,11 +997,11 @@ export default class PopulationSystem {
         // 中層預設為技術人員
         defaultWorkerType = 'technical_staff';
         if (!this.workerTypes[defaultWorkerType]) {
-          DebugUtils.log(`錯誤: 中層預設工人類型 ${defaultWorkerType} 不存在，嘗試使用工程師`, 'ERROR');
+          console.log(`錯誤: 中層預設工人類型 ${defaultWorkerType} 不存在，嘗試使用工程師`, 'ERROR');
           defaultWorkerType = 'engineer';
 
           if (!this.workerTypes[defaultWorkerType]) {
-            DebugUtils.log(`錯誤: 中層備用工人類型 ${defaultWorkerType} 也不存在，回退到底層工人`, 'ERROR');
+            console.log(`錯誤: 中層備用工人類型 ${defaultWorkerType} 也不存在，回退到底層工人`, 'ERROR');
             defaultWorkerType = 'worker';
           }
         }
@@ -935,15 +1009,15 @@ export default class PopulationSystem {
         // 上層預設為會計
         defaultWorkerType = 'accountant';
         if (!this.workerTypes[defaultWorkerType]) {
-          DebugUtils.log(`錯誤: 上層預設工人類型 ${defaultWorkerType} 不存在，嘗試使用魔法技工`, 'ERROR');
+          console.log(`錯誤: 上層預設工人類型 ${defaultWorkerType} 不存在，嘗試使用魔法技工`, 'ERROR');
           defaultWorkerType = 'magic_technician';
 
           if (!this.workerTypes[defaultWorkerType]) {
-            DebugUtils.log(`錯誤: 上層備用工人類型 ${defaultWorkerType} 也不存在，嘗試使用老闆`, 'ERROR');
+            console.log(`錯誤: 上層備用工人類型 ${defaultWorkerType} 也不存在，嘗試使用老闆`, 'ERROR');
             defaultWorkerType = 'boss';
 
             if (!this.workerTypes[defaultWorkerType]) {
-              DebugUtils.log(`錯誤: 所有上層工人類型都不存在，回退到底層工人`, 'ERROR');
+              console.log(`錯誤: 所有上層工人類型都不存在，回退到底層工人`, 'ERROR');
               defaultWorkerType = 'worker';
             }
           }
@@ -952,14 +1026,25 @@ export default class PopulationSystem {
 
       // 確保預設工人類型存在
       if (this.workerTypes[defaultWorkerType]) {
+        if (this.workerTypes[defaultWorkerType].count == 0) {
+        this.classHappiness[socialClass].value = 80;
         this.workerTypes[defaultWorkerType].count += amount;
-        DebugUtils.log(`警告: ${socialClass} 階層沒有工人類型，添加 ${amount} 人口到 ${this.workerTypes[defaultWorkerType].displayName}`, 'WARNING');
+
+        }
+        else
+        {
+          let basehappiness = 50;
+          basehappiness = this.classHappiness[socialClass].value*this.workerTypes[defaultWorkerType].count+80*amount/this.workerTypes[defaultWorkerType].count+amount
+          this.classHappiness[socialClass].value = basehappiness;
+          this.workerTypes[defaultWorkerType].count += amount;
+        }
+        console.log(`警告: ${socialClass} 階層沒有工人類型，添加 ${amount} 人口到 ${this.workerTypes[defaultWorkerType].displayName}`, 'WARNING');
       } else {
-        DebugUtils.log(`嚴重錯誤: 無法找到任何可用的工人類型，無法添加人口`, 'ERROR');
+        console.log(`嚴重錯誤: 無法找到任何可用的工人類型，無法添加人口`, 'ERROR');
       }
       return;
     }
-    
+
 
     // 平均分配到每種工人類型
     const perTypeAmount = Math.floor(amount / workerTypes.length);

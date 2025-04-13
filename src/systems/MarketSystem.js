@@ -21,10 +21,9 @@ export default class MarketSystem {
     this.marketInventory = {};
 
     // 月度稅收計算
-    this.monthlyTimer = 0;
-    this.monthlyInterval = config.monthlyInterval || 300000; // 每5分鐘為一個月
     this.monthlyRevenue = 0; // 月度營業額
     this.taxRate = 0.05; // 5%稅率
+    this.lastProcessedMonth = 1; // 上次處理稅收的月份
 
     // 需求系統 - 更詳細的需求分類
     this.demands = {
@@ -190,11 +189,25 @@ export default class MarketSystem {
       this.processPopulationConsumption(resources, populationSystem);
     }
 
-    // 更新月度稅收
-    this.monthlyTimer += delta;
-    if (this.monthlyTimer >= this.monthlyInterval) {
-      this.monthlyTimer = 0;
-      this.processMonthlyTax();
+    // 檢查時間系統和月份變化
+    if (window.game && window.game.scene.scenes.length > 0) {
+      const gameScene = window.game.scene.scenes.find(scene => scene.key === 'GameScene');
+      if (gameScene && gameScene.timeSystem) {
+        const currentMonth = gameScene.timeSystem.month;
+
+        // 如果月份變化，處理稅收
+        if (currentMonth !== this.lastProcessedMonth) {
+          this.lastProcessedMonth = currentMonth;
+          const taxAmount = this.processMonthlyTax();
+
+          // 將稅收添加到玩家金幣
+          if (gameScene && taxAmount > 0) {
+            gameScene.playerGold += taxAmount;
+            gameScene.updateGoldDisplay();
+            gameScene.showTaxNotification(taxAmount, this.monthlyRevenue);
+          }
+        }
+      }
     }
   }
 
@@ -604,7 +617,16 @@ export default class MarketSystem {
       }
     }
 
-    console.log(`月度稅收處理完成，營業額: ${oldRevenue}，稅收: ${taxAmount}`);
+    // 記錄稅收信息
+    if (taxAmount > 0) {
+      console.log(`月度稅收處理完成，營業額: ${oldRevenue}，稅收: ${taxAmount}`);
+
+      // 如果有調試工具，記錄日誌
+      if (window.DebugUtils && window.DebugUtils.log) {
+        window.DebugUtils.log(`月度稅收: ${taxAmount} 金幣 (營業額: ${oldRevenue})`, 'ECONOMY');
+      }
+    }
+
     return taxAmount;
   }
 
@@ -613,11 +635,25 @@ export default class MarketSystem {
    * @returns {Object} - 稅收信息
    */
   getTaxInfo() {
+    // 獲取遊戲場景和時間系統
+    let daysUntilNextMonth = 30; // 預設值
+    let currentMonth = 0;
+
+    if (window.game && window.game.scene.scenes.length > 0) {
+      const gameScene = window.game.scene.scenes.find(scene => scene.key === 'GameScene');
+      if (gameScene && gameScene.timeSystem) {
+        const timeSystem = gameScene.timeSystem;
+        currentMonth = timeSystem.month;
+        daysUntilNextMonth = timeSystem.daysPerMonth - timeSystem.day + 1;
+      }
+    }
+
     return {
       monthlyRevenue: this.monthlyRevenue,
       taxRate: this.taxRate,
       estimatedTax: Math.floor(this.monthlyRevenue * this.taxRate),
-      timeRemaining: this.monthlyInterval - this.monthlyTimer
+      currentMonth: currentMonth,
+      daysUntilNextMonth: daysUntilNextMonth
     };
   }
 }

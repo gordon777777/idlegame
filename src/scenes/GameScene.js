@@ -4,12 +4,15 @@ import UIManager from '../systems/UIManager';
 import BuildingSystem from '../systems/BuildingSystem';
 import PopulationSystem from '../systems/PopulationSystem';
 import MarketSystem from '../systems/MarketSystem';
+import TimeSystem from '../systems/TimeSystem';
+import DebugUtils from '../utils/DebugUtils';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
     this.resources = new ResourceSystem();
     this.populationSystem = new PopulationSystem();
+    this.timeSystem = new TimeSystem();
     this.uiManager = new UIManager(this);
     this.buildingSystem = null; // Will be initialized in create()
     this.playerGold = 1000; // 初始金幣
@@ -63,6 +66,24 @@ export default class GameScene extends Phaser.Scene {
       fill: '#ffdd00',
       fontStyle: 'bold'
     }).setOrigin(1, 0).setDepth(100);
+
+    // 創建時間顯示
+    this.timeText = this.add.text(100, 20, '', {
+      fontSize: '18px',
+      fill: '#ffffff',
+      fontStyle: 'bold',
+      backgroundColor: '#333333',
+      padding: { x: 10, y: 5 }
+    }).setDepth(100);
+
+    // 設置時間顯示
+    this.timeSystem.setTimeDisplay(this.timeText);
+
+    // 創建時間控制按鈕
+    this.createTimeControls();
+
+    // 設置時間系統事件監聽器
+    this.setupTimeEvents();
 
     // 監聽資源出售事件
     this.events.on('resourceSold', (profit) => {
@@ -181,6 +202,14 @@ export default class GameScene extends Phaser.Scene {
       this.populationSystem.update(time, delta);
     }
 
+    // 更新時間系統
+    if (this.timeSystem) {
+      this.timeSystem.update(time, delta);
+
+      // 更新時間顯示
+      this.timeSystem.updateTimeDisplay();
+    }
+
     // 每秒更新一次UI
     if (time % 1000 < 16) { // Approximately once per second (assuming 60fps)
       this.uiManager.updateResources(this.resources.resources);
@@ -263,5 +292,166 @@ export default class GameScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  /**
+   * 創建時間控制按鈕
+   */
+  createTimeControls() {
+    const buttonY = 30;
+    const buttonSpacing = 40;
+    const buttonSize = 30;
+    const startX = 200; // 調整起始X座標，使按鈕更靠右
+
+    // 暂停/繼續按鈕
+    const pauseButton = this.add.rectangle(startX + buttonSize/2, buttonY, buttonSize, buttonSize, 0x333333)
+      .setInteractive()
+      .on('pointerdown', () => {
+        const isPaused = this.timeSystem.togglePaused();
+        pauseText.setText(isPaused ? '▶' : '❚❚');
+      });
+
+    const pauseText = this.add.text(startX + buttonSize/2, buttonY, '❚❚', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 慢速按鈕
+    const slowButton = this.add.rectangle(startX + buttonSize/2 + buttonSpacing, buttonY, buttonSize, buttonSize, 0x333333)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.timeSystem.setTimeScale(0.5);
+        this.updateTimeScaleButtons(0.5);
+      });
+
+    const slowText = this.add.text(startX + buttonSize/2 + buttonSpacing, buttonY, '◄', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 正常速度按鈕
+    const normalButton = this.add.rectangle(startX + buttonSize/2 + buttonSpacing*2, buttonY, buttonSize, buttonSize, 0x555555)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.timeSystem.setTimeScale(1.0);
+        this.updateTimeScaleButtons(1.0);
+      });
+
+    const normalText = this.add.text(startX + buttonSize/2 + buttonSpacing*2, buttonY, '1x', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 快速按鈕
+    const fastButton = this.add.rectangle(startX + buttonSize/2 + buttonSpacing*3, buttonY, buttonSize, buttonSize, 0x333333)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.timeSystem.setTimeScale(2.0);
+        this.updateTimeScaleButtons(2.0);
+      });
+
+    const fastText = this.add.text(startX + buttonSize/2 + buttonSpacing*3, buttonY, '►', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 超快速按鈕
+    const superFastButton = this.add.rectangle(startX + buttonSize/2 + buttonSpacing*4, buttonY, buttonSize, buttonSize, 0x333333)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.timeSystem.setTimeScale(4.0);
+        this.updateTimeScaleButtons(4.0);
+      });
+
+    const superFastText = this.add.text(startX + buttonSize/2 + buttonSpacing*4, buttonY, '►►', {
+      fontSize: '16px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
+    // 存儲按鈕引用
+    this.timeButtons = {
+      pause: { button: pauseButton, text: pauseText },
+      slow: { button: slowButton, text: slowText },
+      normal: { button: normalButton, text: normalText },
+      fast: { button: fastButton, text: fastText },
+      superFast: { button: superFastButton, text: superFastText }
+    };
+
+    // 預設選擇正常速度
+    this.updateTimeScaleButtons(1.0);
+  }
+
+  /**
+   * 更新時間速度按鈕外觀
+   * @param {number} activeScale - 當前時間速度
+   */
+  updateTimeScaleButtons(activeScale) {
+    // 重置所有按鈕為非活躍狀態
+    this.timeButtons.slow.button.fillColor = 0x333333;
+    this.timeButtons.normal.button.fillColor = 0x333333;
+    this.timeButtons.fast.button.fillColor = 0x333333;
+    this.timeButtons.superFast.button.fillColor = 0x333333;
+
+    // 設置活躍按鈕
+    if (activeScale === 0.5) {
+      this.timeButtons.slow.button.fillColor = 0x555555;
+    } else if (activeScale === 1.0) {
+      this.timeButtons.normal.button.fillColor = 0x555555;
+    } else if (activeScale === 2.0) {
+      this.timeButtons.fast.button.fillColor = 0x555555;
+    } else if (activeScale === 4.0) {
+      this.timeButtons.superFast.button.fillColor = 0x555555;
+    }
+  }
+
+  /**
+   * 設置時間系統事件監聽器
+   */
+  setupTimeEvents() {
+    // 監聽日期變化事件
+    this.timeSystem.on('onDayChange', (data) => {
+      if (DebugUtils && DebugUtils.log) {
+        DebugUtils.log(`日期變化: ${data.year}年${data.month}月${data.day}日`, 'TIME');
+      }
+    });
+
+    // 監聽月份變化事件
+    this.timeSystem.on('onMonthChange', (data) => {
+      if (DebugUtils && DebugUtils.log) {
+        DebugUtils.log(`月份變化: ${data.year}年${data.month}月`, 'TIME');
+      }
+    });
+
+    // 監聽季節變化事件
+    this.timeSystem.on('onSeasonChange', (data) => {
+      if (DebugUtils && DebugUtils.log) {
+        DebugUtils.log(`季節變化: ${data.season}季`, 'TIME');
+      }
+    });
+
+    // 監聽年份變化事件
+    this.timeSystem.on('onYearChange', (data) => {
+      if (DebugUtils && DebugUtils.log) {
+        DebugUtils.log(`年份變化: ${data.year}年`, 'TIME');
+      }
+    });
+  }
+
+  /**
+   * 創建調試按鈕
+   */
+  createDebugButton() {
+    // 創建調試按鈕
+    const debugButton = this.add.rectangle(this.scale.width - 100, this.scale.height - 30, 80, 30, 0x990000)
+      .setInteractive()
+      .on('pointerdown', () => {
+        const isDebugMode = DebugUtils.toggleDebugMode();
+        debugText.setText(isDebugMode ? 'DEBUG: ON' : 'DEBUG: OFF');
+      });
+
+    const debugText = this.add.text(this.scale.width - 100, this.scale.height - 30, 'DEBUG: OFF', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
   }
 }
