@@ -49,9 +49,50 @@ export default class BuildingSystem {
           input: { enchanted_wood: 3 },
           output: { mystic_planks: 1 }
         },
+        byproductTypes: [
+          {
+            id: 'none',
+            name: '无副产品',
+            description: '不生产副产品，专注于主要产出。',
+            resources: {}
+          },
+          {
+            id: 'magic_ore',
+            name: '魔法矿石',
+            description: '在加工过程中提取魔法矿石。',
+            resources: { magic_ore: 1 }
+          },
+          {
+            id: 'wood_chips',
+            name: '木屑',
+            description: '收集加工过程中产生的木屑，可用于制作低级物品。',
+            resources: { wood_chips: 3 }
+          }
+        ],
         productionInterval: 4000,
         cost: { enchanted_wood: 25, arcane_crystal: 5 },
-        description: '將附魔木材加工成神秘木板。'
+        description: '將附魔木材加工成神秘木板。',
+        workerRequirement: { count: 10, type: 'worker' },
+        productionMethods: [
+          {
+            id: 'manual',
+            name: '徒手工作',
+            description: '工人徒手加工木材，正常产出。',
+            timeModifier: 1.0,
+            enableByproducts: false,
+            workerRequirement: { count: 10, type: 'worker' }
+          },
+          {
+            id: 'tools',
+            name: '工具辅助',
+            description: '使用工具加工木材，提高产出但需要额外资源。',
+            timeModifier: 0.6,  // 生产时间缩短40%
+            inputModifiers: { enchanted_wood: 1.0, magic_ore: 1 },  // 额外需要1个魔法矿石
+            outputModifiers: { mystic_planks: 2.5 },  // 产出增加到250%
+            enableByproducts: true,  // 启用副产品
+            workerRequirement: { count: 4, type: 'worker' }  // 只需要40%的工人
+          }
+        ]
       },
 
       crystal_refinery: {
@@ -62,9 +103,50 @@ export default class BuildingSystem {
           input: { arcane_crystal: 2 },
           output: { refined_crystal: 1 }
         },
+        byproductTypes: [
+          {
+            id: 'none',
+            name: '无副产品',
+            description: '不生产副产品，专注于主要产出。',
+            resources: {}
+          },
+          {
+            id: 'magic_ore',
+            name: '魔法矿石',
+            description: '在提炼过程中提取魔法矿石。',
+            resources: { magic_ore: 1 }
+          },
+          {
+            id: 'crystal_dust',
+            name: '水晶粉尘',
+            description: '收集提炼过程中产生的水晶粉尘，可用于制作魔法物品。',
+            resources: { crystal_dust: 2 }
+          }
+        ],
         productionInterval: 5000,
         cost: { arcane_crystal: 15, magic_ore: 10 },
-        description: '將原始奧術水晶提煉成純淨形態。'
+        description: '將原始奧術水晶提煉成純淨形態。',
+        workerRequirement: { count: 8, type: 'worker' },
+        productionMethods: [
+          {
+            id: 'basic',
+            name: '基础提炼',
+            description: '基础的水晶提炼方法，正常产出。',
+            timeModifier: 1.0,
+            enableByproducts: false,
+            workerRequirement: { count: 8, type: 'worker' }
+          },
+          {
+            id: 'advanced',
+            name: '高级提炼',
+            description: '使用魔力辅助提炼，提高产出但需要额外资源。',
+            timeModifier: 0.7,  // 生产时间缩短30%
+            inputModifiers: { arcane_crystal: 1.0, mana: 2 },  // 额外需要2个魔力
+            outputModifiers: { refined_crystal: 2.0 },  // 产出增加到200%
+            enableByproducts: true,  // 启用副产品
+            workerRequirement: { count: 6, type: 'worker' }  // 只需要75%的工人
+          }
+        ]
       },
 
       // Intermediate producers
@@ -117,9 +199,50 @@ export default class BuildingSystem {
           input: {},
           output: { magic_ore: 1 }
         },
+        byproductTypes: [
+          {
+            id: 'none',
+            name: '无副产品',
+            description: '不生产副产品，专注于主要产出。',
+            resources: {}
+          },
+          {
+            id: 'arcane_crystal',
+            name: '奥术水晶',
+            description: '在开采过程中有小概率发现奥术水晶。',
+            resources: { arcane_crystal: 0.2 }
+          },
+          {
+            id: 'stone',
+            name: '石头',
+            description: '开采过程中产生大量的普通石头。',
+            resources: { stone: 3 }
+          }
+        ],
         productionInterval: 2000,
         cost: { enchanted_wood: 15 },
-        description: '從地下開採魔法礦石。'
+        description: '從地下開採魔法礦石。',
+        workerRequirement: { count: 5, type: 'worker' },
+        productionMethods: [
+          {
+            id: 'manual_mining',
+            name: '人工开采',
+            description: '工人手工开采矿石，正常产出。',
+            timeModifier: 1.0,
+            enableByproducts: false,
+            workerRequirement: { count: 5, type: 'worker' }
+          },
+          {
+            id: 'magic_mining',
+            name: '魔力开采',
+            description: '使用魔力辅助开采，提高产出并有机会获得副产品。',
+            timeModifier: 0.8,  // 生产时间缩短20%
+            inputModifiers: { mana: 1 },  // 需要1个魔力
+            outputModifiers: { magic_ore: 1.5 },  // 产出增加到150%
+            enableByproducts: true,  // 启用副产品
+            workerRequirement: { count: 3, type: 'worker' }  // 只需要60%的工人
+          }
+        ]
       },
 
       enchanted_forest: {
@@ -518,7 +641,12 @@ export default class BuildingSystem {
       if (this.populationSystem) {
         // 如果是生產建築，檢查工人狀態
         if (building.type !== 'housing') {
-          const hasSufficientWorkers = this.populationSystem.hasSufficientWorkers(building.id);
+          // 获取当前生产方式的工人需求
+          const workerRequirement = building.getCurrentWorkerRequirement ?
+                                   building.getCurrentWorkerRequirement() : null;
+
+          // 检查是否有足够的工人，并传递当前生产方式的工人需求和建筑类型
+          const hasSufficientWorkers = this.populationSystem.hasSufficientWorkers(building.id, workerRequirement, building.type);
           const workerEfficiency = this.populationSystem.getBuildingEfficiencyMultiplier(building.id);
 
           // 更新建築狀態

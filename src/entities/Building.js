@@ -10,6 +10,8 @@ export default class Building {
    * @param {string} config.type - Building type (production, storage, etc.)
    * @param {string} config.sprite - Sprite key for the building
    * @param {Object} config.recipe - Production recipe (input/output resources)
+   * @param {Object} config.byproducts - Optional byproducts produced by the building
+   * @param {Array} config.productionMethods - Optional production methods available for this building
    * @param {number} config.productionInterval - Time in ms to produce one batch
    * @param {Object} config.cost - Resources required to build
    * @param {number} config.level - Current building level
@@ -22,6 +24,10 @@ export default class Building {
     this.type = config.type;
     this.spriteKey = config.sprite;
     this.recipe = config.recipe || { input: {}, output: {} };
+    this.byproductTypes = config.byproductTypes || []; // 副产品类型选项
+    this.currentByproductType = config.byproductTypes?.length > 0 ? config.byproductTypes[0].id : null; // 当前选择的副产品类型
+    this.productionMethods = config.productionMethods || []; // 生产方式选项
+    this.currentProductionMethod = config.productionMethods?.length > 0 ? config.productionMethods[0].id : null; // 当前选择的生产方式
     this.productionInterval = config.productionInterval || 5000; // Default 5 seconds
     this.cost = config.cost || {};
     this.level = config.level || 1;
@@ -36,6 +42,7 @@ export default class Building {
     this.workerEfficiency = 1.0; // Efficiency multiplier from workers
     this.storage = {}; // Internal storage for resources
     this.statusText = null; // Text to show building status (active/inactive)
+    this.workerRequirement = config.workerRequirement || { count: 10, type: 'worker' }; // 默认工人需求
 
     this.createSprite();
   }
@@ -87,8 +94,11 @@ export default class Building {
   startProduction(availableResources) {
     if (this.isProducing) return true;
 
+    // 获取当前生产方式的输入资源需求
+    const inputResources = this.getCurrentInputResources();
+
     // Check if we have all required input resources
-    const canProduce = Object.entries(this.recipe.input).every(
+    const canProduce = Object.entries(inputResources).every(
       ([resource, amount]) => availableResources[resource]?.value >= amount
     );
 
@@ -112,26 +122,52 @@ export default class Building {
     // 如果建築不活動（沒有工人）或不在生產中，則返回空
     if (!this.isActive || !this.isProducing) return null;
 
+    // 获取当前生产方式
+    const productionMethod = this.getCurrentProductionMethod();
+
+    // 计算生产时间修正
+    const timeModifier = productionMethod ? productionMethod.timeModifier : 1.0;
+    const adjustedInterval = this.productionInterval * timeModifier;
+
     // 計算進度 - 結合建築效率和工人效率
     const totalEfficiency = this.efficiency * this.workerEfficiency;
     this.productionProgress += (delta * totalEfficiency);
-    const progressPercent = Math.min(1, this.productionProgress / this.productionInterval);
+    const progressPercent = Math.min(1, this.productionProgress / adjustedInterval);
 
     // 更新進度條
     this.progressBar.width = 60 * progressPercent;
 
     // 檢查生產是否完成
-    if (this.productionProgress >= this.productionInterval) {
+    if (this.productionProgress >= adjustedInterval) {
       this.isProducing = false;
       this.productionProgress = 0;
       this.progressBar.width = 0;
       this.lastProductionTime = time;
 
+      // 获取当前生产方式的输入和输出资源
+      const inputResources = this.getCurrentInputResources();
+      const outputResources = this.getCurrentOutputResources();
+      const byproductResources = this.getCurrentByproducts();
+
       // 消耗輸入資源
-      resourceSystem.consumeResources(this.recipe.input);
+      resourceSystem.consumeResources(inputResources);
+
+      // 合并输出资源和副产品
+      const combinedOutput = { ...outputResources };
+
+      // 添加副产品（如果有）
+      if (Object.keys(byproductResources).length > 0) {
+        Object.entries(byproductResources).forEach(([resource, amount]) => {
+          if (combinedOutput[resource]) {
+            combinedOutput[resource] += amount;
+          } else {
+            combinedOutput[resource] = amount;
+          }
+        });
+      }
 
       // 返回輸出資源
-      return this.recipe.output;
+      return combinedOutput;
     }
 
     return null;
@@ -178,6 +214,15 @@ export default class Building {
    * @returns {Object} - Building information
    */
   getInfo() {
+    // 获取当前生产方式
+    const productionMethod = this.getCurrentProductionMethod();
+    const timeModifier = productionMethod ? productionMethod.timeModifier : 1.0;
+    const adjustedInterval = this.productionInterval * timeModifier;
+
+    // 获取当前副产品类型
+    const byproductType = this.getCurrentByproductType();
+    const byproducts = byproductType ? byproductType.resources : {};
+
     return {
       id: this.id,
       name: this.name,
@@ -187,11 +232,18 @@ export default class Building {
       workerEfficiency: this.workerEfficiency,
       totalEfficiency: this.efficiency * this.workerEfficiency,
       recipe: this.recipe,
-      productionInterval: this.productionInterval,
+      byproducts: byproducts,
+      byproductTypes: this.byproductTypes,
+      currentByproductType: this.currentByproductType,
+      productionMethods: this.productionMethods,
+      currentProductionMethod: this.currentProductionMethod,
+      productionInterval: adjustedInterval,
+      baseProductionInterval: this.productionInterval,
       isProducing: this.isProducing,
       isActive: this.isActive,
       productionTimeLeft: this.isProducing ?
-        this.productionInterval - this.productionProgress : 0
+        adjustedInterval - this.productionProgress : 0,
+      workerRequirement: this.getCurrentWorkerRequirement()
     };
   }
 
@@ -228,5 +280,134 @@ export default class Building {
     if (this.progressBar) this.progressBar.destroy();
     if (this.levelText) this.levelText.destroy();
     if (this.statusText) this.statusText.destroy();
+  }
+
+  /**
+   * 设置当前生产方式
+   * @param {string} methodId - 生产方式ID
+   * @returns {boolean} - 是否成功设置
+   */
+  setProductionMethod(methodId) {
+    // 检查是否有此生产方式
+    const methodExists = this.productionMethods.some(method => method.id === methodId);
+    if (!methodExists) return false;
+
+    // 设置当前生产方式
+    this.currentProductionMethod = methodId;
+    return true;
+  }
+
+  /**
+   * 获取当前生产方式
+   * @returns {Object|null} - 当前生产方式对象
+   */
+  getCurrentProductionMethod() {
+    if (!this.currentProductionMethod) return null;
+    return this.productionMethods.find(method => method.id === this.currentProductionMethod) || null;
+  }
+
+  /**
+   * 获取当前生产方式的输入资源
+   * @returns {Object} - 输入资源
+   */
+  getCurrentInputResources() {
+    const method = this.getCurrentProductionMethod();
+    if (!method) return this.recipe.input;
+
+    // 如果生产方式有自定义输入资源，则使用它
+    if (method.input) return method.input;
+
+    // 否则，根据生产方式的输入修正来调整基础输入
+    const result = { ...this.recipe.input };
+    if (method.inputModifiers) {
+      Object.entries(method.inputModifiers).forEach(([resource, modifier]) => {
+        if (result[resource]) {
+          result[resource] = Math.ceil(result[resource] * modifier);
+        } else if (modifier > 0) {
+          // 如果基础输入中没有这个资源，但修正值大于0，则添加它
+          result[resource] = Math.ceil(modifier);
+        }
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * 获取当前生产方式的输出资源
+   * @returns {Object} - 输出资源
+   */
+  getCurrentOutputResources() {
+    const method = this.getCurrentProductionMethod();
+    if (!method) return this.recipe.output;
+
+    // 如果生产方式有自定义输出资源，则使用它
+    if (method.output) return method.output;
+
+    // 否则，根据生产方式的输出修正来调整基础输出
+    const result = { ...this.recipe.output };
+    if (method.outputModifiers) {
+      Object.entries(method.outputModifiers).forEach(([resource, modifier]) => {
+        if (result[resource]) {
+          result[resource] = Math.ceil(result[resource] * modifier);
+        } else if (modifier > 0) {
+          // 如果基础输出中没有这个资源，但修正值大于0，则添加它
+          result[resource] = Math.ceil(modifier);
+        }
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * 设置当前副产品类型
+   * @param {string} typeId - 副产品类型ID
+   * @returns {boolean} - 是否成功设置
+   */
+  setByproductType(typeId) {
+    // 检查是否有此副产品类型
+    const typeExists = this.byproductTypes.some(type => type.id === typeId);
+    if (!typeExists) return false;
+
+    // 设置当前副产品类型
+    this.currentByproductType = typeId;
+    return true;
+  }
+
+  /**
+   * 获取当前副产品类型
+   * @returns {Object|null} - 当前副产品类型对象
+   */
+  getCurrentByproductType() {
+    if (!this.currentByproductType) return null;
+    return this.byproductTypes.find(type => type.id === this.currentByproductType) || null;
+  }
+
+  /**
+   * 获取当前生产方式的副产品
+   * @returns {Object} - 副产品
+   */
+  getCurrentByproducts() {
+    const method = this.getCurrentProductionMethod();
+    if (!method || !method.enableByproducts) return {};
+
+    // 获取当前副产品类型
+    const byproductType = this.getCurrentByproductType();
+    if (!byproductType) return {};
+
+    // 返回当前副产品类型的资源
+    return byproductType.resources || {};
+  }
+
+  /**
+   * 获取当前生产方式的工人需求
+   * @returns {Object} - 工人需求 {count, type}
+   */
+  getCurrentWorkerRequirement() {
+    const method = this.getCurrentProductionMethod();
+    if (!method || !method.workerRequirement) return this.workerRequirement;
+
+    return method.workerRequirement;
   }
 }

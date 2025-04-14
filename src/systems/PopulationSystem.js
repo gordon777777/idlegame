@@ -19,6 +19,9 @@ export default class PopulationSystem {
     this.growthRate = config.growthRate || 0.001; // 每秒增長率
     this.happinessLevel = config.initialHappiness || 50; // 0-100
 
+    // 存储建筑类型的映射
+    this.buildingTypes = new Map(); // 用于存储建筑ID到建筑类型的映射
+
     // 幸福度系統 - 按階層分別計算
     this.classHappiness = {
       lower: {
@@ -1164,12 +1167,26 @@ export default class PopulationSystem {
    * 分配工人到建築 (同層職業互通)
    * @param {string} buildingId - 建築ID
    * @param {string} buildingType - 建築類型
+   * @param {Object} workerRequirement - 可選的工人需求對象，如果提供則使用它而不是建築預設需求
    * @returns {boolean} - 是否成功分配
    */
-  assignWorkersToBulding(buildingId, buildingType) {
+  assignWorkersToBulding(buildingId, buildingType, workerRequirement = null) {
+    // 存储建筑类型以便于后续使用
+    this.buildingTypes.set(buildingId, buildingType);
     // 檢查建築是否需要工人
-    const requirements = this.buildingWorkerRequirements[buildingType];
-    if (!requirements) return true; // 如果沒有要求，視為成功
+    let requirements;
+
+    if (workerRequirement) {
+      // 使用提供的工人需求（例如來自生產方式的需求）
+      requirements = {
+        description: `需要 ${workerRequirement.count} 名 ${this.workerTypes[workerRequirement.type]?.displayName || workerRequirement.type}`,
+        workers: { [workerRequirement.type]: workerRequirement.count }
+      };
+    } else {
+      // 使用建築預設需求
+      requirements = this.buildingWorkerRequirements[buildingType];
+      if (!requirements) return true; // 如果沒有要求，視為成功
+    }
 
     // 按階層統計需要的工人數量
     const classRequirements = {
@@ -1180,7 +1197,7 @@ export default class PopulationSystem {
 
     // 統計每個階層需要的工人數量
     for (const [workerType, count] of Object.entries(requirements.workers)) {
-      const socialClass = this.workerTypes[workerType].socialClass;
+      const socialClass = this.workerTypes[workerType]?.socialClass || 'lower';
       classRequirements[socialClass] += count;
     }
 
@@ -1190,8 +1207,10 @@ export default class PopulationSystem {
 
       // 計算這個階層的可用工人總數
       let availableWorkers = 0;
-      for (const workerType of this.socialClasses[className].workerTypes) {
-        availableWorkers += this.getAvailableWorkers(workerType);
+      for (const workerType of this.socialClasses[className]?.workerTypes || []) {
+        if (this.workerTypes[workerType]) {
+          availableWorkers += this.getAvailableWorkers(workerType);
+        }
       }
 
       if (availableWorkers < requiredCount) {
@@ -1286,9 +1305,46 @@ export default class PopulationSystem {
   /**
    * 檢查建築是否有足夠的工人
    * @param {string} buildingId - 建築ID
+   * @param {Object} workerRequirement - 可選的工人需求對象，用于重新分配工人
+   * @param {string} [buildingType] - 建築類型，如果提供則使用它
    * @returns {boolean} - 是否有足夠工人
    */
-  hasSufficientWorkers(buildingId) {
+  hasSufficientWorkers(buildingId, workerRequirement = null, buildingType = null) {
+    // 如果已經有分配的工人，且沒有新的需求，則返回真
+    if (this.workerAssignments.has(buildingId) && !workerRequirement) {
+      return true;
+    }
+
+    // 如果有新的工人需求，先釋放原來的工人，然後重新分配
+    if (workerRequirement) {
+      // 釋放原來的工人
+      this.removeWorkersFromBuilding(buildingId);
+
+      // 如果沒有提供建築類型，則嘗試從已存在的分配中獲取
+      let actualBuildingType = buildingType;
+
+      // 如果沒有提供建築類型，則嘗試從其他來源獲取
+      if (!actualBuildingType) {
+        // 嘗試從已存在的分配中獲取建築類型
+        const existingAssignment = this.buildingTypes.get(buildingId);
+        if (existingAssignment) {
+          actualBuildingType = existingAssignment;
+        }
+        // 如果還是沒有，則嘗試從 scene 中獲取
+        else if (this.scene && this.scene.buildingSystem) {
+          actualBuildingType = this.scene.buildingSystem.buildings.get(buildingId)?.type;
+        }
+      }
+
+      // 如果仍然無法獲取建築類型，則返回失敗
+      if (!actualBuildingType) {
+        console.log(`無法獲取建築 ${buildingId} 的類型，工人分配失敗`);
+        return false;
+      }
+
+      return this.assignWorkersToBulding(buildingId, actualBuildingType, workerRequirement);
+    }
+
     return this.workerAssignments.has(buildingId);
   }
 

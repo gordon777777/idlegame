@@ -72,13 +72,26 @@ class ResourceSystem {
    * @param {Building} building - The building to add
    */
   addProductionChain(building) {
+    // 获取当前生产方式的输入和输出资源
+    const inputResources = building.getCurrentInputResources ? building.getCurrentInputResources() : building.recipe.input;
+    const outputResources = building.getCurrentOutputResources ? building.getCurrentOutputResources() : building.recipe.output;
+    const byproductResources = building.getCurrentByproducts ? building.getCurrentByproducts() : {};
+
+    // 获取当前生产方式的时间修正
+    const productionMethod = building.getCurrentProductionMethod ? building.getCurrentProductionMethod() : null;
+    const timeModifier = productionMethod ? productionMethod.timeModifier : 1.0;
+    const adjustedInterval = building.productionInterval * timeModifier;
+
     this.productionChains.set(building.id, {
-      input: building.recipe.input,
-      output: building.recipe.output,
-      interval: building.productionInterval,
+      input: inputResources,
+      output: outputResources,
+      byproducts: byproductResources,
+      interval: adjustedInterval,
+      baseInterval: building.productionInterval,
       lastProduction: 0,
       efficiency: building.efficiency || 1.0,
-      active: true
+      active: true,
+      buildingId: building.id
     });
   }
 
@@ -99,8 +112,26 @@ class ResourceSystem {
 
       if (time - chain.lastProduction > chain.interval) {
         if (this.hasResources(chain.input)) {
-          // Check if we have space for the output
-          const hasSpace = Object.entries(chain.output).every(([resource, amount]) => {
+          // 检查是否有足够的空间存储输出资源和副产品
+          const allOutputs = { ...chain.output };
+
+          // 添加副产品（如果有）
+          if (chain.byproducts) {
+            Object.entries(chain.byproducts).forEach(([resource, amount]) => {
+              // 处理概率性副产品（小于1的值表示概率）
+              const actualAmount = amount < 1 ? (Math.random() < amount ? 1 : 0) : amount;
+              if (actualAmount > 0) {
+                if (allOutputs[resource]) {
+                  allOutputs[resource] += actualAmount;
+                } else {
+                  allOutputs[resource] = actualAmount;
+                }
+              }
+            });
+          }
+
+          // 检查是否有足够的空间
+          const hasSpace = Object.entries(allOutputs).every(([resource, amount]) => {
             return this.resources[resource].value + amount <= this.resourceCaps[resource];
           });
 
@@ -109,19 +140,19 @@ class ResourceSystem {
             this.consumeResources(chain.input);
 
             // Add output resources
-            this.addResources(chain.output);
+            this.addResources(allOutputs);
 
             // Update stats
             Object.entries(chain.input).forEach(([resource, amount]) => {
               this.consumptionStats[resource] += amount;
             });
 
-            Object.entries(chain.output).forEach(([resource, amount]) => {
+            Object.entries(allOutputs).forEach(([resource, amount]) => {
               this.productionStats[resource] += amount;
             });
 
             // Update production rates (per minute)
-            Object.entries(chain.output).forEach(([resource, amount]) => {
+            Object.entries(allOutputs).forEach(([resource, amount]) => {
               const perMinute = (amount * 60000) / chain.interval;
               this.resources[resource].production += perMinute * chain.efficiency;
             });

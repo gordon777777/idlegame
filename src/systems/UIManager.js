@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Button from '../ui/Button.js';
 import TabButton from '../ui/TabButton.js';
 import TradeButton from '../ui/TradeButton.js';
+import DropdownList from '../ui/DropdownList.js';
 
 export default class UIManager {
   constructor(scene) {
@@ -127,35 +128,87 @@ export default class UIManager {
     if (this.infoPanel) this.infoPanel.destroy();
 
     this.infoPanel = this.scene.add.container(400, 100);
-    // 增加背景高度以容納工人信息
-    const background = this.scene.add.rectangle(0, 0, 300, 250, 0x1a1a1a, 0.9)
+
+    // 定义常量以便于调整布局
+    const containY = 0; // 内容的基准Y坐标
+    const panelWidth = 400;
+    const panelHeight = 300; // 进一步减小面板高度
+
+    // 背景矩形
+    const background = this.scene.add.rectangle(0, containY, panelWidth, panelHeight, 0x1a1a1a, 0.9)
       .setStrokeStyle(1, 0x4a4a4a);
 
+    // 添加标题栏背景 - 用作拖拉区域
+    const titleBar = this.scene.add.rectangle(0, containY - panelHeight/2 + 20, panelWidth, 40, 0x333333)
+      .setStrokeStyle(1, 0x555555);
+
+    // 添加拖拽功能
+    titleBar.setInteractive({ draggable: true });
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    titleBar.on('dragstart', (pointer) => {
+      isDragging = true;
+      dragStartX = pointer.x - this.infoPanel.x;
+      dragStartY = pointer.y - this.infoPanel.y;
+    });
+
+    titleBar.on('drag', (pointer) => {
+      if (isDragging) {
+        this.infoPanel.x = pointer.x - dragStartX;
+        this.infoPanel.y = pointer.y - dragStartY;
+      }
+    });
+
+    titleBar.on('dragend', () => {
+      isDragging = false;
+    });
+
     // Add title
-    const title = this.scene.add.text(0, -110, buildingInfo.name, {
+    const title = this.scene.add.text(0, containY - panelHeight/2 + 20, buildingInfo.name, {
       fontSize: '20px',
       fill: '#ffffff',
       fontStyle: 'bold'
-    }).setOrigin(0.5, 0);
+    }).setOrigin(0.5, 0.5);
 
-    // Add close button
-    const closeBtn = new Button(this.scene, 140, -110, 'X', {
-      width: 30,
-      height: 30,
-      backgroundColor: 0x4a4a4a,
-      fontSize: '18px',
-      textColor: '#ffffff',
-      onClick: () => this.closeBuildingInfo()
-    });
+    // 直接创建关闭按钮，不使用Button类
+    const closeBtnBg = this.scene.add.rectangle(
+      panelWidth/2 - 20,
+      containY - panelHeight/2 + 20,
+      36,
+      36,
+      0xff4a4a
+    ).setStrokeStyle(2, 0xffffff);
+
+    const closeBtnText = this.scene.add.text(
+      panelWidth/2 - 20,
+      containY - panelHeight/2 + 20,
+      'X',
+      {
+        fontSize: '24px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      }
+    ).setOrigin(0.5, 0.5);
+
+    // 添加交互
+    closeBtnBg.setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.closeBuildingInfo());
+
+    // 创建一个对象来模拟Button类的接口
+    const closeBtn = {
+      getElements: () => [closeBtnBg, closeBtnText]
+    };
 
     // Add level
-    const levelText = this.scene.add.text(0, -80, `等級: ${buildingInfo.level}`, {
+    const levelText = this.scene.add.text(0, containY - panelHeight/2 + 60, `等級: ${buildingInfo.level}`, {
       fontSize: '16px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
 
     // Add efficiency
-    const efficiencyText = this.scene.add.text(0, -60, `效率: ${(buildingInfo.efficiency * 100).toFixed(0)}%`, {
+    const efficiencyText = this.scene.add.text(0, containY - panelHeight/2 + 80, `效率: ${(buildingInfo.totalEfficiency * 100).toFixed(0)}%`, {
       fontSize: '16px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
@@ -163,64 +216,62 @@ export default class UIManager {
     // 添加工人需求信息
     let workerText = '';
     if (buildingInfo.type !== 'housing' && this.scene.populationSystem) {
-      // 獲取建築需要的工人信息
-      const workerReq = this.scene.populationSystem.buildingWorkerRequirements[buildingInfo.type];
-      if (workerReq) {
-        // 獲取已分配的工人信息
-        const assignment = this.scene.populationSystem.workerAssignments.get(buildingInfo.id) || {};
+      // 获取当前生产方式的工人需求
+      const workerReq = buildingInfo.workerRequirement || { count: 0, type: 'worker' };
 
-        // 按階層統計需求和已分配的工人
-        const classCounts = {
-          lower: { required: 0, assigned: 0 },
-          middle: { required: 0, assigned: 0 },
-          upper: { required: 0, assigned: 0 }
-        };
+      // 获取已分配的工人信息
+      const assignment = this.scene.populationSystem.workerAssignments.get(buildingInfo.id) || {};
 
-        // 統計需求工人
-        for (const [workerType, count] of Object.entries(workerReq.workers)) {
-          const socialClass = this.scene.populationSystem.workerTypes[workerType].socialClass;
-          classCounts[socialClass].required += count;
-        }
-
-        // 統計已分配工人
-        for (const [workerType, count] of Object.entries(assignment)) {
-          const socialClass = this.scene.populationSystem.workerTypes[workerType].socialClass;
-          classCounts[socialClass].assigned += count;
-        }
-
-        // 生成工人需求文本
-        workerText = '工人需求:\n';
-        for (const [className, counts] of Object.entries(classCounts)) {
-          if (counts.required > 0) {
-            const classDisplayName = this.getClassDisplayName(className);
-            workerText += `${classDisplayName}: ${counts.assigned}/${counts.required}\n`;
-          }
-        }
+      // 计算已分配的工人总数
+      let assignedCount = 0;
+      for (const count of Object.values(assignment)) {
+        assignedCount += count;
       }
+
+      // 生成工人需求文本
+      workerText = '工人需求:\n';
+      const workerTypeName = this.scene.populationSystem.workerTypes[workerReq.type]?.displayName || workerReq.type;
+      workerText += `${workerTypeName}: ${assignedCount}/${workerReq.count}`;
     }
 
-    const workerInfoText = this.scene.add.text(0, -40, workerText, {
+    const workerInfoText = this.scene.add.text(0, containY - panelHeight/2 + 110, workerText, {
       fontSize: '14px',
       fill: '#e0e0e0',
       align: 'center'
     }).setOrigin(0.5, 0);
 
+    // 获取当前生产方式的输入和输出资源
+    const currentMethod = buildingInfo.productionMethods?.find(m => m.id === buildingInfo.currentProductionMethod);
+    const inputResources = currentMethod?.input || buildingInfo.recipe.input;
+    const outputResources = currentMethod?.output || buildingInfo.recipe.output;
+
     // Add recipe info
     let recipeText = '';
 
-    if (Object.keys(buildingInfo.recipe.input).length > 0) {
+    if (Object.keys(inputResources).length > 0) {
       recipeText += '消耗: ';
-      Object.entries(buildingInfo.recipe.input).forEach(([resource, amount]) => {
+      Object.entries(inputResources).forEach(([resource, amount]) => {
         recipeText += `${this.getResourceDisplayName(resource)} x${amount} `;
       });
     }
 
     recipeText += '\n產出: ';
-    Object.entries(buildingInfo.recipe.output).forEach(([resource, amount]) => {
+    Object.entries(outputResources).forEach(([resource, amount]) => {
       recipeText += `${this.getResourceDisplayName(resource)} x${amount} `;
     });
 
-    const recipe = this.scene.add.text(0, 10, recipeText, {
+    // 添加副产品信息（如果有）
+    if (buildingInfo.byproducts && Object.keys(buildingInfo.byproducts).length > 0 &&
+        (!currentMethod || currentMethod.enableByproducts)) {
+      recipeText += '\n副产品: ';
+      Object.entries(buildingInfo.byproducts).forEach(([resource, amount]) => {
+        // 处理概率性副产品
+        const amountText = amount < 1 ? `${(amount * 100).toFixed(0)}%几率` : `x${amount}`;
+        recipeText += `${this.getResourceDisplayName(resource)} ${amountText} `;
+      });
+    }
+
+    const recipe = this.scene.add.text(0, containY - panelHeight/2 + 150, recipeText, {
       fontSize: '14px',
       fill: '#e0e0e0',
       align: 'center'
@@ -228,22 +279,115 @@ export default class UIManager {
 
     // Add production time
     const productionTime = (buildingInfo.productionInterval / 1000).toFixed(1);
-    const timeText = this.scene.add.text(0, 50, `生產時間: ${productionTime} 秒`, {
-      fontSize: '14px',
-      fill: '#e0e0e0'
-    }).setOrigin(0.5, 0);
+    const baseTime = (buildingInfo.baseProductionInterval / 1000).toFixed(1);
+    let timeText;
+
+    if (productionTime !== baseTime) {
+      timeText = this.scene.add.text(0, containY - panelHeight/2 + 200, `生產時間: ${productionTime} 秒 (基础: ${baseTime} 秒)`, {
+        fontSize: '14px',
+        fill: '#e0e0e0'
+      }).setOrigin(0.5, 0);
+    } else {
+      timeText = this.scene.add.text(0, containY - panelHeight/2 + 200, `生產時間: ${productionTime} 秒`, {
+        fontSize: '14px',
+        fill: '#e0e0e0'
+      }).setOrigin(0.5, 0);
+    }
+
+    // 添加生产方式和副产品选择区域
+    let uiElements = [];
+    let yOffset = containY - panelHeight/2 + 220; // 减小起始位置
+
+    // 生产方式选择
+    if (buildingInfo.productionMethods && buildingInfo.productionMethods.length > 0) {
+      // 添加生产方式标题
+      const methodTitle = this.scene.add.text(0, yOffset, '生产方式:', {
+        fontSize: '14px', // 减小字体
+        fill: '#ffffff',
+        fontStyle: 'bold'
+      }).setOrigin(0.5, 0);
+
+      uiElements.push(methodTitle);
+      yOffset += 20; // 减小间距
+
+      // 准备下拉列表选项
+      const methodOptions = buildingInfo.productionMethods.map(method => ({
+        id: method.id,
+        text: method.name,
+        description: method.description
+      }));
+
+      // 创建下拉列表
+      const methodDropdown = new DropdownList(this.scene, 0, yOffset, methodOptions, {
+        width: 300,
+        height: 25, // 减小高度
+        backgroundColor: 0x333333,
+        hoverColor: 0x4a6a4a,
+        textColor: '#ffffff',
+        fontSize: '14px',
+        selectedId: buildingInfo.currentProductionMethod,
+        onChange: (methodId) => this.handleProductionMethodSelect(buildingInfo.id, methodId)
+      });
+
+      uiElements.push(...methodDropdown.getElements());
+      yOffset += 40; // 减小间距
+    }
+
+    // 副产品类型选择
+    if (buildingInfo.byproductTypes && buildingInfo.byproductTypes.length > 0) {
+      // 获取当前生产方式
+      const currentMethod = buildingInfo.productionMethods?.find(m => m.id === buildingInfo.currentProductionMethod);
+
+      // 只有当生产方式启用副产品时才显示副产品选择
+      if (currentMethod && currentMethod.enableByproducts) {
+        // 添加副产品标题
+        const byproductTitle = this.scene.add.text(0, yOffset, '副产品类型:', {
+          fontSize: '14px', // 减小字体
+          fill: '#ffffff',
+          fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+
+        uiElements.push(byproductTitle);
+        yOffset += 20; // 减小间距
+
+        // 准备下拉列表选项
+        const byproductOptions = buildingInfo.byproductTypes.map(type => ({
+          id: type.id,
+          text: type.name,
+          description: type.description
+        }));
+
+        // 创建下拉列表
+        const byproductDropdown = new DropdownList(this.scene, 0, yOffset, byproductOptions, {
+          width: 300,
+          height: 25, // 减小高度
+          backgroundColor: 0x333333,
+          hoverColor: 0x4a6a4a,
+          textColor: '#ffffff',
+          fontSize: '14px',
+          selectedId: buildingInfo.currentByproductType,
+          onChange: (typeId) => this.handleByproductTypeSelect(buildingInfo.id, typeId)
+        });
+
+        uiElements.push(...byproductDropdown.getElements());
+        yOffset += 40; // 减小间距
+      }
+    }
 
     // Add upgrade button
-    const upgradeBtn = new Button(this.scene, 0, 90, '升級', {
-      width: 120,
-      height: 30,
+    const upgradeBtn = new Button(this.scene, 0, yOffset + 5, '升級', {
+      width: 100, // 减小按钮宽度
+      height: 25, // 减小按钮高度
       backgroundColor: 0x4a4a4a,
-      fontSize: '16px',
+      fontSize: '14px', // 减小字体
       textColor: '#ffffff',
       onClick: () => this.handleBuildingUpgrade(buildingInfo.id)
     });
 
-    this.infoPanel.add([background, title, ...closeBtn.getElements(), levelText, efficiencyText, workerInfoText, recipe, timeText, ...upgradeBtn.getElements()]);
+    // 添加所有元素到面板
+    this.infoPanel.add([background, titleBar, title, ...closeBtn.getElements(),
+                        levelText, efficiencyText, workerInfoText, recipe, timeText,
+                        ...uiElements, ...upgradeBtn.getElements()]);
   }
 
   handleBuildingSelect(buildingType) {
@@ -282,6 +426,54 @@ export default class UIManager {
       this.scene.time.delayedCall(2000, () => {
         errorText.destroy();
       });
+    }
+  }
+
+  /**
+   * 处理生产方式选择
+   * @param {string} buildingId - 建筑ID
+   * @param {string} methodId - 生产方式ID
+   */
+  handleProductionMethodSelect(buildingId, methodId) {
+    console.log(`Selecting production method ${methodId} for building ${buildingId}`);
+
+    // 获取建筑对象
+    const building = this.scene.buildingSystem.buildings.get(buildingId);
+    if (!building) return;
+
+    // 设置生产方式
+    const success = building.setProductionMethod(methodId);
+
+    if (success) {
+      // 更新生产链
+      this.scene.resourceSystem.addProductionChain(building);
+
+      // 更新建筑信息显示
+      this.showBuildingInfo(building.getInfo());
+    }
+  }
+
+  /**
+   * 处理副产品类型选择
+   * @param {string} buildingId - 建筑ID
+   * @param {string} typeId - 副产品类型ID
+   */
+  handleByproductTypeSelect(buildingId, typeId) {
+    console.log(`Selecting byproduct type ${typeId} for building ${buildingId}`);
+
+    // 获取建筑对象
+    const building = this.scene.buildingSystem.buildings.get(buildingId);
+    if (!building) return;
+
+    // 设置副产品类型
+    const success = building.setByproductType(typeId);
+
+    if (success) {
+      // 更新生产链
+      this.scene.resourceSystem.addProductionChain(building);
+
+      // 更新建筑信息显示
+      this.showBuildingInfo(building.getInfo());
     }
   }
 
