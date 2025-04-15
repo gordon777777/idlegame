@@ -127,7 +127,8 @@ export default class UIManager {
   showBuildingInfo(buildingInfo) {
     if (this.infoPanel) this.infoPanel.destroy();
 
-    this.infoPanel = this.scene.add.container(400, 100);
+    // 将面板向右移动650像素，向下移动500像素
+    this.infoPanel = this.scene.add.container(1050, 500);
 
     // 定义常量以便于调整布局
     const containY = 0; // 内容的基准Y坐标
@@ -305,7 +306,7 @@ export default class UIManager {
         fontSize: '14px', // 减小字体
         fill: '#ffffff',
         fontStyle: 'bold'
-      }).setOrigin(0.5, 0);
+      }).setOrigin(0, 0);
 
       uiElements.push(methodTitle);
       yOffset += 20; // 减小间距
@@ -318,7 +319,7 @@ export default class UIManager {
       }));
 
       // 创建下拉列表
-      const methodDropdown = new DropdownList(this.scene, 0, yOffset, methodOptions, {
+      const methodDropdown = new DropdownList(this.scene, this.infoPanel, -150, yOffset, methodOptions, {
         width: 300,
         height: 25, // 减小高度
         backgroundColor: 0x333333,
@@ -358,7 +359,7 @@ export default class UIManager {
         }));
 
         // 创建下拉列表
-        const byproductDropdown = new DropdownList(this.scene, 0, yOffset, byproductOptions, {
+        const byproductDropdown = new DropdownList(this.scene, this.infoPanel, 0, yOffset, byproductOptions, {
           width: 300,
           height: 25, // 减小高度
           backgroundColor: 0x333333,

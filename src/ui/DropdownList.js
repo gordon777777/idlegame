@@ -19,8 +19,9 @@ export default class DropdownList {
    * @param {Function} config.onChange - 选项变更时的回调函数
    * @param {string} config.selectedId - 初始选中的选项ID
    */
-  constructor(scene, x, y, options, config = {}) {
+  constructor(scene,parent, x, y, options, config = {}) {
     this.scene = scene;
+    this.parent = parent;
     this.x = x;
     this.y = y;
     this.options = options;
@@ -51,20 +52,20 @@ export default class DropdownList {
     // 创建下拉列表背景
     this.background = this.scene.add.rectangle(0, 0, this.width, this.height, this.backgroundColor)
       .setStrokeStyle(1, 0x666666)
-      .setOrigin(0.5, 0.5);
+      .setOrigin(0, 0);
 
     // 创建当前选中项文本
     const selectedOption = this.options.find(opt => opt.id === this.selectedId) || this.options[0];
-    this.selectedText = this.scene.add.text(0, 0, selectedOption ? selectedOption.text : '选择...', {
+    this.selectedText = this.scene.add.text(this.width / 2-20, this.height / 2, selectedOption ? selectedOption.text : '选择...', {
       fontSize: this.fontSize,
       fill: this.textColor
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(0, 0);
 
     // 创建下拉箭头
-    this.arrow = this.scene.add.text(this.width / 2 - 15, 0, '▼', {
+    this.arrow = this.scene.add.text(this.width - 20, 5, '▼', {
       fontSize: this.fontSize,
       fill: this.textColor
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(0, 0);
 
     // 添加交互
     this.background.setInteractive({ useHandCursor: true })
@@ -87,9 +88,9 @@ export default class DropdownList {
       this.descriptionText = this.scene.add.text(0, this.height + 5, selectedOption.description, {
         fontSize: parseInt(this.fontSize) - 2 + 'px',
         fill: '#cccccc',
-        align: 'center',
+        align: 'left',
         wordWrap: { width: this.width }
-      }).setOrigin(0.5, 0);
+      }).setOrigin(0, 0);
 
       this.container.add(this.descriptionText);
     }
@@ -119,29 +120,32 @@ export default class DropdownList {
     // 创建选项列表
     this.optionElements = [];
 
-    // 创建选项容器 - 定位在下拉框正下方
-    // 使用绝对定位确保选项列表位置正确
-    const absoluteX = this.container.x;
-    const absoluteY = this.container.y + this.height;
-    this.optionsContainer = this.scene.add.container(absoluteX, absoluteY);
-    // 将选项容器添加到元素数组中
-    this.elements.push(this.optionsContainer);
+    // 创建选项容器，并添加到父容器
+    this.optionsContainer = this.scene.add.container(0, 0);
+    this.parent.add(this.optionsContainer);
+
+    // 获取容器在世界坐标系中的位置
+    const worldPos = this.getWorldPosition(this.container);
+
+    // 计算选项列表的起始位置 - 使用世界坐标
+    const listStartX = worldPos.x;
+    const listStartY = worldPos.y + this.height;
 
     // 添加每个选项
     this.options.forEach((option, index) => {
       // 计算选项位置 - 直接使用索引计算
-      const yPos = (index + 0.5) * this.height;
+      const yPos = listStartY + index * this.height;
 
       // 选项背景
       const optBg = this.scene.add.rectangle(
         0,
-        yPos,
+        0,
         this.width,
         this.height,
         option.id === this.selectedId ? this.hoverColor : this.backgroundColor
       )
         .setStrokeStyle(1, 0x666666)
-        .setOrigin(0.5, 0.5)
+        .setOrigin(0, 0)
         .setInteractive({ useHandCursor: true })
         .on('pointerover', () => {
           optBg.fillColor = this.hoverColor;
@@ -154,26 +158,36 @@ export default class DropdownList {
         });
 
       // 选项文本
-      const optText = this.scene.add.text(0, yPos, option.text, {
+      const optText = this.scene.add.text(10, 5, option.text, {
         fontSize: this.fontSize,
         fill: this.textColor
-      }).setOrigin(0.5, 0.5);
+      }).setOrigin(0, 0);
 
-      this.optionsContainer.add([optBg, optText]);
+      // 创建选项容器
+      const optionContainer = this.scene.add.container(listStartX, yPos);
+      optionContainer.add([optBg, optText]);
+
+      // 将选项容器添加到主选项容器中
+      this.optionsContainer.add(optionContainer);
+
+      // 将选项元素和容器添加到数组中，便于管理
+      this.optionElements.push(optBg, optText, optionContainer);
+
+      // 确保只添加一次主选项容器
+      if (index === 0) {
+        this.elements.push(this.optionsContainer);
+      }
     });
-
-    // 将选项元素添加到数组中
-    this.optionElements.push(this.optionsContainer);
 
     // 添加点击外部关闭下拉列表的处理
     this.closeOverlay = this.scene.add.rectangle(
-      this.scene.cameras.main.width / 2,
-      this.scene.cameras.main.height / 2,
+      0,
+      0,
       this.scene.cameras.main.width,
       this.scene.cameras.main.height,
       0x000000,
       0
-    ).setInteractive()
+    ).setOrigin(0, 0).setInteractive()
       .on('pointerdown', () => {
         this.closeDropdown();
       });
@@ -182,8 +196,14 @@ export default class DropdownList {
     this.closeOverlay.depth = -1;
     this.elements.push(this.closeOverlay);
 
-    // 将选项容器置于最上层
-    this.scene.children.bringToTop(this.optionsContainer);
+    // 将选项元素和容器置于最上层
+    this.optionsContainer.setDepth(10);
+
+    this.optionElements.forEach(element => {
+      if (element && element.setDepth) {
+        element.setDepth(10);
+      }
+    });
   }
 
   /**
@@ -195,17 +215,23 @@ export default class DropdownList {
     this.isOpen = false;
     this.arrow.setText('▼');
 
-    // 移除选项元素
-    this.optionElements.forEach(element => {
-      element.destroy();
-    });
-    this.optionElements = [];
-
     // 移除选项容器
     if (this.optionsContainer) {
       this.optionsContainer.destroy();
       this.optionsContainer = null;
     }
+
+    // 清空选项元素数组
+    this.optionElements = [];
+
+    // 更新元素数组，移除选项元素
+    this.elements = this.elements.filter(element =>
+      element === this.container ||
+      element === this.background ||
+      element === this.selectedText ||
+      element === this.arrow ||
+      (this.descriptionText && element === this.descriptionText)
+    );
 
     // 移除覆盖层
     if (this.closeOverlay) {
@@ -268,5 +294,29 @@ export default class DropdownList {
 
     this.elements = [];
     this.optionElements = [];
+  }
+  /**
+   * 获取对象在世界坐标系中的位置
+   * @param {Phaser.GameObjects.GameObject} displayObject - 要获取位置的对象
+   * @returns {Object} 包含 x 和 y 坐标的对象
+   */
+  getWorldPosition(displayObject) {
+    // 如果对象不存在，返回当前容器的位置
+    if (!displayObject) {
+      return { x: this.x, y: this.y };
+    }
+
+    let x = displayObject.x;
+    let y = displayObject.y;
+
+    // 遍历所有父级，累加它们的位置
+    let parent = displayObject.parent;
+    while (parent) {
+        x += parent.x;
+        y += parent.y;
+        parent = parent.parent;
+    }
+
+    return { x, y };
   }
 }

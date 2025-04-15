@@ -6,7 +6,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "phaser": "3.60.0"
+    "phaser": "3.60.0",
+    "phaser3-rex-plugins": "^1.80.15"
   },
   "devDependencies": {
     "vite": "^6.2.5"
