@@ -4,10 +4,11 @@
 export default class ResearchSystem {
   /**
    * @param {ResourceSystem} resourceSystem - Reference to the resource system
+   * @param {Object} technologies - Optional technologies data from DataManager
    */
-  constructor(resourceSystem) {
+  constructor(resourceSystem, technologies = null) {
     this.resourceSystem = resourceSystem;
-    this.technologies = this.defineTechnologies();
+    this.technologies = technologies || this.defineTechnologies();
     this.researchPoints = 0;
     this.researchRate = 0.1; // Research points per second
     this.completedResearch = new Set();
@@ -31,7 +32,7 @@ export default class ResearchSystem {
           productionMultiplier: { resource: 'magic_ore', value: 1.2 }
         }
       },
-      
+
       efficient_forestry: {
         name: 'Efficient Forestry',
         description: 'Increases enchanted wood production by 20%',
@@ -41,7 +42,7 @@ export default class ResearchSystem {
           productionMultiplier: { resource: 'enchanted_wood', value: 1.2 }
         }
       },
-      
+
       crystal_resonance: {
         name: 'Crystal Resonance',
         description: 'Increases arcane crystal production by 20%',
@@ -51,7 +52,7 @@ export default class ResearchSystem {
           productionMultiplier: { resource: 'arcane_crystal', value: 1.2 }
         }
       },
-      
+
       // Intermediate technologies
       arcane_metallurgy: {
         name: 'Arcane Metallurgy',
@@ -62,7 +63,7 @@ export default class ResearchSystem {
           buildingEfficiency: { building: 'magic_forge', value: 1.25 }
         }
       },
-      
+
       mystic_carpentry: {
         name: 'Mystic Carpentry',
         description: 'Improves Wood Enchanter efficiency by 25%',
@@ -72,7 +73,7 @@ export default class ResearchSystem {
           buildingEfficiency: { building: 'wood_enchanter', value: 1.25 }
         }
       },
-      
+
       crystal_harmonics: {
         name: 'Crystal Harmonics',
         description: 'Improves Crystal Refinery efficiency by 25%',
@@ -82,7 +83,7 @@ export default class ResearchSystem {
           buildingEfficiency: { building: 'crystal_refinery', value: 1.25 }
         }
       },
-      
+
       // Advanced technologies
       alchemical_mastery: {
         name: 'Alchemical Mastery',
@@ -93,7 +94,7 @@ export default class ResearchSystem {
           buildingEfficiency: { building: 'alchemy_lab', value: 1.3 }
         }
       },
-      
+
       enchantment_mastery: {
         name: 'Enchantment Mastery',
         description: 'Improves Enchanting Tower efficiency by 30%',
@@ -103,7 +104,7 @@ export default class ResearchSystem {
           buildingEfficiency: { building: 'enchanting_tower', value: 1.3 }
         }
       },
-      
+
       // Storage technologies
       expanded_warehouses: {
         name: 'Expanded Warehouses',
@@ -114,7 +115,7 @@ export default class ResearchSystem {
           storageCap: { multiplier: 1.2 }
         }
       },
-      
+
       magical_containers: {
         name: 'Magical Containers',
         description: 'Increases storage capacity of all resources by 30%',
@@ -124,7 +125,7 @@ export default class ResearchSystem {
           storageCap: { multiplier: 1.3 }
         }
       },
-      
+
       // Efficiency technologies
       resource_optimization: {
         name: 'Resource Optimization',
@@ -135,7 +136,7 @@ export default class ResearchSystem {
           resourceConsumption: { multiplier: 0.9 }
         }
       },
-      
+
       magical_efficiency: {
         name: 'Magical Efficiency',
         description: 'All buildings work 15% faster',
@@ -145,7 +146,7 @@ export default class ResearchSystem {
           productionSpeed: { multiplier: 0.85 } // Reduces time needed
         }
       },
-      
+
       // End-game technologies
       arcane_mastery: {
         name: 'Arcane Mastery',
@@ -165,13 +166,13 @@ export default class ResearchSystem {
    */
   update(delta) {
     if (!this.activeResearch) return;
-    
+
     // Convert delta from ms to seconds
     const deltaSeconds = delta / 1000;
-    
+
     // Add research points based on time
     this.researchProgress += this.researchRate * deltaSeconds;
-    
+
     // Check if research is complete
     if (this.researchProgress >= this.technologies[this.activeResearch].cost) {
       this.completeResearch(this.activeResearch);
@@ -185,23 +186,23 @@ export default class ResearchSystem {
    */
   startResearch(techId) {
     const tech = this.technologies[techId];
-    
+
     if (!tech || this.completedResearch.has(techId) || this.activeResearch) {
       return false;
     }
-    
+
     // Check if all requirements are met
-    const requirementsMet = tech.requirements.every(req => 
+    const requirementsMet = tech.requirements.every(req =>
       this.completedResearch.has(req)
     );
-    
+
     if (!requirementsMet) {
       return false;
     }
-    
+
     this.activeResearch = techId;
     this.researchProgress = 0;
-    
+
     return true;
   }
 
@@ -211,13 +212,13 @@ export default class ResearchSystem {
    */
   completeResearch(techId) {
     if (!this.technologies[techId]) return;
-    
+
     // Mark as completed
     this.completedResearch.add(techId);
-    
+
     // Apply effects
     this.applyResearchEffects(techId);
-    
+
     // Reset active research
     this.activeResearch = null;
     this.researchProgress = 0;
@@ -230,32 +231,32 @@ export default class ResearchSystem {
   applyResearchEffects(techId) {
     const tech = this.technologies[techId];
     if (!tech || !tech.effects) return;
-    
+
     // Handle different effect types
     Object.entries(tech.effects).forEach(([effectType, effect]) => {
       switch (effectType) {
         case 'productionMultiplier':
           // Handled by the resource system when calculating production
           break;
-          
+
         case 'buildingEfficiency':
           // Will be applied when buildings check for efficiency
           break;
-          
+
         case 'storageCap':
           // Increase storage caps for all resources
           Object.keys(this.resourceSystem.resourceCaps).forEach(resource => {
             this.resourceSystem.increaseResourceCap(
-              resource, 
+              resource,
               this.resourceSystem.resourceCaps[resource] * (effect.multiplier - 1)
             );
           });
           break;
-          
+
         case 'resourceConsumption':
           // Will be applied when resources are consumed
           break;
-          
+
         case 'productionSpeed':
           // Will be applied to building production intervals
           break;
@@ -271,14 +272,14 @@ export default class ResearchSystem {
    */
   getEffectValue(effectType, target) {
     let result = 1.0; // Default multiplier (no effect)
-    
+
     // Check all completed research for matching effects
     this.completedResearch.forEach(techId => {
       const tech = this.technologies[techId];
       if (!tech || !tech.effects || !tech.effects[effectType]) return;
-      
+
       const effect = tech.effects[effectType];
-      
+
       // Check if this effect applies to our target
       if (
         (effect.resource && effect.resource === target) ||
@@ -289,7 +290,7 @@ export default class ResearchSystem {
         result *= effect.value || effect.multiplier || 1.0;
       }
     });
-    
+
     return result;
   }
 
@@ -300,10 +301,10 @@ export default class ResearchSystem {
   getAvailableTechnologies() {
     return Object.keys(this.technologies).filter(techId => {
       const tech = this.technologies[techId];
-      
+
       // Skip if already researched
       if (this.completedResearch.has(techId)) return false;
-      
+
       // Check if all requirements are met
       return tech.requirements.every(req => this.completedResearch.has(req));
     });
@@ -317,7 +318,7 @@ export default class ResearchSystem {
     if (!this.activeResearch) {
       return { active: false };
     }
-    
+
     const tech = this.technologies[this.activeResearch];
     return {
       active: true,

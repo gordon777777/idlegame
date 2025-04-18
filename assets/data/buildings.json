@@ -1,0 +1,262 @@
+{
+  "magic_forge": {
+    "name": "Magic Forge",
+    "type": "production",
+    "sprite": "magic_forge",
+    "recipe": {
+      "input": { "magic_ore": 2 },
+      "output": { "arcane_essence": 1 }
+    },
+    "productionInterval": 3000,
+    "cost": { "magic_ore": 20, "enchanted_wood": 10 },
+    "description": "將原始魔法礦石轉化為奧術精華。"
+  },
+  "wood_enchanter": {
+    "name": "Wood Enchanter",
+    "type": "production",
+    "sprite": "wood_enchanter",
+    "recipe": {
+      "input": { "enchanted_wood": 2 },
+      "output": { "mystic_planks": 1 }
+    },
+    "productionInterval": 4000,
+    "cost": { "enchanted_wood": 25, "arcane_crystal": 5 },
+    "description": "將附魔木材加工成神秘木板。",
+    "workerRequirement": { "count": 10, "type": "worker" },
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "徒手工作",
+        "description": "工人徒手加工木材，正常产出。",
+        "timeModifier": 1.0,
+        "enableByproducts": false,
+        "workerRequirement": { "count": 10, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用工具加工木材，提高产出但需要额外资源。",
+        "timeModifier": 0.6,
+        "inputModifiers": { "enchanted_wood": 1.0, "magic_ore": 1 },
+        "outputModifiers": { "mystic_planks": 2.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ]
+  },
+  "crystal_refiner": {
+    "name": "Crystal Refiner",
+    "type": "production",
+    "sprite": "crystal_refiner",
+    "recipe": {
+      "input": { "arcane_crystal": 2 },
+      "output": { "refined_crystal": 1 }
+    },
+    "productionInterval": 5000,
+    "cost": { "arcane_crystal": 25, "magic_ore": 15 },
+    "description": "將原始奧術水晶精煉成高純度水晶。"
+  },
+  "potion_brewery": {
+    "name": "Potion Brewery",
+    "type": "production",
+    "sprite": "potion_brewery",
+    "recipe": {
+      "input": { "arcane_essence": 1, "mana": 2 },
+      "output": { "magical_potion": 1 }
+    },
+    "productionInterval": 8000,
+    "cost": { "arcane_essence": 15, "refined_crystal": 10 },
+    "description": "釀造魔法藥水，用於高級魔法研究。"
+  },
+  "artifact_workshop": {
+    "name": "Artifact Workshop",
+    "type": "production",
+    "sprite": "artifact_workshop",
+    "recipe": {
+      "input": { "mystic_planks": 2, "refined_crystal": 1 },
+      "output": { "enchanted_artifact": 1 }
+    },
+    "productionInterval": 10000,
+    "cost": { "mystic_planks": 20, "refined_crystal": 15 },
+    "description": "製作附魔神器，用於高級魔法研究。"
+  },
+  "arcane_workshop": {
+    "name": "Arcane Workshop",
+    "type": "advanced",
+    "sprite": "arcane_workshop",
+    "recipe": {
+      "input": { "enchanted_artifact": 1, "magical_potion": 1 },
+      "output": { "magical_construct": 1 }
+    },
+    "productionInterval": 15000,
+    "cost": { "enchanted_artifact": 10, "magical_potion": 15, "refined_crystal": 20 },
+    "description": "製作魔法構造體，用於自動化魔法操作。"
+  },
+  "magic_mine": {
+    "name": "Magic Mine",
+    "type": "collector",
+    "sprite": "magic_mine",
+    "recipe": {
+      "input": {},
+      "output": { "magic_ore": 1 }
+    },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "不生产副产品，专注于主要产出。",
+        "resources": {}
+      },
+      {
+        "id": "arcane_crystal",
+        "name": "奥术水晶",
+        "description": "在开采过程中有小概率发现奥术水晶。",
+        "resources": { "arcane_crystal": 0.2 }
+      },
+      {
+        "id": "stone",
+        "name": "石头",
+        "description": "开采过程中产生大量的普通石头。",
+        "resources": { "stone": 3 }
+      }
+    ],
+    "productionInterval": 2000,
+    "cost": { "magic_ore": 10 },
+    "description": "開採原始魔法礦石。"
+  },
+  "enchanted_forest": {
+    "name": "Enchanted Forest",
+    "type": "collector",
+    "sprite": "enchanted_forest",
+    "recipe": {
+      "input": {},
+      "output": { "enchanted_wood": 1 }
+    },
+    "productionInterval": 2000,
+    "cost": { "magic_ore": 15 },
+    "description": "種植並收穫附魔木材。"
+  },
+  "crystal_mine": {
+    "name": "Crystal Mine",
+    "type": "collector",
+    "sprite": "crystal_mine",
+    "recipe": {
+      "input": {},
+      "output": { "arcane_crystal": 1 }
+    },
+    "productionInterval": 3000,
+    "cost": { "magic_ore": 10, "enchanted_wood": 10 },
+    "description": "從深層地下開採奧術水晶。"
+  },
+  "mana_well": {
+    "name": "Mana Well",
+    "type": "collector",
+    "sprite": "mana_well",
+    "recipe": {
+      "input": {},
+      "output": { "mana": 1 }
+    },
+    "productionInterval": 1500,
+    "cost": { "magic_ore": 5, "arcane_crystal": 5 },
+    "description": "從地下抽取魔力能量。"
+  },
+  "wizard_tower": {
+    "name": "Wizard Tower",
+    "type": "special",
+    "sprite": "wizard_tower",
+    "recipe": {
+      "input": { "mana": 2 },
+      "output": { "research_point": 1 }
+    },
+    "productionInterval": 10000,
+    "cost": { "arcane_essence": 30, "refined_crystal": 20, "mystic_planks": 25 },
+    "description": "產生研究點數，用於解鎖新技術。"
+  },
+  "arcane_library": {
+    "name": "Arcane Library",
+    "type": "special",
+    "sprite": "arcane_library",
+    "recipe": {
+      "input": { "research_point": 1 },
+      "output": { "knowledge": 1 }
+    },
+    "productionInterval": 15000,
+    "cost": { "mystic_planks": 40, "enchanted_artifact": 5 },
+    "description": "將研究點數轉化為知識，提高所有建築效率。"
+  },
+  "mana_fountain": {
+    "name": "Mana Fountain",
+    "type": "special",
+    "sprite": "mana_fountain",
+    "recipe": {
+      "input": { "arcane_essence": 1, "refined_crystal": 1 },
+      "output": { "mana": 5 }
+    },
+    "productionInterval": 6000,
+    "cost": { "arcane_essence": 25, "refined_crystal": 25 },
+    "description": "將奧術精華和精煉水晶轉化為大量魔力。"
+  },
+  "magic_academy": {
+    "name": "Magic Academy",
+    "type": "advanced",
+    "sprite": "magic_academy",
+    "recipe": {
+      "input": { "knowledge": 1, "mana": 5 },
+      "output": { "wizard": 1 }
+    },
+    "productionInterval": 30000,
+    "cost": { "knowledge": 10, "magical_potion": 20, "enchanted_artifact": 15 },
+    "description": "訓練法師，提高城市的魔法產出。"
+  },
+  "research_lab": {
+    "name": "Research Lab",
+    "type": "advanced",
+    "sprite": "research_lab",
+    "recipe": {
+      "input": { "knowledge": 2, "magical_potion": 1 },
+      "output": { "research_point": 5 }
+    },
+    "productionInterval": 20000,
+    "cost": { "knowledge": 15, "magical_potion": 25, "refined_crystal": 30 },
+    "description": "進行高級魔法研究，產生大量研究點數。"
+  },
+  "storage_vault": {
+    "name": "Storage Vault",
+    "type": "utility",
+    "sprite": "storage_vault",
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "mystic_planks": 30, "refined_crystal": 20, "arcane_essence": 15 },
+    "description": "增加資源存儲上限，防止資源浪費。"
+  },
+  "housing_district": {
+    "name": "Housing District",
+    "type": "housing",
+    "sprite": "housing_district",
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "enchanted_wood": 20, "magic_ore": 10 },
+    "housingCapacity": 10,
+    "description": "為普通居民提供住所，增加人口上限。"
+  },
+  "wizard_quarters": {
+    "name": "Wizard Quarters",
+    "type": "housing",
+    "sprite": "wizard_quarters",
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "mystic_planks": 30, "refined_crystal": 15, "magical_potion": 5 },
+    "housingCapacity": 5,
+    "specialHousing": "wizard",
+    "description": "為法師提供特別的住所，提高法師的效率。"
+  }
+}

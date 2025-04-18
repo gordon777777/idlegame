@@ -2,37 +2,46 @@
  * System for managing resources and production chains
  */
 class ResourceSystem {
-  constructor() {
-    // Define all resources with their initial values and production rates
-    this.resources = {
-      // Basic resources (tier 1)
-      magic_ore: { value: 200, production: 0, tier: 1, displayName: '魔法礦石' },
-      enchanted_wood: { value: 200, production: 0, tier: 1, displayName: '附魔木材' },
-      arcane_crystal: { value: 100, production: 0, tier: 1, displayName: '奧術水晶' },
-      mana: { value: 100, production: 0, tier: 1, displayName: '魔力' },
-
-      // Processed resources (tier 2)
-      arcane_essence: { value: 50, production: 0, tier: 2, displayName: '奧術精華' },
-      mystic_planks: { value: 50, production: 0, tier: 2, displayName: '神秘木板' },
-      refined_crystal: { value: 0, production: 0, tier: 2, displayName: '精煉水晶' },
-      research_point: { value: 20, production: 0, tier: 2, displayName: '研究點數' },
-
-      // Advanced resources (tier 3)
-      magical_potion: { value: 20, production: 0, tier: 3, displayName: '魔法藥水' },
-      enchanted_artifact: { value: 10, production: 0, tier: 3, displayName: '附魔神器' },
-      knowledge: { value: 30, production: 0, tier: 3, displayName: '知識' },
-
-      // End products (tier 4)
-      magical_construct: { value: 5, production: 0, tier: 4, displayName: '魔法構造體' },
-      wizard: { value: 0, production: 0, tier: 4, displayName: '法師' }
-    };
-
+  /**
+   * @param {Object} resourceSettings - Optional resource settings data from DataManager
+   */
+  constructor(resourceSettings = null) {
     // Map to store production chains
     this.productionChains = new Map();
 
-    // Resource caps
-    this.resourceCaps = {};
-    this.initializeResourceCaps();
+    if (resourceSettings) {
+      // Use provided resource settings
+      this.resources = resourceSettings.resources;
+      this.resourceCaps = resourceSettings.resourceCaps;
+    } else {
+      // Define all resources with their initial values and production rates
+      this.resources = {
+        // Basic resources (tier 1)
+        magic_ore: { value: 200, production: 0, tier: 1, displayName: '魔法礦石' },
+        enchanted_wood: { value: 200, production: 0, tier: 1, displayName: '附魔木材' },
+        arcane_crystal: { value: 100, production: 0, tier: 1, displayName: '奧術水晶' },
+        mana: { value: 100, production: 0, tier: 1, displayName: '魔力' },
+
+        // Processed resources (tier 2)
+        arcane_essence: { value: 50, production: 0, tier: 2, displayName: '奧術精華' },
+        mystic_planks: { value: 50, production: 0, tier: 2, displayName: '神秘木板' },
+        refined_crystal: { value: 0, production: 0, tier: 2, displayName: '精煉水晶' },
+        research_point: { value: 20, production: 0, tier: 2, displayName: '研究點數' },
+
+        // Advanced resources (tier 3)
+        magical_potion: { value: 20, production: 0, tier: 3, displayName: '魔法藥水' },
+        enchanted_artifact: { value: 10, production: 0, tier: 3, displayName: '附魔神器' },
+        knowledge: { value: 30, production: 0, tier: 3, displayName: '知識' },
+
+        // End products (tier 4)
+        magical_construct: { value: 5, production: 0, tier: 4, displayName: '魔法構造體' },
+        wizard: { value: 0, production: 0, tier: 4, displayName: '法師' }
+      };
+
+      // Resource caps
+      this.resourceCaps = {};
+      this.initializeResourceCaps();
+    }
 
     // Resource consumption stats
     this.consumptionStats = {};

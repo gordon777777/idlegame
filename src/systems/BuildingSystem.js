@@ -8,13 +8,14 @@ export default class BuildingSystem {
    * @param {Phaser.Scene} scene - The scene this system belongs to
    * @param {ResourceSystem} resourceSystem - Reference to the resource system
    * @param {PopulationSystem} populationSystem - Reference to the population system
+   * @param {Object} buildingTypes - Optional building types data from DataManager
    */
-  constructor(scene, resourceSystem, populationSystem = null) {
+  constructor(scene, resourceSystem, populationSystem = null, buildingTypes = null) {
     this.scene = scene;
     this.resourceSystem = resourceSystem;
     this.populationSystem = populationSystem;
     this.buildings = new Map();
-    this.buildingTypes = this.defineBuildingTypes();
+    this.buildingTypes = buildingTypes || this.defineBuildingTypes();
     this.selectedBuilding = null;
     this.placementMode = false;
     this.placementGhost = null;

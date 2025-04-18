@@ -1,0 +1,32 @@
+{
+  "resources": {
+    "magic_ore": { "value": 200, "production": 0, "tier": 1, "displayName": "魔法礦石" },
+    "enchanted_wood": { "value": 200, "production": 0, "tier": 1, "displayName": "附魔木材" },
+    "arcane_crystal": { "value": 100, "production": 0, "tier": 1, "displayName": "奧術水晶" },
+    "mana": { "value": 100, "production": 0, "tier": 1, "displayName": "魔力" },
+    "arcane_essence": { "value": 50, "production": 0, "tier": 2, "displayName": "奧術精華" },
+    "mystic_planks": { "value": 50, "production": 0, "tier": 2, "displayName": "神秘木板" },
+    "refined_crystal": { "value": 0, "production": 0, "tier": 2, "displayName": "精煉水晶" },
+    "research_point": { "value": 20, "production": 0, "tier": 2, "displayName": "研究點數" },
+    "magical_potion": { "value": 20, "production": 0, "tier": 3, "displayName": "魔法藥水" },
+    "enchanted_artifact": { "value": 10, "production": 0, "tier": 3, "displayName": "附魔神器" },
+    "knowledge": { "value": 30, "production": 0, "tier": 3, "displayName": "知識" },
+    "magical_construct": { "value": 5, "production": 0, "tier": 4, "displayName": "魔法構造體" },
+    "wizard": { "value": 0, "production": 0, "tier": 4, "displayName": "法師" }
+  },
+  "resourceCaps": {
+    "magic_ore": 1000,
+    "enchanted_wood": 1000,
+    "arcane_crystal": 1000,
+    "mana": 1000,
+    "arcane_essence": 500,
+    "mystic_planks": 500,
+    "refined_crystal": 500,
+    "research_point": 500,
+    "magical_potion": 200,
+    "enchanted_artifact": 200,
+    "knowledge": 200,
+    "magical_construct": 100,
+    "wizard": 100
+  }
+}

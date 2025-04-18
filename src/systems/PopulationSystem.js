@@ -213,6 +213,17 @@ export default class PopulationSystem {
         displayName: '老闆',
         description: '高層管理者，能夠提高整個城市的生產效率',
         productionMultiplier: 3.0,
+        requiredResources: { gold: 100, knowledge: 15, magical_potion: 5 },
+        socialClass: 'upper',
+        experience: 0,
+        demotionChance: 0.0005
+      },
+      wizard: {
+        count: 0,
+        assigned: 0,
+        displayName: '法師',
+        description: '法師',
+        productionMultiplier: 3.0,
         requiredResources: { enchanted_artifact: 1, knowledge: 15, magical_potion: 5 },
         socialClass: 'upper',
         experience: 0,
@@ -1087,14 +1098,14 @@ export default class PopulationSystem {
 
   /**
    * 吸引特定階層的移民
-   * @param {string} targetClass - 目標階層 ('middle' 或 'upper')
+   * @param {string} targetClass - 目標階層 ('lower', 'middle' 或 'upper')
    * @param {number} count - 移民數量
    * @param {number} gold - 玩家當前擁有的金幣
    * @returns {Object} - 包含成功与否、消耗金幣和剩餘金幣的結果
    */
   attractImmigrants(targetClass, count, gold) {
     // 檢查目標階層是否有效
-    if (targetClass !== 'middle' && targetClass !== 'upper') {
+    if (targetClass !== 'lower' && targetClass !== 'middle' && targetClass !== 'upper') {
       return { success: false, message: '無效的階層' };
     }
 
@@ -1105,8 +1116,16 @@ export default class PopulationSystem {
     }
 
     // 計算所需金幣
-    // 中層移民每人需要 50 金幣，上層移民每人需要 200 金幣
-    const goldPerImmigrant = targetClass === 'middle' ? 50 : 200;
+    // 下層移民每人需要 20 金幣，中層移民每人需要 50 金幣，上層移民每人需要 200 金幣
+    let goldPerImmigrant;
+    if (targetClass === 'lower') {
+      goldPerImmigrant = 20;
+    } else if (targetClass === 'middle') {
+      goldPerImmigrant = 50;
+    } else { // upper
+      goldPerImmigrant = 200;
+    }
+
     const totalCost = count * goldPerImmigrant;
 
     // 檢查金幣是否足夠

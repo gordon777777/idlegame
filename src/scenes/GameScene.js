@@ -5,12 +5,15 @@ import BuildingSystem from '../systems/BuildingSystem';
 import PopulationSystem from '../systems/PopulationSystem';
 import MarketSystem from '../systems/MarketSystem';
 import TimeSystem from '../systems/TimeSystem';
+import ResearchSystem from '../systems/ResearchSystem';
+import DataManager from '../systems/DataManager';
 import DebugUtils from '../utils/DebugUtils';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
-    this.resources = new ResourceSystem();
+    this.dataManager = null; // Will be initialized in preload()
+    this.resources = null; // Will be initialized in create()
     this.populationSystem = new PopulationSystem();
     this.timeSystem = new TimeSystem();
     this.uiManager = new UIManager(this);
@@ -19,6 +22,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    // Initialize DataManager
+    this.dataManager = new DataManager(this);
+
+    // Preload JSON data
+    this.dataManager.preloadData();
+
     this.load.image('terrain', 'assets/Terrain.png');
 
     // Add error handling for asset loading
@@ -56,6 +65,31 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     console.log('GameScene create method started');
+
+    // Load data from JSON files
+    if (this.dataManager.loadData()) {
+      console.log('JSON data loaded successfully');
+
+      // Initialize systems with JSON data
+      this.resources = new ResourceSystem(this.dataManager.getResourceSettings());
+      this.buildingSystem = new BuildingSystem(
+        this,
+        this.resources,
+        this.populationSystem,
+        this.dataManager.getBuildingTypes()
+      );
+
+      // Initialize research system with JSON data
+      this.researchSystem = new ResearchSystem(
+        this.resources,
+        this.dataManager.getTechnologies()
+      );
+    } else {
+      console.warn('Failed to load JSON data, using default values');
+      this.resources = new ResourceSystem();
+      this.buildingSystem = new BuildingSystem(this, this.resources, this.populationSystem);
+      this.researchSystem = new ResearchSystem(this.resources);
+    }
 
     // 初始化市場系統
     this.marketSystem = new MarketSystem();
@@ -100,8 +134,8 @@ export default class GameScene extends Phaser.Scene {
       this.showTaxNotification(taxAmount, revenue);
     });
 
-    // 初始化建築系統
-    this.buildingSystem = new BuildingSystem(this, this.resources, this.populationSystem);
+    // 創建調試按鈕
+    this.createDebugButton();
 
     // 初始化地图和基础建築
     this.createTerrain();
@@ -127,6 +161,18 @@ export default class GameScene extends Phaser.Scene {
       position: { x: this.scale.width - 220, y: 20 },
       buildings: buildingTypes
     });
+
+    // 創建研究按鈕
+    const researchButton = this.add.rectangle(this.scale.width - 300, 20, 60, 30, 0x3a6a8c)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.uiManager.toggleResearchPanel();
+      });
+
+    const researchText = this.add.text(this.scale.width - 300, 20, '研究', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
 
     // 更新資源顯示
     this.uiManager.updateResources(this.resources.resources);
@@ -200,6 +246,11 @@ export default class GameScene extends Phaser.Scene {
       }
 
       this.populationSystem.update(time, delta);
+    }
+
+    // 更新研究系統
+    if (this.researchSystem) {
+      this.researchSystem.update(delta);
     }
 
     // 更新時間系統
@@ -453,5 +504,46 @@ export default class GameScene extends Phaser.Scene {
       fontSize: '14px',
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5);
+
+    // 創建匯出數據按鈕
+    const exportButton = this.add.rectangle(this.scale.width - 200, this.scale.height - 30, 80, 30, 0x006699)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.exportGameData();
+      });
+
+    const exportText = this.add.text(this.scale.width - 200, this.scale.height - 30, 'EXPORT', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+  }
+
+  /**
+   * 匯出遊戲數據到JSON文件
+   */
+  exportGameData() {
+    if (this.dataManager) {
+      this.dataManager.exportGameData(
+        this.buildingSystem,
+        this.researchSystem,
+        this.resources
+      );
+      console.log('Game data exported to JSON files');
+
+      // 顯示匯出成功通知
+      const notification = this.add.text(this.scale.width / 2, 100, '遊戲數據已匯出到JSON文件', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        backgroundColor: '#006699',
+        padding: { x: 10, y: 5 }
+      }).setOrigin(0.5, 0.5).setDepth(100);
+
+      // 3秒後自動消失
+      this.time.delayedCall(3000, () => {
+        notification.destroy();
+      });
+    } else {
+      console.error('DataManager not initialized');
+    }
   }
 }
