@@ -225,7 +225,7 @@ export default class MarketResourcePanel extends BasePanel {
     }).setOrigin(0.5, 0.5);
     
     // 创建资源价格
-    const priceText = this.scene.add.text(0, 0, `价格: ${price.toFixed(2)}`, {
+    const priceText = this.scene.add.text(0, 0, `价格: ${price.currentPrice.toFixed(2)}`, {
       fontSize: '10px',
       fill: '#ffdd00'
     }).setOrigin(0.5, 0.5);
@@ -450,7 +450,7 @@ export default class MarketResourcePanel extends BasePanel {
       // 显示预览信息
       this.previewText.setText(
         `购买 ${this.selectedAmount} 个 ${resourceData.displayName || this.selectedResource}\n` +
-        `单价: ${actualPrice.toFixed(2)} (原价: ${priceInfo.toFixed(2)})\n` +
+        `单价: ${actualPrice.toFixed(2)} (原价: ${priceInfo.currentPrice.toFixed(2)})\n` +
         `预计成本: ${totalCost} 金币`
       );
     }

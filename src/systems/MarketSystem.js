@@ -433,13 +433,13 @@ export default class MarketSystem {
       };
     }
 
-    // 獲取當前價格
-    const currentPrice = this.getResourcePrice(resourceType);
+    // 使用calculateSellPrice方法計算單件價格
+    const actualPrice = this.calculateSellPrice(resourceType, amount);
 
-    // 計算實際交易價格 (根據數量調整價格)
-    // 大量出售會降低價格
-    const priceAdjustment = Math.max(0.7, 1 - (amount / 1000) * 0.3); // 最多降低30%
-    const actualPrice = Math.floor(currentPrice * priceAdjustment);
+    // 如果價格計算失敗
+    if (actualPrice <= 0) {
+      return { success: false, profit: 0, message: '無法計算出售價格' };
+    }
 
     // 計算利潤
     const profit = amount * actualPrice;
@@ -498,13 +498,13 @@ export default class MarketSystem {
       };
     }
 
-    // 獲取當前價格
-    const currentPrice = this.getResourcePrice(resourceType);
+    // 使用calculateBuyPrice方法計算單件價格
+    const actualPrice = this.calculateBuyPrice(resourceType, amount);
 
-    // 計算實際交易價格 (根據數量調整價格)
-    // 大量購買會提高價格
-    const priceAdjustment = Math.min(1.3, 1 + (amount / 1000) * 0.3); // 最多提高30%
-    const actualPrice = Math.ceil(currentPrice * priceAdjustment);
+    // 如果價格計算失敗
+    if (actualPrice <= 0) {
+      return { success: false, cost: 0, message: '無法計算購買價格' };
+    }
 
     // 計算總成本
     const totalCost = amount * actualPrice;
@@ -655,5 +655,70 @@ export default class MarketSystem {
       currentMonth: currentMonth,
       daysUntilNextMonth: daysUntilNextMonth
     };
+  }
+
+  /**
+   * 計算購買資源的總價格
+   * @param {string} resourceType - 資源類型
+   * @param {number} amount - 購買數量
+   * @returns {number} - 單件價格
+   */
+  calculateBuyPrice(resourceType, amount) {
+    // 檢查市場是否有這種資源
+    if (!this.prices[resourceType]) {
+      return 0;
+    }
+
+    // 檢查市場庫存是否足夠
+    const marketInventoryInfo = this.marketInventory[resourceType];
+    if (!marketInventoryInfo || marketInventoryInfo.amount < amount) {
+      return 0;
+    }
+
+    // 獲取當前價格
+    const currentPrice = this.getResourcePrice(resourceType);
+
+    // 計算實際交易價格 (根據數量調整價格)
+    // 大量購買會提高價格
+    const priceAdjustment = Math.min(1.3, 1 + (amount / 1000) * 0.3); // 最多提高30%
+    const actualPrice = Math.ceil(currentPrice * priceAdjustment);
+
+
+
+    return actualPrice;
+  }
+
+  /**
+   * 計算出售資源的單件價格
+   * @param {string} resourceType - 資源類型
+   * @param {number} amount - 出售數量
+   * @returns {number} - 單件價格
+   */
+  calculateSellPrice(resourceType, amount) {
+    // 檢查市場是否接受這種資源
+    if (!this.prices[resourceType]) {
+      return 0;
+    }
+
+    // 檢查市場庫存是否有足夠空間
+    const marketInventoryInfo = this.marketInventory[resourceType];
+    if (!marketInventoryInfo) {
+      return 0;
+    }
+
+    const remainingCapacity = marketInventoryInfo.maxCapacity - marketInventoryInfo.amount;
+    if (remainingCapacity < amount) {
+      return 0;
+    }
+
+    // 獲取當前價格
+    const currentPrice = this.getResourcePrice(resourceType);
+
+    // 計算實際交易價格 (根據數量調整價格)
+    // 大量出售會降低價格
+    const priceAdjustment = Math.max(0.7, 1 - (amount / 1000) * 0.3); // 最多降低30%
+    const actualPrice = Math.floor(currentPrice * priceAdjustment);
+
+    return actualPrice;
   }
 }
