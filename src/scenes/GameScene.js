@@ -82,13 +82,20 @@ export default class GameScene extends Phaser.Scene {
       // Initialize research system with JSON data
       this.researchSystem = new ResearchSystem(
         this.resources,
-        this.dataManager.getTechnologies()
+        this.dataManager.getTechnologies(),
+        this, // 传入 GameScene 作为 gameState
+        this.buildingSystem
       );
     } else {
       console.warn('Failed to load JSON data, using default values');
       this.resources = new ResourceSystem();
       this.buildingSystem = new BuildingSystem(this, this.resources, this.populationSystem);
-      this.researchSystem = new ResearchSystem(this.resources);
+      this.researchSystem = new ResearchSystem(
+        this.resources,
+        null,
+        this, // 传入 GameScene 作为 gameState
+        this.buildingSystem
+      );
     }
 
     // 初始化市場系統

@@ -17,7 +17,7 @@ export default class BuildingInfoPanel extends BasePanel {
     // 调用父类构造函数
     super(scene, config.x || 1050, config.y || 500, {
       width: 400,
-      height: 300,
+      height: 400, // 增加面板高度以适应更多的工人信息
       title: buildingInfo.name || '建筑信息',
       onClose: config.onClose || (() => {
         // 如果没有提供onClose回调，则使用默认行为
@@ -56,18 +56,67 @@ export default class BuildingInfoPanel extends BasePanel {
 
     // 添加工人信息
     let workerText = '';
-    if (this.buildingInfo.workerRequired) {
-      const currentWorkers = this.buildingInfo.currentWorkers || 0;
-      const requiredWorkers = this.buildingInfo.workerRequired || 0;
-      const workerType = this.buildingInfo.workerType || 'worker';
-      workerText = `工人: ${currentWorkers}/${requiredWorkers} ${this.getWorkerDisplayName(workerType)}`;
+
+    // 获取建筑的工人需求
+    const workerRequirement = this.buildingInfo.workerRequirement;
+
+    // 获取已分配的工人
+    let assignedWorkers = 0;
+    let assignedWorkerDetails = '';
+
+    // 从人口系统中获取已分配的工人信息
+    if (this.scene.populationSystem && this.buildingId) {
+      const assignment = this.scene.populationSystem.workerAssignments.get(this.buildingId);
+      if (assignment) {
+        // 计算总分配数
+        for (const [workerType, count] of Object.entries(assignment)) {
+          assignedWorkers += count;
+          // 添加工人类型详情
+          const displayName = this.getWorkerDisplayName(workerType);
+          assignedWorkerDetails += `\n  ${displayName}: ${count}`;
+        }
+      }
+    }
+
+    if (workerRequirement) {
+      // 如果有工人需求
+      let requiredCount = 0;
+      let requiredWorkerDetails = '';
+
+      // 如果是简单的工人需求对象
+      if (workerRequirement.count !== undefined && workerRequirement.type !== undefined) {
+        requiredCount = workerRequirement.count;
+        const displayName = this.getWorkerDisplayName(workerRequirement.type);
+        requiredWorkerDetails = `${displayName}`;
+      }
+      // 如果是复杂的工人需求对象
+      else if (workerRequirement.workers) {
+        for (const [workerType, count] of Object.entries(workerRequirement.workers)) {
+          requiredCount += count;
+          const displayName = this.getWorkerDisplayName(workerType);
+          requiredWorkerDetails += `\n  ${displayName}: ${count}`;
+        }
+      }
+
+      // 设置工人文本
+      workerText = `工人: ${assignedWorkers}/${requiredCount}`;
+
+      // 添加详细信息
+      if (requiredWorkerDetails) {
+        workerText += `\n需要:${requiredWorkerDetails}`;
+      }
+
+      if (assignedWorkerDetails) {
+        workerText += `\n已分配:${assignedWorkerDetails}`;
+      }
     } else {
       workerText = '无需工人';
     }
 
     const workerInfoText = this.scene.add.text(0, containY - this.height/2 + 110, workerText, {
       fontSize: '14px',
-      fill: '#e0e0e0'
+      fill: '#e0e0e0',
+      align: 'center'
     }).setOrigin(0.5, 0);
 
     // 添加配方信息

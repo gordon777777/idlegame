@@ -21,7 +21,14 @@ export default class ImmigrantsPanel extends BasePanel {
       width: 400,
       height: 300,
       title: `招募${config.className ? ImmigrantsPanel.getClassDisplayName(config.className) : ''}移民`,
-      onClose: () => this.hide()
+      onClose: () => {
+        // 隐藏面板
+        this.hide();
+        // 从 UIManager 中移除引用
+        if (this.scene.uiManager && this.scene.uiManager.immigrantsPanel === this) {
+          this.scene.uiManager.immigrantsPanel = null;
+        }
+      }
     });
 
     // 保存配置
@@ -42,11 +49,18 @@ export default class ImmigrantsPanel extends BasePanel {
    * @returns {ImmigrantsPanel} - 创建的面板实例
    */
   static showPanel(scene, targetClass) {
-    // 如果已存在移民面板，先移除
+    // 如果已存在移民面板
     if (scene.uiManager.immigrantsPanel) {
-      scene.uiManager.immigrantsPanel.destroy();
-      scene.uiManager.immigrantsPanel = null;
-      return null;
+      // 如果面板可见，则隐藏并返回空
+      if (scene.uiManager.immigrantsPanel.container.visible) {
+        scene.uiManager.immigrantsPanel.hide();
+        scene.uiManager.immigrantsPanel = null;
+        return null;
+      } else {
+        // 如果面板不可见，先销毁
+        scene.uiManager.immigrantsPanel.destroy();
+        scene.uiManager.immigrantsPanel = null;
+      }
     }
 
     // 创建新的移民面板
@@ -200,6 +214,16 @@ export default class ImmigrantsPanel extends BasePanel {
 
       // 更新预览
       this.updatePreview();
+
+      // 成功招募后，延迟关闭面板
+      setTimeout(() => {
+        // 隐藏面板
+        this.hide();
+        // 从 UIManager 中移除引用
+        if (this.scene.uiManager && this.scene.uiManager.immigrantsPanel === this) {
+          this.scene.uiManager.immigrantsPanel = null;
+        }
+      }, 1500); // 1.5秒后关闭，给玩家时间查看结果
     } else {
       console.log('无法招募移民，可能金币不足或住房容量不足');
     }

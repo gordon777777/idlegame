@@ -258,5 +258,19 @@
     "housingCapacity": 5,
     "specialHousing": "wizard",
     "description": "為法師提供特別的住所，提高法師的效率。"
+  },
+  "basic_house": {
+    "name": "平房",
+    "type": "housing",
+    "sprite": "basic_house",
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "enchanted_wood": 10, "stone": 15 },
+    "housingCapacity": 5,
+    "description": "簡單的平房，提供基本居住空間。性價比高但佔地較大。"
   }
 }
+

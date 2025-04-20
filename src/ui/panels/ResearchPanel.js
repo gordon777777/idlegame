@@ -82,13 +82,57 @@ export default class ResearchPanel extends BasePanel {
 
     // 添加研究进度文本
     let progressText;
-    if (researchProgress) {
-      const { technology, progress } = researchProgress;
-      progressText = this.scene.add.text(0, -200, `正在研究: ${technology.name} (${Math.floor(progress * 100)}%)`, {
+    let progressDetails = [];
+
+    if (researchProgress.active) {
+      const { technology, totalProgress, successRate, attempts } = researchProgress;
+
+      // 主进度文本
+      progressText = this.scene.add.text(0, -220, `正在研究: ${technology.name} (${Math.floor(totalProgress * 100)}%)`, {
         fontSize: '16px',
         fill: '#ffffff',
         fontStyle: 'bold'
       }).setOrigin(0.5, 0);
+
+      // 成功率文本
+      const successRateText = this.scene.add.text(0, -200, `成功率: ${Math.floor(successRate * 100)}% (尝试次数: ${attempts})`, {
+        fontSize: '12px',
+        fill: '#aaffaa'
+      }).setOrigin(0.5, 0);
+      progressDetails.push(successRateText);
+
+      // 研究点数进度
+      if (researchProgress.researchPointsProgress.required > 0) {
+        const rpProgress = researchProgress.researchPointsProgress;
+        const rpText = this.scene.add.text(0, -185, `研究点数: ${Math.floor(rpProgress.current)}/${rpProgress.required} (${Math.floor(rpProgress.percent * 100)}%)`, {
+          fontSize: '12px',
+          fill: '#ccccff'
+        }).setOrigin(0.5, 0);
+        progressDetails.push(rpText);
+      }
+
+      // 时间进度
+      if (researchProgress.timeProgress.required > 0) {
+        const timeProgress = researchProgress.timeProgress;
+        const timeText = this.scene.add.text(0, -170, `时间: ${timeProgress.current.toFixed(1)}/${timeProgress.required} 天 (${Math.floor(timeProgress.percent * 100)}%)`, {
+          fontSize: '12px',
+          fill: '#ccccff'
+        }).setOrigin(0.5, 0);
+        progressDetails.push(timeText);
+      }
+
+      // 建筑工时进度
+      let yOffset = -155;
+      if (researchProgress.buildingWorkHoursProgress && Object.keys(researchProgress.buildingWorkHoursProgress).length > 0) {
+        Object.entries(researchProgress.buildingWorkHoursProgress).forEach(([buildingType, progress]) => {
+          const buildingText = this.scene.add.text(0, yOffset, `${buildingType} 工时: ${Math.floor(progress.current)}/${progress.required} 小时 (${Math.floor(progress.percent * 100)}%)`, {
+            fontSize: '12px',
+            fill: '#ccccff'
+          }).setOrigin(0.5, 0);
+          progressDetails.push(buildingText);
+          yOffset += 15;
+        });
+      }
     } else {
       progressText = this.scene.add.text(0, -200, '没有正在进行的研究', {
         fontSize: '16px',
@@ -115,25 +159,93 @@ export default class ResearchPanel extends BasePanel {
     let yPos = -120;
 
     availableTechnologies.forEach(tech => {
+      // 计算按钮颜色
+      let backgroundColor = 0x4a6a4a; // 默认颜色
+      if (tech.failed) {
+        backgroundColor = 0x8a3a3a; // 失败的研究显示红色
+      }
+
       // 创建研究按钮
       const researchBtn = new Button(this.scene, -200, yPos, tech.name, {
         width: 200,
         height: 30,
-        backgroundColor: 0x4a6a4a,
+        backgroundColor: backgroundColor,
         fontSize: '14px',
         textColor: '#ffffff',
         onClick: () => this.startResearch(tech.id)
       });
 
       // 创建研究描述
-      const description = this.scene.add.text(-90, yPos, tech.description || '', {
+      const description = this.scene.add.text(-90, yPos - 10, tech.description || '', {
         fontSize: '12px',
         fill: '#cccccc',
         wordWrap: { width: 200 }
       }).setOrigin(0, 0.5);
 
-      researchButtons.push(...researchBtn.getElements(), description);
-      yPos += 40;
+      // 收集所有需求文本
+      const requirementTexts = [];
+      let reqYOffset = 5;
+
+      // 研究点数需求
+      if (tech.requirements && tech.requirements.researchPoints) {
+        const rpText = this.scene.add.text(-90, yPos + reqYOffset, `研究点: ${tech.requirements.researchPoints}`, {
+          fontSize: '10px',
+          fill: '#aaaaaa'
+        }).setOrigin(0, 0.5);
+        requirementTexts.push(rpText);
+        reqYOffset += 12;
+      }
+
+      // 资源需求
+      if (tech.requirements && tech.requirements.resources) {
+        Object.entries(tech.requirements.resources).forEach(([resource, amount]) => {
+          const resourceText = this.scene.add.text(-90, yPos + reqYOffset, `${resource}: ${amount}`, {
+            fontSize: '10px',
+            fill: '#aaaaaa'
+          }).setOrigin(0, 0.5);
+          requirementTexts.push(resourceText);
+          reqYOffset += 12;
+        });
+      }
+
+      // 金币需求
+      if (tech.requirements && tech.requirements.gold) {
+        const goldText = this.scene.add.text(-90, yPos + reqYOffset, `金币: ${tech.requirements.gold}`, {
+          fontSize: '10px',
+          fill: '#aaaaaa'
+        }).setOrigin(0, 0.5);
+        requirementTexts.push(goldText);
+        reqYOffset += 12;
+      }
+
+      // 时间需求
+      if (tech.requirements && tech.requirements.time) {
+        const timeText = this.scene.add.text(-90, yPos + reqYOffset, `时间: ${tech.requirements.time} 天`, {
+          fontSize: '10px',
+          fill: '#aaaaaa'
+        }).setOrigin(0, 0.5);
+        requirementTexts.push(timeText);
+        reqYOffset += 12;
+      }
+
+      // 成功率
+      const successRateText = this.scene.add.text(0, yPos + reqYOffset, `成功率: ${Math.floor(tech.successRate * 100)}%`, {
+        fontSize: '10px',
+        fill: tech.failed ? '#ff8888' : '#88ff88'
+      }).setOrigin(0, 0.5);
+      requirementTexts.push(successRateText);
+
+      // 尝试次数
+      if (tech.attempts > 0) {
+        const attemptsText = this.scene.add.text(80, yPos + reqYOffset, `尝试: ${tech.attempts}`, {
+          fontSize: '10px',
+          fill: '#aaaaaa'
+        }).setOrigin(0, 0.5);
+        requirementTexts.push(attemptsText);
+      }
+
+      researchButtons.push(...researchBtn.getElements(), description, ...requirementTexts);
+      yPos += 80; // 增加间距以容纳更多信息
     });
 
     // 创建已完成研究文本
@@ -154,7 +266,7 @@ export default class ResearchPanel extends BasePanel {
     });
 
     // 添加元素到面板
-    this.add([progressText, availableTitle, completedTitle, ...researchButtons, ...completedResearchTexts]);
+    this.add([progressText, ...progressDetails, availableTitle, completedTitle, ...researchButtons, ...completedResearchTexts]);
   }
 
   /**
@@ -169,41 +281,27 @@ export default class ResearchPanel extends BasePanel {
     if (!researchSystem) return;
 
     // 开始研究
-    const success = researchSystem.startResearch(techId);
+    const result = researchSystem.startResearch(techId);
 
-    if (success) {
-      // 更新面板
-      this.update();
+    // 更新面板
+    this.update();
 
-      // 显示成功消息
-      const tech = researchSystem.technologies[techId];
-      const notification = this.scene.add.text(this.scene.scale.width / 2, 100, `开始研究: ${tech.name}`, {
-        fontSize: '18px',
-        fill: '#ffffff',
-        backgroundColor: '#3a8c3a',
-        padding: { x: 10, y: 5 }
-      }).setOrigin(0.5, 0.5).setDepth(100);
+    // 显示消息
+    const backgroundColor = result.success ? '#3a8c3a' : '#8c3a3a';
+    const notification = this.scene.add.text(this.scene.scale.width / 2, 100, result.message, {
+      fontSize: '18px',
+      fill: '#ffffff',
+      backgroundColor: backgroundColor,
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5, 0.5).setDepth(100);
 
-      // 2秒后自动消失
-      this.scene.time.delayedCall(2000, () => {
-        notification.destroy();
-      });
-    } else {
-      // 显示错误消息
-      const notification = this.scene.add.text(this.scene.scale.width / 2, 100, '无法开始研究', {
-        fontSize: '18px',
-        fill: '#ffffff',
-        backgroundColor: '#8c3a3a',
-        padding: { x: 10, y: 5 }
-      }).setOrigin(0.5, 0.5).setDepth(100);
+    // 3秒后自动消失
+    this.scene.time.delayedCall(3000, () => {
+      notification.destroy();
+    });
 
-      // 2秒后自动消失
-      this.scene.time.delayedCall(2000, () => {
-        notification.destroy();
-      });
-
-      console.log('无法开始研究，可能资源不足或已有研究正在进行');
-    }
+    // 记录日志
+    console.log(result.message);
   }
 
   /**

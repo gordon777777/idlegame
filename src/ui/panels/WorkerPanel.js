@@ -187,8 +187,18 @@ export default class WorkerPanel extends BasePanel {
       yPos += 25;
     }
 
+    // 添加吸引移民按钮
+    const immigrantBtn = new Button(this.scene, 0, 150, '吸引移民', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a6a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.showImmigrantsPanel()
+    });
+
     // 添加元素到容器
-    container.add([totalText, ...classTexts, ...workerTexts]);
+    container.add([totalText, ...classTexts, ...workerTexts, ...immigrantBtn.getElements()]);
   }
 
   /**
@@ -249,8 +259,18 @@ export default class WorkerPanel extends BasePanel {
       onClick: () => this.promoteClass('lower', 'middle')
     });
 
+    // 添加吸引移民按钮
+    const immigrantBtn = new Button(this.scene, 0, yPos + 40, '吸引移民', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a6a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.showImmigrantsPanel('lower')
+    });
+
     // 添加元素到容器
-    container.add([titleText, ...workerTexts, ...trainButtons, ...promoteBtn.getElements()]);
+    container.add([titleText, ...workerTexts, ...trainButtons, ...promoteBtn.getElements(), ...immigrantBtn.getElements()]);
   }
 
   /**
@@ -311,8 +331,18 @@ export default class WorkerPanel extends BasePanel {
       onClick: () => this.promoteClass('middle', 'upper')
     });
 
+    // 添加吸引移民按钮
+    const immigrantBtn = new Button(this.scene, 0, yPos + 40, '吸引移民', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a6a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.showImmigrantsPanel('middle')
+    });
+
     // 添加元素到容器
-    container.add([titleText, ...workerTexts, ...trainButtons, ...promoteBtn.getElements()]);
+    container.add([titleText, ...workerTexts, ...trainButtons, ...promoteBtn.getElements(), ...immigrantBtn.getElements()]);
   }
 
   /**
@@ -363,8 +393,18 @@ export default class WorkerPanel extends BasePanel {
       yPos += 40;
     });
 
+    // 添加吸引移民按钮
+    const immigrantBtn = new Button(this.scene, 0, yPos, '吸引移民', {
+      width: 120,
+      height: 30,
+      backgroundColor: 0x4a6a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.showImmigrantsPanel('upper')
+    });
+
     // 添加元素到容器
-    container.add([titleText, ...workerTexts, ...trainButtons]);
+    container.add([titleText, ...workerTexts, ...trainButtons, ...immigrantBtn.getElements()]);
   }
 
   /**
@@ -726,5 +766,19 @@ export default class WorkerPanel extends BasePanel {
     };
 
     return nameMap[workerType] || workerType;
+  }
+
+  /**
+   * 显示移民面板
+   * @param {string} targetClass - 目标阶层 ('lower', 'middle' 或 'upper')
+   */
+  showImmigrantsPanel(targetClass = 'lower') {
+    // 直接使用UIManager的方法显示移民面板
+    if (this.scene.uiManager) {
+      // 使用UIManager的方法
+      this.scene.uiManager.showAttractImmigrantsPanel(targetClass);
+    } else {
+      console.warn('无法显示移民面板，UIManager不存在');
+    }
   }
 }

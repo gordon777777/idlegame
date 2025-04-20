@@ -1,117 +1,252 @@
 {
   "improved_mining": {
-    "name": "Improved Mining",
-    "description": "Increases magic ore production by 20%",
-    "cost": 10,
-    "requirements": [],
+    "name": "改良採礦",
+    "description": "增加魔法礦石產量20%",
+    "prerequisites": [],
+    "successRate": 0.95,
+    "requirements": {
+      "researchPoints": 10,
+      "resources": {
+        "magic_ore": 50
+      },
+      "gold": 100,
+      "time": 1
+    },
     "effects": {
       "productionMultiplier": { "resource": "magic_ore", "value": 1.2 }
     }
   },
   "efficient_forestry": {
-    "name": "Efficient Forestry",
-    "description": "Increases enchanted wood production by 20%",
-    "cost": 10,
-    "requirements": [],
+    "name": "高效林業",
+    "description": "增加附魔木材產量20%",
+    "prerequisites": [],
+    "successRate": 0.95,
+    "requirements": {
+      "researchPoints": 10,
+      "resources": {
+        "enchanted_wood": 50
+      },
+      "gold": 100,
+      "time": 1
+    },
     "effects": {
       "productionMultiplier": { "resource": "enchanted_wood", "value": 1.2 }
     }
   },
   "crystal_resonance": {
-    "name": "Crystal Resonance",
-    "description": "Increases arcane crystal production by 20%",
-    "cost": 10,
-    "requirements": [],
+    "name": "水晶共振",
+    "description": "增加奧術水晶產量20%",
+    "prerequisites": [],
+    "successRate": 0.95,
+    "requirements": {
+      "researchPoints": 10,
+      "resources": {
+        "arcane_crystal": 50
+      },
+      "gold": 100,
+      "time": 1
+    },
     "effects": {
       "productionMultiplier": { "resource": "arcane_crystal", "value": 1.2 }
     }
   },
   "arcane_metallurgy": {
-    "name": "Arcane Metallurgy",
-    "description": "Improves Magic Forge efficiency by 25%",
-    "cost": 20,
-    "requirements": ["improved_mining"],
+    "name": "奧術冶金",
+    "description": "提高魔法熔爐效率25%",
+    "prerequisites": ["improved_mining"],
+    "successRate": 0.9,
+    "requirements": {
+      "researchPoints": 20,
+      "resources": {
+        "magic_ore": 100,
+        "mana": 50
+      },
+      "gold": 200,
+      "buildingWorkHours": {
+        "magic_forge": 24
+      },
+      "time": 2
+    },
     "effects": {
       "buildingEfficiency": { "building": "magic_forge", "value": 1.25 }
     }
   },
   "mystic_carpentry": {
-    "name": "Mystic Carpentry",
-    "description": "Improves Wood Enchanter efficiency by 25%",
-    "cost": 20,
-    "requirements": ["efficient_forestry"],
+    "name": "神秘木工",
+    "description": "提高木材附魔器效率25%",
+    "prerequisites": ["efficient_forestry"],
+    "successRate": 0.9,
+    "requirements": {
+      "researchPoints": 20,
+      "resources": {
+        "enchanted_wood": 100,
+        "mana": 50
+      },
+      "gold": 200,
+      "buildingWorkHours": {
+        "wood_enchanter": 24
+      },
+      "time": 2
+    },
     "effects": {
       "buildingEfficiency": { "building": "wood_enchanter", "value": 1.25 }
     }
   },
   "crystal_harmonics": {
-    "name": "Crystal Harmonics",
-    "description": "Improves Crystal Refiner efficiency by 25%",
-    "cost": 20,
-    "requirements": ["crystal_resonance"],
+    "name": "水晶和諧",
+    "description": "提高水晶精煉器效率25%",
+    "prerequisites": ["crystal_resonance"],
+    "successRate": 0.9,
+    "requirements": {
+      "researchPoints": 20,
+      "resources": {
+        "arcane_crystal": 100,
+        "mana": 50
+      },
+      "gold": 200,
+      "buildingWorkHours": {
+        "crystal_refiner": 24
+      },
+      "time": 2
+    },
     "effects": {
       "buildingEfficiency": { "building": "crystal_refiner", "value": 1.25 }
     }
   },
   "mana_attunement": {
-    "name": "Mana Attunement",
-    "description": "Increases mana production by 30%",
-    "cost": 15,
-    "requirements": [],
+    "name": "魔力調諧",
+    "description": "增加魔力產量30%",
+    "prerequisites": [],
+    "successRate": 0.9,
+    "requirements": {
+      "researchPoints": 15,
+      "resources": {
+        "mana": 100
+      },
+      "gold": 150,
+      "time": 1.5
+    },
     "effects": {
       "productionMultiplier": { "resource": "mana", "value": 1.3 }
     }
   },
   "alchemical_mastery": {
-    "name": "Alchemical Mastery",
-    "description": "Improves Potion Brewery efficiency by 30%",
-    "cost": 30,
-    "requirements": ["arcane_metallurgy", "mana_attunement"],
+    "name": "煉金術精通",
+    "description": "提高藥水釀造所效率30%",
+    "prerequisites": ["arcane_metallurgy", "mana_attunement"],
+    "successRate": 0.85,
+    "requirements": {
+      "researchPoints": 30,
+      "resources": {
+        "magic_ore": 150,
+        "mana": 100,
+        "potion": 20
+      },
+      "gold": 300,
+      "buildingWorkHours": {
+        "potion_brewery": 48
+      },
+      "time": 3
+    },
     "effects": {
       "buildingEfficiency": { "building": "potion_brewery", "value": 1.3 }
     }
   },
   "enchantment_mastery": {
-    "name": "Enchantment Mastery",
-    "description": "Improves Artifact Workshop efficiency by 30%",
-    "cost": 30,
-    "requirements": ["mystic_carpentry", "crystal_harmonics"],
+    "name": "附魔精通",
+    "description": "提高神器工坊效率30%",
+    "prerequisites": ["mystic_carpentry", "crystal_harmonics"],
+    "successRate": 0.85,
+    "requirements": {
+      "researchPoints": 30,
+      "resources": {
+        "enchanted_wood": 150,
+        "arcane_crystal": 150,
+        "mana": 100
+      },
+      "gold": 300,
+      "buildingWorkHours": {
+        "artifact_workshop": 48
+      },
+      "time": 3
+    },
     "effects": {
       "buildingEfficiency": { "building": "artifact_workshop", "value": 1.3 }
     }
   },
   "expanded_storage": {
-    "name": "Expanded Storage",
-    "description": "Increases all resource storage caps by 20%",
-    "cost": 25,
-    "requirements": [],
+    "name": "擴展儲存",
+    "description": "增加所有資源儲存上限20%",
+    "prerequisites": [],
+    "successRate": 0.95,
+    "requirements": {
+      "researchPoints": 25,
+      "resources": {
+        "enchanted_wood": 100,
+        "magic_ore": 100
+      },
+      "gold": 250,
+      "time": 2
+    },
     "effects": {
       "storageCap": { "multiplier": 1.2 }
     }
   },
   "resource_optimization": {
-    "name": "Resource Optimization",
-    "description": "Reduces resource consumption by 10%",
-    "cost": 20,
-    "requirements": [],
+    "name": "資源優化",
+    "description": "減少資源消耗10%",
+    "prerequisites": [],
+    "successRate": 0.9,
+    "requirements": {
+      "researchPoints": 20,
+      "resources": {
+        "mana": 100
+      },
+      "gold": 200,
+      "time": 2
+    },
     "effects": {
       "resourceConsumption": { "multiplier": 0.9 }
     }
   },
   "magical_efficiency": {
-    "name": "Magical Efficiency",
-    "description": "All buildings work 15% faster",
-    "cost": 35,
-    "requirements": ["resource_optimization"],
+    "name": "魔法效率",
+    "description": "所有建築工作速度提高15%",
+    "prerequisites": ["resource_optimization"],
+    "successRate": 0.85,
+    "requirements": {
+      "researchPoints": 35,
+      "resources": {
+        "mana": 200,
+        "arcane_crystal": 100
+      },
+      "gold": 350,
+      "time": 3
+    },
     "effects": {
       "productionSpeed": { "multiplier": 0.85 }
     }
   },
   "arcane_mastery": {
-    "name": "Arcane Mastery",
-    "description": "Improves Arcane Workshop efficiency by 50%",
-    "cost": 50,
-    "requirements": ["alchemical_mastery", "enchantment_mastery"],
+    "name": "奧術精通",
+    "description": "提高奧術工坊效率50%",
+    "prerequisites": ["alchemical_mastery", "enchantment_mastery"],
+    "successRate": 0.8,
+    "requirements": {
+      "researchPoints": 50,
+      "resources": {
+        "magic_ore": 200,
+        "enchanted_wood": 200,
+        "arcane_crystal": 200,
+        "mana": 300,
+        "artifact": 10
+      },
+      "gold": 500,
+      "buildingWorkHours": {
+        "arcane_workshop": 72
+      },
+      "time": 5
+    },
     "effects": {
       "buildingEfficiency": { "building": "arcane_workshop", "value": 1.5 }
     }
