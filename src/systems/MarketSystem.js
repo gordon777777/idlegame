@@ -118,6 +118,7 @@ export default class MarketSystem {
       enchanted_wood: 8,
       arcane_crystal: 12,
       mana: 5,
+      stone: 3,
 
       // 加工資源 (tier 2)
       arcane_essence: 20,
@@ -149,6 +150,7 @@ export default class MarketSystem {
       enchanted_wood: 0.05,
       arcane_crystal: 0.08,
       mana: 0.03,
+      stone: 0.02,
 
       // 加工資源 (tier 2)
       arcane_essence: 0.1,

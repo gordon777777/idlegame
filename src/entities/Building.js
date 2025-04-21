@@ -43,6 +43,7 @@ export default class Building {
     this.storage = {}; // Internal storage for resources
     this.statusText = null; // Text to show building status (active/inactive)
     this.workerRequirement = config.workerRequirement || { count: 10, type: 'worker' }; // 默认工人需求
+    this.priority = config.priority || 'medium'; // 工人分配优先级: 'high', 'medium', 'low'
 
     this.createSprite();
   }
@@ -243,7 +244,8 @@ export default class Building {
       isActive: this.isActive,
       productionTimeLeft: this.isProducing ?
         adjustedInterval - this.productionProgress : 0,
-      workerRequirement: this.getCurrentWorkerRequirement()
+      workerRequirement: this.getCurrentWorkerRequirement(),
+      priority: this.priority
     };
   }
 
@@ -261,12 +263,30 @@ export default class Building {
       if (!active) {
         this.sprite.setTint(0x888888);
         if (this.statusText) {
-          this.statusText.setText('缺少工人');
+          this.statusText.setText('缺少工人')
+                         .setFill('#ff0000')
+                         .setBackgroundColor('#000000');
         }
       } else {
         this.sprite.clearTint();
         if (this.statusText) {
-          this.statusText.setText('');
+          // 显示优先级
+          const priorityColors = {
+            'high': '#ff0000',   // 高优先级显示为红色
+            'medium': '#ffff00', // 中优先级显示为黄色
+            'low': '#00ff00'     // 低优先级显示为绿色
+          };
+
+          this.statusText.setText(`优先级: ${this.getPriorityDisplayName()}`)
+                         .setFill(priorityColors[this.priority] || '#ffff00')
+                         .setBackgroundColor('#000000');
+
+          // 如果工人效率低于1.0，显示工人不足的提示
+          if (workerEfficiency < 1.0) {
+            this.statusText.setText(`优先级: ${this.getPriorityDisplayName()} (工人: ${Math.floor(workerEfficiency * 100)}%)`)
+                           .setFill(priorityColors[this.priority] || '#ffff00')
+                           .setBackgroundColor('#000000');
+          }
         }
       }
     }
@@ -409,5 +429,48 @@ export default class Building {
     if (!method || !method.workerRequirement) return this.workerRequirement;
 
     return method.workerRequirement;
+  }
+
+  /**
+   * 设置建筑优先级
+   * @param {string} priority - 优先级 ('high', 'medium', 'low')
+   * @returns {boolean} - 是否成功设置
+   */
+  setPriority(priority) {
+    if (!['high', 'medium', 'low'].includes(priority)) return false;
+
+    this.priority = priority;
+
+    // 更新状态文本颜色
+    if (this.statusText) {
+      const priorityColors = {
+        'high': '#ff0000',   // 高优先级显示为红色
+        'medium': '#ffff00', // 中优先级显示为黄色
+        'low': '#00ff00'     // 低优先级显示为绿色
+      };
+
+      // 如果建筑处于活动状态，显示优先级标记
+      if (this.isActive) {
+        this.statusText.setText(`优先级: ${this.getPriorityDisplayName()}`)
+                       .setFill(priorityColors[priority])
+                       .setBackgroundColor('#000000');
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * 获取优先级的显示名称
+   * @returns {string} - 优先级显示名称
+   */
+  getPriorityDisplayName() {
+    const displayNames = {
+      'high': '高',
+      'medium': '中',
+      'low': '低'
+    };
+
+    return displayNames[this.priority] || '中';
   }
 }

@@ -982,9 +982,11 @@ export default class UIManager {
           // 更新工人面板
           setTimeout(() => {
             this.createWorkerPanel();
+            if (this.immigrantsPanel) {
             this.immigrantsPanel.destroy();
             this.immigrantsPanel = null;
-          }, 1500);
+          }
+        }, 1500);
         } else {
           // 顯示錯誤消息
           previewText.setText(result.message);

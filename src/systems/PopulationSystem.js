@@ -374,6 +374,16 @@ export default class PopulationSystem {
       this.migrationTimer = 0;
       this.checkMigration();
     }
+
+    // 定期重新分配工人
+    this.workerReallocationTimer = this.workerReallocationTimer || 0;
+    this.workerReallocationInterval = this.workerReallocationInterval || 30000; // 30秒重新分配一次
+
+    this.workerReallocationTimer += delta;
+    if (this.workerReallocationTimer >= this.workerReallocationInterval) {
+      this.workerReallocationTimer = 0;
+      this.reallocateAllWorkers();
+    }
   }
 
   /**
@@ -1179,6 +1189,11 @@ export default class PopulationSystem {
    * @returns {number} - 可用工人數量
    */
   getAvailableWorkers(workerType) {
+    // 確保工人類型存在
+    if (!this.workerTypes[workerType]) {
+      console.warn(`工人類型 ${workerType} 不存在，返回0`);
+      return 0;
+    }
     return this.workerTypes[workerType].count - this.workerTypes[workerType].assigned;
   }
 
@@ -1187,11 +1202,16 @@ export default class PopulationSystem {
    * @param {string} buildingId - 建築ID
    * @param {string} buildingType - 建築類型
    * @param {Object} workerRequirement - 可選的工人需求對象，如果提供則使用它而不是建築預設需求
+   * @param {string} priority - 建築优先级 ('high', 'medium', 'low')
    * @returns {boolean} - 是否成功分配
    */
-  assignWorkersToBulding(buildingId, buildingType, workerRequirement = null) {
+  assignWorkersToBulding(buildingId, buildingType, workerRequirement = null, priority = 'medium') {
     // 存储建筑类型以便于后续使用
     this.buildingTypes.set(buildingId, buildingType);
+    // 存储建筑优先级
+    this.buildingPriorities = this.buildingPriorities || new Map();
+    this.buildingPriorities.set(buildingId, priority);
+
     // 檢查建築是否需要工人
     let requirements;
 
@@ -1250,6 +1270,12 @@ export default class PopulationSystem {
 
       // 先分配原本需求的工人類型，如果有的話
       for (const [reqWorkerType, reqCount] of Object.entries(requirements.workers)) {
+        // 確保工人類型存在
+        if (!this.workerTypes[reqWorkerType]) {
+          console.warn(`工人類型 ${reqWorkerType} 不存在，跳過`);
+          continue;
+        }
+
         const workerClass = this.workerTypes[reqWorkerType].socialClass;
         if (workerClass !== className) continue;
 
@@ -1361,7 +1387,16 @@ export default class PopulationSystem {
         return false;
       }
 
-      return this.assignWorkersToBulding(buildingId, actualBuildingType, workerRequirement);
+      // 获取建筑优先级
+      let buildingPriority = 'medium';
+      if (this.scene && this.scene.buildingSystem) {
+        const building = this.scene.buildingSystem.buildings.get(buildingId);
+        if (building) {
+          buildingPriority = building.priority || 'medium';
+        }
+      }
+
+      return this.assignWorkersToBulding(buildingId, actualBuildingType, workerRequirement, buildingPriority);
     }
 
     return this.workerAssignments.has(buildingId);
@@ -1386,6 +1421,266 @@ export default class PopulationSystem {
     }
 
     return workerCount > 0 ? totalMultiplier / workerCount : 0;
+  }
+
+  /**
+   * 重新分配所有建筑的工人，按优先级顺序
+   * @returns {Object} - 分配结果统计
+   */
+  reallocateAllWorkers() {
+    // 先释放所有工人
+    for (const buildingId of this.workerAssignments.keys()) {
+      this.removeWorkersFromBuilding(buildingId);
+    }
+
+    // 按优先级分组建筑
+    const highPriorityBuildings = [];
+    const mediumPriorityBuildings = [];
+    const lowPriorityBuildings = [];
+
+    // 获取所有建筑及其优先级
+    for (const [buildingId, buildingType] of this.buildingTypes.entries()) {
+      const priority = this.buildingPriorities?.get(buildingId) || 'medium';
+
+      // 获取建筑对象
+      let building = null;
+      if (this.scene && this.scene.buildingSystem) {
+        building = this.scene.buildingSystem.buildings.get(buildingId);
+      }
+
+      // 如果建筑不存在，跳过
+      if (!building) continue;
+
+      // 如果是住房建筑，跳过
+      if (building.type === 'housing') continue;
+
+      // 按优先级分组
+      if (priority === 'high') {
+        highPriorityBuildings.push({ id: buildingId, type: buildingType, building });
+      } else if (priority === 'medium') {
+        mediumPriorityBuildings.push({ id: buildingId, type: buildingType, building });
+      } else {
+        lowPriorityBuildings.push({ id: buildingId, type: buildingType, building });
+      }
+    }
+
+    // 分配结果统计
+    const result = {
+      total: highPriorityBuildings.length + mediumPriorityBuildings.length + lowPriorityBuildings.length,
+      success: 0,
+      partial: 0,
+      failed: 0,
+      highPriority: { total: highPriorityBuildings.length, success: 0, partial: 0, failed: 0 },
+      mediumPriority: { total: mediumPriorityBuildings.length, success: 0, partial: 0, failed: 0 },
+      lowPriority: { total: lowPriorityBuildings.length, success: 0, partial: 0, failed: 0 }
+    };
+
+    // 先分配高优先级建筑
+    for (const buildingData of highPriorityBuildings) {
+      const { id, type, building } = buildingData;
+      const workerRequirement = building.getCurrentWorkerRequirement();
+      const success = this.assignWorkersToBulding(id, type, workerRequirement, 'high');
+
+      if (success) {
+        result.success++;
+        result.highPriority.success++;
+      } else {
+        result.failed++;
+        result.highPriority.failed++;
+      }
+    }
+
+    // 然后分配中优先级建筑
+    for (const buildingData of mediumPriorityBuildings) {
+      const { id, type, building } = buildingData;
+      const workerRequirement = building.getCurrentWorkerRequirement();
+      const success = this.assignWorkersToBulding(id, type, workerRequirement, 'medium');
+
+      if (success) {
+        result.success++;
+        result.mediumPriority.success++;
+      } else {
+        result.failed++;
+        result.mediumPriority.failed++;
+      }
+    }
+
+    // 最后分配低优先级建筑
+    for (const buildingData of lowPriorityBuildings) {
+      const { id, type, building } = buildingData;
+      const workerRequirement = building.getCurrentWorkerRequirement();
+      const success = this.assignWorkersToBulding(id, type, workerRequirement, 'low');
+
+      if (success) {
+        result.success++;
+        result.lowPriority.success++;
+      } else {
+        result.failed++;
+        result.lowPriority.failed++;
+      }
+    }
+
+    // 如果有失败的建筑，尝试按比例分配工人
+    if (result.failed > 0) {
+      this.assignWorkersProportionally();
+    }
+
+    return result;
+  }
+
+  /**
+   * 按比例分配工人到失败的建筑
+   */
+  assignWorkersProportionally() {
+    // 按优先级分组建筑
+    const highPriorityBuildings = [];
+    const mediumPriorityBuildings = [];
+    const lowPriorityBuildings = [];
+
+    // 获取所有没有工人的建筑
+    for (const [buildingId, buildingType] of this.buildingTypes.entries()) {
+      // 如果已经有工人分配，跳过
+      if (this.workerAssignments.has(buildingId)) continue;
+
+      const priority = this.buildingPriorities?.get(buildingId) || 'medium';
+
+      // 获取建筑对象
+      let building = null;
+      if (this.scene && this.scene.buildingSystem) {
+        building = this.scene.buildingSystem.buildings.get(buildingId);
+      }
+
+      // 如果建筑不存在，跳过
+      if (!building) continue;
+
+      // 如果是住房建筑，跳过
+      if (building.type === 'housing') continue;
+
+      // 按优先级分组
+      if (priority === 'high') {
+        highPriorityBuildings.push({ id: buildingId, type: buildingType, building });
+      } else if (priority === 'medium') {
+        mediumPriorityBuildings.push({ id: buildingId, type: buildingType, building });
+      } else {
+        lowPriorityBuildings.push({ id: buildingId, type: buildingType, building });
+      }
+    }
+
+    // 按优先级顺序处理建筑
+    this.assignProportionallyByPriority(highPriorityBuildings);
+    this.assignProportionallyByPriority(mediumPriorityBuildings);
+    this.assignProportionallyByPriority(lowPriorityBuildings);
+  }
+
+  /**
+   * 按比例分配工人到同一优先级的建筑
+   * @param {Array} buildings - 建筑数组
+   */
+  assignProportionallyByPriority(buildings) {
+    if (buildings.length === 0) return;
+
+    // 按階層统计工人需求
+    const classRequirements = {
+      lower: 0,
+      middle: 0,
+      upper: 0
+    };
+
+    // 每个建筑的工人需求
+    const buildingRequirements = [];
+
+    // 统计所有建筑的工人需求
+    for (const buildingData of buildings) {
+      const { id, type, building } = buildingData;
+      const workerRequirement = building.getCurrentWorkerRequirement();
+
+      // 如果没有工人需求，跳过
+      if (!workerRequirement) continue;
+
+      // 使用建筑预设需求或生产方式需求
+      let requirements;
+      if (workerRequirement.type) {
+        requirements = {
+          workers: { [workerRequirement.type]: workerRequirement.count }
+        };
+      } else {
+        requirements = this.buildingWorkerRequirements[type];
+        if (!requirements) continue;
+      }
+
+      // 统计每个階层需要的工人数量
+      const buildingClassReq = { lower: 0, middle: 0, upper: 0 };
+
+      for (const [workerType, count] of Object.entries(requirements.workers)) {
+        const socialClass = this.workerTypes[workerType]?.socialClass || 'lower';
+        buildingClassReq[socialClass] += count;
+        classRequirements[socialClass] += count;
+      }
+
+      buildingRequirements.push({
+        id,
+        type,
+        building,
+        requirements,
+        classRequirements: buildingClassReq
+      });
+    }
+
+    // 计算每个階层的可用工人
+    const availableWorkers = {
+      lower: 0,
+      middle: 0,
+      upper: 0
+    };
+
+    for (const className of Object.keys(availableWorkers)) {
+      for (const workerType of this.socialClasses[className]?.workerTypes || []) {
+        if (this.workerTypes[workerType]) {
+          availableWorkers[className] += this.getAvailableWorkers(workerType);
+        }
+      }
+    }
+
+    // 计算每个階层的分配比例
+    const allocationRatio = {
+      lower: Math.min(1, availableWorkers.lower / (classRequirements.lower || 1)),
+      middle: Math.min(1, availableWorkers.middle / (classRequirements.middle || 1)),
+      upper: Math.min(1, availableWorkers.upper / (classRequirements.upper || 1))
+    };
+
+    // 按比例分配工人
+    for (const buildingData of buildingRequirements) {
+      const { id, type, building, requirements } = buildingData;
+
+      // 创建按比例缩减的工人需求
+      const scaledRequirements = { ...requirements };
+      const scaledWorkers = {};
+
+      for (const [workerType, count] of Object.entries(requirements.workers)) {
+        const socialClass = this.workerTypes[workerType]?.socialClass || 'lower';
+        const ratio = allocationRatio[socialClass];
+        const scaledCount = Math.floor(count * ratio);
+
+        if (scaledCount > 0) {
+          scaledWorkers[workerType] = scaledCount;
+        }
+      }
+
+      scaledRequirements.workers = scaledWorkers;
+
+      // 分配工人
+      const priority = this.buildingPriorities?.get(id) || 'medium';
+
+      // 确保有可用的工人类型
+      const workerTypes = Object.keys(scaledWorkers);
+      if (workerTypes.length > 0) {
+        this.assignWorkersToBulding(id, type, { count: 1, type: workerTypes[0] }, priority);
+      }
+
+      // 设置建筑效率
+      const efficiency = this.getBuildingEfficiencyMultiplier(id);
+      building.setActive(true, efficiency);
+    }
   }
 
   /**

@@ -21,7 +21,7 @@ export default class BuildingInfoPanel extends BasePanel {
       title: buildingInfo.name || '建筑信息',
       onClose: config.onClose || (() => {
         // 如果没有提供onClose回调，则使用默认行为
-        this.onClose();
+        this.handleClose();
       })
     });
 
@@ -236,8 +236,54 @@ export default class BuildingInfoPanel extends BasePanel {
       uiElements.push(byproductLabel);
     }
 
+    // 添加优先级按钮
+    const priorityTitle = this.scene.add.text(-150, containY + this.height/2 - 80, '工人分配优先级:', {
+      fontSize: '14px',
+      fill: '#e0e0e0'
+    }).setOrigin(0, 0.5);
+
+    // 当前优先级
+    const currentPriority = this.buildingInfo.priority || 'medium';
+
+    // 高优先级按钮
+    const highPriorityBtn = new Button(this.scene, -100, containY + this.height/2 - 60, '高', {
+      width: 60,
+      height: 30,
+      backgroundColor: currentPriority === 'high' ? 0x8a3a3a : 0x4a4a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.handlePriorityChange('high')
+    });
+
+    // 中优先级按钮
+    const mediumPriorityBtn = new Button(this.scene, 0, containY + this.height/2 - 60, '中', {
+      width: 60,
+      height: 30,
+      backgroundColor: currentPriority === 'medium' ? 0x8a8a3a : 0x4a4a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.handlePriorityChange('medium')
+    });
+
+    // 低优先级按钮
+    const lowPriorityBtn = new Button(this.scene, 100, containY + this.height/2 - 60, '低', {
+      width: 60,
+      height: 30,
+      backgroundColor: currentPriority === 'low' ? 0x3a8a3a : 0x4a4a4a,
+      fontSize: '14px',
+      textColor: '#ffffff',
+      onClick: () => this.handlePriorityChange('low')
+    });
+
+    // 添加优先级说明
+    const priorityDesc = this.scene.add.text(0, containY + this.height/2 - 40, '高优先级建筑将优先获得工人分配', {
+      fontSize: '12px',
+      fill: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5, 0.5);
+
     // 添加升级按钮
-    const upgradeBtn = new Button(this.scene, 0, containY + this.height/2 - 30, '升级', {
+    const upgradeBtn = new Button(this.scene, 0, containY + this.height/2 - 10, '升级', {
       width: 100,
       height: 30,
       backgroundColor: 0x4a6a4a,
@@ -247,7 +293,12 @@ export default class BuildingInfoPanel extends BasePanel {
     });
 
     // 添加所有元素到面板
-    this.add([levelText, efficiencyText, workerInfoText, recipe, timeText, ...uiElements, ...upgradeBtn.getElements()]);
+    this.add([
+      levelText, efficiencyText, workerInfoText, recipe, timeText,
+      ...uiElements,
+      priorityTitle, ...highPriorityBtn.getElements(), ...mediumPriorityBtn.getElements(), ...lowPriorityBtn.getElements(), priorityDesc,
+      ...upgradeBtn.getElements()
+    ]);
   }
 
   /**
@@ -316,6 +367,50 @@ export default class BuildingInfoPanel extends BasePanel {
   }
 
   /**
+   * 处理优先级变更
+   * @param {string} priority - 新的优先级 ('high', 'medium', 'low')
+   */
+  handlePriorityChange(priority) {
+    console.log(`Changing priority of building ${this.buildingId} to ${priority}`);
+
+    // 获取建筑对象
+    const building = this.scene.buildingSystem.buildings.get(this.buildingId);
+    if (!building) return;
+
+    // 设置新的优先级
+    const success = building.setPriority(priority);
+
+    if (success) {
+      // 重新分配工人
+      if (this.scene.populationSystem) {
+        this.scene.populationSystem.reallocateAllWorkers();
+      }
+
+      // 更新建筑信息
+      this.updateBuildingInfo(building.getInfo());
+
+      // 显示成功消息
+      const priorityNames = {
+        'high': '高',
+        'medium': '中',
+        'low': '低'
+      };
+
+      const notification = this.scene.add.text(this.scene.scale.width / 2, 100, `已将建筑优先级设置为${priorityNames[priority]}`, {
+        fontSize: '18px',
+        fill: '#ffffff',
+        backgroundColor: '#3a8c3a',
+        padding: { x: 10, y: 5 }
+      }).setOrigin(0.5, 0.5).setDepth(100);
+
+      // 2秒后自动消失
+      this.scene.time.delayedCall(2000, () => {
+        notification.destroy();
+      });
+    }
+  }
+
+  /**
    * 更新建筑信息
    * @param {Object} buildingInfo - 新的建筑信息
    */
@@ -339,7 +434,7 @@ export default class BuildingInfoPanel extends BasePanel {
   /**
    * 关闭面板
    */
-  onClose() {
+  handleClose() {
     // 清除建筑系统中的选中建筑
     if (this.scene.buildingSystem) {
       this.scene.buildingSystem.selectedBuilding = null;

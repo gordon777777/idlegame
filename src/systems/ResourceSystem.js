@@ -21,6 +21,7 @@ class ResourceSystem {
         enchanted_wood: { value: 200, production: 0, tier: 1, displayName: '附魔木材' },
         arcane_crystal: { value: 100, production: 0, tier: 1, displayName: '奧術水晶' },
         mana: { value: 100, production: 0, tier: 1, displayName: '魔力' },
+        stone: { value: 50, production: 0, tier: 1, displayName: '石頭' },
 
         // Processed resources (tier 2)
         arcane_essence: { value: 50, production: 0, tier: 2, displayName: '奧術精華' },

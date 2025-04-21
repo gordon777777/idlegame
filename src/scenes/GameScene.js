@@ -159,14 +159,9 @@ export default class GameScene extends Phaser.Scene {
       position: { x: 20, y: 150 }
     });
 
-    // 創建建築選單
-    const buildingTypes = Object.keys(this.buildingSystem.buildingTypes)
-      .filter(type => this.buildingSystem.buildingTypes[type].type === 'collector')
-      .map(type => this.buildingSystem.buildingTypes[type].name);
-
+    // 創建統一的建築選單
     this.uiManager.createBuildingMenu({
-      position: { x: this.scale.width - 220, y: 20 },
-      buildings: buildingTypes
+      position: { x: this.scale.width - 320, y: 320 } // 向下移动50px
     });
 
     // 創建研究按鈕
