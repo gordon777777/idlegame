@@ -28,6 +28,8 @@ export default class Building {
     this.currentByproductType = config.byproductTypes?.length > 0 ? config.byproductTypes[0].id : null; // 当前选择的副产品类型
     this.productionMethods = config.productionMethods || []; // 生产方式选项
     this.currentProductionMethod = config.productionMethods?.length > 0 ? config.productionMethods[0].id : null; // 当前选择的生产方式
+    this.workModes = config.workModes || []; // 工作模式选项
+    this.currentWorkMode = config.workModes?.length > 0 ? config.workModes[0].id : null; // 当前选择的工作模式
     this.productionInterval = config.productionInterval || 5000; // Default 5 seconds
     this.cost = config.cost || {};
     this.level = config.level || 1;
@@ -123,12 +125,8 @@ export default class Building {
     // 如果建築不活動（沒有工人）或不在生產中，則返回空
     if (!this.isActive || !this.isProducing) return null;
 
-    // 获取当前生产方式
-    const productionMethod = this.getCurrentProductionMethod();
-
-    // 计算生产时间修正
-    const timeModifier = productionMethod ? productionMethod.timeModifier : 1.0;
-    const adjustedInterval = this.productionInterval * timeModifier;
+    // 获取当前生产时间（已包含所有修正因素）
+    const adjustedInterval = this.getCurrentProductionTime();
 
     // 計算進度 - 結合建築效率和工人效率
     const totalEfficiency = this.efficiency * this.workerEfficiency;
@@ -215,14 +213,18 @@ export default class Building {
    * @returns {Object} - Building information
    */
   getInfo() {
-    // 获取当前生产方式
-    const productionMethod = this.getCurrentProductionMethod();
-    const timeModifier = productionMethod ? productionMethod.timeModifier : 1.0;
-    const adjustedInterval = this.productionInterval * timeModifier;
+    // 获取当前生产时间（已包含所有修正因素）
+    const adjustedInterval = this.getCurrentProductionTime();
 
     // 获取当前副产品类型
     const byproductType = this.getCurrentByproductType();
     const byproducts = byproductType ? byproductType.resources : {};
+
+    // 获取当前生产方式
+    const productionMethod = this.getCurrentProductionMethod();
+
+    // 获取当前工作模式
+    const workMode = this.getCurrentWorkMode();
 
     return {
       id: this.id,
@@ -238,6 +240,8 @@ export default class Building {
       currentByproductType: this.currentByproductType,
       productionMethods: this.productionMethods,
       currentProductionMethod: this.currentProductionMethod,
+      workModes: this.workModes,
+      currentWorkMode: this.currentWorkMode,
       productionInterval: adjustedInterval,
       baseProductionInterval: this.productionInterval,
       isProducing: this.isProducing,
@@ -245,7 +249,9 @@ export default class Building {
       productionTimeLeft: this.isProducing ?
         adjustedInterval - this.productionProgress : 0,
       workerRequirement: this.getCurrentWorkerRequirement(),
-      priority: this.priority
+      priority: this.priority,
+      inputResources: this.getCurrentInputResources(),
+      outputResources: this.getCurrentOutputResources()
     };
   }
 
@@ -425,10 +431,36 @@ export default class Building {
    * @returns {Object} - 工人需求 {count, type}
    */
   getCurrentWorkerRequirement() {
+    // 获取基础工人需求（从生产方式或建筑默认值）
     const method = this.getCurrentProductionMethod();
-    if (!method || !method.workerRequirement) return this.workerRequirement;
+    let baseRequirement = method && method.workerRequirement ? method.workerRequirement : this.workerRequirement;
 
-    return method.workerRequirement;
+    // 获取副产品类型的工人需求修正
+    const byproductType = this.getCurrentByproductType();
+    if (byproductType && byproductType.workerRequirement) {
+      baseRequirement = byproductType.workerRequirement;
+    }
+
+    // 获取工作模式的工人需求修正
+    const workMode = this.getCurrentWorkMode();
+    if (workMode && workMode.workerModifier) {
+      // 创建一个新对象，避免修改原始对象
+      const result = { ...baseRequirement };
+      // 修改工人数量
+      if (result.count) {
+        result.count = Math.ceil(result.count * workMode.workerModifier);
+      } else if (result.workers) {
+        // 如果是复杂的工人需求对象，修改每种工人的数量
+        const modifiedWorkers = {};
+        Object.entries(result.workers).forEach(([type, count]) => {
+          modifiedWorkers[type] = Math.ceil(count * workMode.workerModifier);
+        });
+        result.workers = modifiedWorkers;
+      }
+      return result;
+    }
+
+    return baseRequirement;
   }
 
   /**
@@ -472,5 +504,57 @@ export default class Building {
     };
 
     return displayNames[this.priority] || '中';
+  }
+
+  /**
+   * 设置当前工作模式
+   * @param {string} modeId - 工作模式 ID
+   * @returns {boolean} - 是否成功设置
+   */
+  setWorkMode(modeId) {
+    // 检查是否有此工作模式
+    const modeExists = this.workModes.some(mode => mode.id === modeId);
+    if (!modeExists) return false;
+
+    // 设置当前工作模式
+    this.currentWorkMode = modeId;
+    return true;
+  }
+
+  /**
+   * 获取当前工作模式
+   * @returns {Object|null} - 当前工作模式对象
+   */
+  getCurrentWorkMode() {
+    if (!this.currentWorkMode) return null;
+    return this.workModes.find(mode => mode.id === this.currentWorkMode) || null;
+  }
+
+  /**
+   * 获取当前生产时间
+   * @returns {number} - 生产时间（毫秒）
+   */
+  getCurrentProductionTime() {
+    let time = this.productionInterval;
+
+    // 应用生产方式的时间修正
+    const method = this.getCurrentProductionMethod();
+    if (method && method.timeModifier) {
+      time *= method.timeModifier;
+    }
+
+    // 应用副产品类型的时间修正
+    const byproductType = this.getCurrentByproductType();
+    if (byproductType && byproductType.timeModifier) {
+      time *= byproductType.timeModifier;
+    }
+
+    // 应用工作模式的时间修正
+    const workMode = this.getCurrentWorkMode();
+    if (workMode && workMode.timeModifier) {
+      time *= workMode.timeModifier;
+    }
+
+    return time;
   }
 }

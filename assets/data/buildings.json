@@ -23,13 +23,31 @@
     "cost": { "enchanted_wood": 25, "arcane_crystal": 5 },
     "description": "將附魔木材加工成神秘木板。",
     "workerRequirement": { "count": 10, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "没有副产品",
+        "description": "专注于主要产出，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 10, "type": "worker" }
+      },
+      {
+        "id": "wood_chips",
+        "name": "碎木为副产品",
+        "description": "加工过程中产生木碎作为副产品，但需要更多工人。",
+        "resources": { "wood_chips": 2 },
+        "timeModifier": 0.9,
+        "workerRequirement": { "count": 11, "type": "worker" }
+      }
+    ],
     "productionMethods": [
       {
         "id": "manual",
         "name": "徒手工作",
         "description": "工人徒手加工木材，正常产出。",
         "timeModifier": 1.0,
-        "enableByproducts": false,
+        "enableByproducts": true,
         "workerRequirement": { "count": 10, "type": "worker" }
       },
       {
@@ -37,10 +55,26 @@
         "name": "工具辅助",
         "description": "使用工具加工木材，提高产出但需要额外资源。",
         "timeModifier": 0.6,
-        "inputModifiers": { "enchanted_wood": 1.0, "magic_ore": 1 },
+        "inputModifiers": { "enchanted_wood": 1.0, "tools": 1 },
         "outputModifiers": { "mystic_planks": 2.5 },
         "enableByproducts": true,
         "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.55,
+        "workerModifier": 1.6
       }
     ]
   },

@@ -123,7 +123,25 @@ export default class BuildingInfoPanel extends BasePanel {
     let recipeText = '配方: ';
     const inputResources = this.buildingInfo.inputResources || {};
     const outputResources = this.buildingInfo.outputResources || {};
-    const currentMethod = this.buildingInfo.currentProductionMethod;
+
+    // 获取当前生产方式和副产品类型
+    const currentMethod = this.buildingInfo.productionMethods?.find(m => m.id === this.buildingInfo.currentProductionMethod);
+    const currentByproductType = this.buildingInfo.byproductTypes?.find(t => t.id === this.buildingInfo.currentByproductType);
+    const currentWorkMode = this.buildingInfo.workModes?.find(m => m.id === this.buildingInfo.currentWorkMode);
+
+    // 添加当前生产方式和工作模式的效率信息
+    if (currentMethod || currentByproductType || currentWorkMode) {
+      recipeText += '\n当前设置: ';
+      if (currentMethod) {
+        recipeText += `${currentMethod.name} `;
+      }
+      if (currentByproductType && currentByproductType.id !== 'none') {
+        recipeText += `+ ${currentByproductType.name} `;
+      }
+      if (currentWorkMode) {
+        recipeText += `+ ${currentWorkMode.name}`;
+      }
+    }
 
     // 添加输入资源
     if (Object.keys(inputResources).length > 0) {
@@ -157,8 +175,8 @@ export default class BuildingInfoPanel extends BasePanel {
     }).setOrigin(0.5, 0);
 
     // 添加生产时间信息
-    const productionTime = this.buildingInfo.productionTime || 0;
-    const timeText = this.scene.add.text(0, containY + this.height/2 - 60, `生产时间: ${productionTime.toFixed(1)}秒`, {
+    const productionInterval = this.buildingInfo.productionInterval || 0;
+    const timeText = this.scene.add.text(0, containY + this.height/2 - 60, `生产时间: ${(productionInterval/1000).toFixed(1)}秒`, {
       fontSize: '14px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
@@ -191,7 +209,7 @@ export default class BuildingInfoPanel extends BasePanel {
         {
           width: 180,
           height: 30,
-          selectedId: this.buildingInfo.currentProductionMethod?.id || methodOptions[0].id,
+          selectedId: this.buildingInfo.currentProductionMethod || methodOptions[0].id,
           onChange: (methodId) => {
             this.handleProductionMethodSelect(methodId);
           }
@@ -199,6 +217,7 @@ export default class BuildingInfoPanel extends BasePanel {
       );
 
       uiElements.push(methodLabel);
+      uiElements.push(...methodDropdown.getElements());
     }
 
     // 添加副产品类型选择（如果有）
@@ -226,7 +245,7 @@ export default class BuildingInfoPanel extends BasePanel {
         {
           width: 180,
           height: 30,
-          selectedId: this.buildingInfo.currentByproductType?.id || byproductOptions[0].id,
+          selectedId: this.buildingInfo.currentByproductType || byproductOptions[0].id,
           onChange: (typeId) => {
             this.handleByproductTypeSelect(typeId);
           }
@@ -234,6 +253,43 @@ export default class BuildingInfoPanel extends BasePanel {
       );
 
       uiElements.push(byproductLabel);
+      uiElements.push(...byproductDropdown.getElements());
+    }
+
+    // 添加工作模式选择（如果有）
+    if (this.buildingInfo.workModes && this.buildingInfo.workModes.length > 0) {
+      // 创建工作模式选项
+      const workModeOptions = this.buildingInfo.workModes.map(mode => ({
+        id: mode.id,
+        text: mode.name,
+        description: mode.description || ''
+      }));
+
+      // 创建工作模式标签
+      const workModeLabel = this.scene.add.text(-150, containY + 110, '工作模式:', {
+        fontSize: '14px',
+        fill: '#e0e0e0'
+      }).setOrigin(0, 0.5);
+
+      // 创建下拉列表
+      const workModeDropdown = new DropdownList(
+        this.scene,
+        this.container,
+        -50,
+        containY + 110,
+        workModeOptions,
+        {
+          width: 180,
+          height: 30,
+          selectedId: this.buildingInfo.currentWorkMode || workModeOptions[0].id,
+          onChange: (modeId) => {
+            this.handleWorkModeSelect(modeId);
+          }
+        }
+      );
+
+      uiElements.push(workModeLabel);
+      uiElements.push(...workModeDropdown.getElements());
     }
 
     // 添加优先级按钮
@@ -316,8 +372,10 @@ export default class BuildingInfoPanel extends BasePanel {
     const success = building.setProductionMethod(methodId);
 
     if (success) {
-      // 更新生产链
-      this.scene.resourceSystem.addProductionChain(building);
+      // 更新生产链（如果resources存在）
+      if (this.scene.resources) {
+        this.scene.resources.addProductionChain(building);
+      }
 
       // 更新建筑信息
       this.updateBuildingInfo(building.getInfo());
@@ -339,8 +397,40 @@ export default class BuildingInfoPanel extends BasePanel {
     const success = building.setByproductType(typeId);
 
     if (success) {
-      // 更新生产链
-      this.scene.resourceSystem.addProductionChain(building);
+      // 更新生产链（如果resources存在）
+      if (this.scene.resources) {
+        this.scene.resources.addProductionChain(building);
+      }
+
+      // 更新建筑信息
+      this.updateBuildingInfo(building.getInfo());
+    }
+  }
+
+  /**
+   * 处理工作模式选择
+   * @param {string} modeId - 工作模式ID
+   */
+  handleWorkModeSelect(modeId) {
+    console.log(`Selecting work mode ${modeId} for building ${this.buildingId}`);
+
+    // 获取建筑对象
+    const building = this.scene.buildingSystem.buildings.get(this.buildingId);
+    if (!building) return;
+
+    // 设置工作模式
+    const success = building.setWorkMode(modeId);
+
+    if (success) {
+      // 重新分配工人（因为工作模式可能会改变工人需求）
+      if (this.scene.populationSystem) {
+        this.scene.populationSystem.reallocateAllWorkers();
+      }
+
+      // 更新生产链（如果resources存在）
+      if (this.scene.resources) {
+        this.scene.resources.addProductionChain(building);
+      }
 
       // 更新建筑信息
       this.updateBuildingInfo(building.getInfo());
