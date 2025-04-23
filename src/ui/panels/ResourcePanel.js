@@ -14,13 +14,31 @@ export default class ResourcePanel extends BasePanel {
    * @param {Array} config.resources - 要显示的资源列表
    */
   constructor(scene, config = {}) {
+    // 获取布局配置
+    const layout = config.layout || { rows: 1, columns: config.resources?.length || 4 };
+
+    // 计算面板宽度和高度
+    const panelWidth = layout.columns * 120 + 20; // 120 pixels per resource + padding
+    const panelHeight = layout.rows * 80 + 40; // 80 pixels per row + padding
+
     // 调用父类构造函数
     super(scene, config.position?.x || 20, config.position?.y || 20, {
-      width: config.resources?.length * 120 + 20 || 500, // 120 pixels per resource + padding
-      height: 100,
+      width: panelWidth,
+      height: panelHeight,
       title: '资源',
       onClose: () => this.hide()
     });
+
+    // 保存布局配置
+    this.layout = layout;
+
+    // 如果使用了屏幕中心位置，调整面板位置使其居中
+    if (config.position?.x === scene.scale.width / 2) {
+      this.container.x = config.position.x;
+      this.background.x = 0;
+      this.titleText.x = 0;
+      this.closeButton.x = this.width / 2 - 15;
+    }
 
     // 保存配置
     this.config = config;
@@ -63,9 +81,13 @@ export default class ResourcePanel extends BasePanel {
     this.resourceTexts = {};
 
     this.resources.forEach((resource, index) => {
+      // 计算行和列
+      const row = Math.floor(index / this.layout.columns);
+      const col = index % this.layout.columns;
+
       // 计算位置
-      const x = -this.width/2 + 80 + index * 120;
-      const y = 0;
+      const x = -this.width/2 + 80 + col * 120;
+      const y = -10 + row * 80; // 每行高度80像素，从-40开始（留出标题空间）
 
       // 创建资源图标背景
       const iconBg = this.scene.add.rectangle(x, y - 15, 50, 50, 0x333333)
@@ -104,6 +126,27 @@ export default class ResourcePanel extends BasePanel {
         const resourceType = child.name;
         // Format the number with commas for thousands
         const formattedValue = Math.floor(resources[resourceType].value).toLocaleString();
+
+        // 获取资源变化趋势
+        let trend = 'stable';
+        if (this.scene.resources && this.scene.resources.getResourceTrend) {
+          trend = this.scene.resources.getResourceTrend(resourceType);
+        }
+
+        // 根据趋势设置颜色
+        let textColor = '#ffffff'; // 默认白色
+        if (trend === 'increase') {
+          textColor = '#66ff66'; // 增加显示绿色
+        } else if (trend === 'decrease') {
+          textColor = '#ff6666'; // 减少显示红色
+        } else {
+          textColor = '#cccccc'; // 不变显示灰色
+        }
+
+        // 设置文本颜色
+        child.setFill(textColor);
+
+        // 设置文本内容
         child.setText(formattedValue);
 
         // Add a production rate indicator if production is non-zero

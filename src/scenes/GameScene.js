@@ -109,7 +109,7 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(1, 0).setDepth(100);
 
     // 創建時間顯示
-    this.timeText = this.add.text(100, 20, '', {
+    this.timeText = this.add.text(100, 120, '', { // 向下移動100px，從20到120
       fontSize: '18px',
       fill: '#ffffff',
       fontStyle: 'bold',
@@ -150,8 +150,14 @@ export default class GameScene extends Phaser.Scene {
 
     // 初始化UI系统
     this.uiManager.createResourcePanel({
-      position: { x: 20, y: 20 },
-      resources: ['magic_ore', 'enchanted_wood', 'arcane_crystal', 'mana']
+      position: { x: this.scale.width / 2, y: 70 }, // X轴居中，向下移动50px（从20到70）
+      resources: [
+        // 第一行资源
+        'magic_ore', 'enchanted_wood', 'arcane_crystal', 'mana', 'arcane_essence',
+        // 第二行资源
+        'mystic_planks', 'refined_crystal', 'magical_potion', 'enchanted_artifact', 'magical_construct'
+      ],
+      layout: { rows: 2, columns: 5 } // 指定2行5列的布局
     });
 
     // 創建人口面板 - 調整位置以避免與資源面板重疊
@@ -351,7 +357,7 @@ export default class GameScene extends Phaser.Scene {
    * 創建時間控制按鈕
    */
   createTimeControls() {
-    const buttonY = 30;
+    const buttonY = 130; // 向下移動100px，從30到130
     const buttonSpacing = 40;
     const buttonSize = 30;
     const startX = 200; // 調整起始X座標，使按鈕更靠右

@@ -44,6 +44,13 @@ class ResourceSystem {
       this.initializeResourceCaps();
     }
 
+    // 添加资源历史记录，用于跟踪5天内的变化
+    this.resourceHistory = {};
+    this.historyDays = 5; // 跟踪5天的历史
+    this.dayLength = 5000; // 游戏中1天的长度（毫秒）
+    this.lastHistoryUpdate = 0;
+    this.initializeResourceHistory();
+
     // Resource consumption stats
     this.consumptionStats = {};
     this.productionStats = {};
@@ -75,6 +82,69 @@ class ResourceSystem {
       this.consumptionStats[resource] = 0;
       this.productionStats[resource] = 0;
     });
+  }
+
+  /**
+   * 初始化资源历史记录
+   */
+  initializeResourceHistory() {
+    Object.keys(this.resources).forEach(resource => {
+      // 初始化每种资源的历史记录数组
+      this.resourceHistory[resource] = [];
+
+      // 填充初始值
+      const currentValue = this.resources[resource].value;
+      for (let i = 0; i < this.historyDays; i++) {
+        this.resourceHistory[resource].push(currentValue);
+      }
+    });
+  }
+
+  /**
+   * 更新资源历史记录
+   * @param {number} time - 当前游戏时间
+   */
+  updateResourceHistory(time) {
+    // 每天更新一次历史记录
+    if (time - this.lastHistoryUpdate >= this.dayLength) {
+      Object.keys(this.resources).forEach(resource => {
+        // 移除最早的记录
+        if (this.resourceHistory[resource].length >= this.historyDays) {
+          this.resourceHistory[resource].shift();
+        }
+
+        // 添加新的记录
+        this.resourceHistory[resource].push(this.resources[resource].value);
+      });
+
+      this.lastHistoryUpdate = time;
+    }
+  }
+
+  /**
+   * 获取资源在过去5天的变化趋势
+   * @param {string} resource - 资源类型
+   * @returns {string} - 变化趋势: 'increase', 'decrease', 'stable'
+   */
+  getResourceTrend(resource) {
+    if (!this.resourceHistory[resource] || this.resourceHistory[resource].length < 2) {
+      return 'stable';
+    }
+
+    const history = this.resourceHistory[resource];
+    const oldest = history[0];
+    const newest = history[history.length - 1];
+
+    // 计算变化百分比
+    const changePercent = ((newest - oldest) / Math.max(1, oldest)) * 100;
+
+    if (changePercent > 5) {
+      return 'increase';
+    } else if (changePercent < -5) {
+      return 'decrease';
+    } else {
+      return 'stable';
+    }
   }
 
   /**
@@ -111,6 +181,9 @@ class ResourceSystem {
    * @param {number} delta - Time since last update in ms
    */
   update(time, delta) {
+    // 更新资源历史记录
+    this.updateResourceHistory(time);
+
     // Reset production rates
     Object.keys(this.resources).forEach(resource => {
       this.resources[resource].production = 0;

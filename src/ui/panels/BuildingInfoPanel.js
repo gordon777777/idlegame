@@ -447,13 +447,57 @@ export default class BuildingInfoPanel extends BasePanel {
     const building = this.scene.buildingSystem.buildings.get(this.buildingId);
     if (!building) return;
 
+    // 获取资源系统
+    if (!this.scene.resources) {
+      console.error('Resource system not found');
+      return;
+    }
+
+    // 获取升级成本
+    const upgradeCost = this.calculateUpgradeCost(building);
+    if (!upgradeCost) {
+      console.error('Failed to calculate upgrade cost');
+      return;
+    }
+
     // 尝试升级建筑
-    const success = building.upgrade();
+    const success = building.upgrade(this.scene.resources.resources, upgradeCost);
 
     if (success) {
       // 更新建筑信息
       this.updateBuildingInfo(building.getInfo());
+    } else {
+      // 显示资源不足的提示
+      const notification = this.scene.add.text(this.scene.scale.width / 2, 100, '资源不足，无法升级建筑', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        backgroundColor: '#aa3333',
+        padding: { x: 10, y: 5 }
+      }).setOrigin(0.5, 0.5).setDepth(100);
+
+      // 2秒后自动消失
+      this.scene.time.delayedCall(2000, () => {
+        notification.destroy();
+      });
     }
+  }
+
+  /**
+   * 计算建筑升级成本
+   * @param {Building} building - 建筑对象
+   * @returns {Object} - 升级成本
+   */
+  calculateUpgradeCost(building) {
+    // 基础成本是建筑的初始成本
+    const baseCost = building.cost || {};
+
+    // 根据当前等级计算升级成本（每级增加50%）
+    const upgradeCost = {};
+    Object.entries(baseCost).forEach(([resource, amount]) => {
+      upgradeCost[resource] = Math.ceil(amount * (1 + building.level * 0.5));
+    });
+
+    return upgradeCost;
   }
 
   /**
