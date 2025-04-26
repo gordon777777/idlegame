@@ -40,14 +40,29 @@ export default class UIManager {
    * @param {Object} config - 面板配置
    */
   createBuildingMenu(config) {
+    console.log('UIManager: Creating building menu panel');
+
+    // 检查buildingSystem是否存在
+    if (!this.scene.buildingSystem) {
+      console.error('UIManager: Building system not found in scene');
+    } else {
+      console.log('UIManager: Building system found, types:', Object.keys(this.scene.buildingSystem.buildingTypes).length);
+    }
+
     // 如果已存在，先销毁
     if (this.buildingMenuPanel) {
+      console.log('UIManager: Destroying existing building menu panel');
       this.buildingMenuPanel.destroy();
     }
 
     // 创建新的建筑菜单面板
-    this.buildingMenuPanel = new BuildingMenuPanel(this.scene, config);
-    this.buildingMenuPanel.show();
+    try {
+      this.buildingMenuPanel = new BuildingMenuPanel(this.scene, config);
+      this.buildingMenuPanel.show();
+      console.log('UIManager: Building menu panel created and shown');
+    } catch (error) {
+      console.error('UIManager: Error creating building menu panel:', error);
+    }
 
     return this.buildingMenuPanel;
   }

@@ -15,7 +15,7 @@ export default class PopulationPanel extends BasePanel {
     // 调用父类构造函数
     super(scene, config.position?.x || 20, config.position?.y || 150, {
       width: 200,
-      height: 280, // 增加面板高度以适应新添加的阶层幸福度文本元素
+      height: 320, // 增加面板高度以适应新添加的阶层幸福度文本元素
       title: '人口统计',
       onClose: () => this.hide()
     });
@@ -32,16 +32,17 @@ export default class PopulationPanel extends BasePanel {
    */
   createContent() {
     // 获取人口统计
+    const startY = -110
     const stats = this.scene.populationSystem.getPopulationStats();
 
     // 初始化人口文本
-    this.populationText = this.scene.add.text(0, -50, `总人口: ${stats.total || 0}`, {
+    this.populationText = this.scene.add.text(0, startY, `总人口: ${stats.total || 0}`, {
       fontSize: '14px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
 
     // 初始化住房使用情况文本
-    this.housingUsageText = this.scene.add.text(0, -25, `住房使用: ${stats.total || 0}/${stats.capacity || 0}`, {
+    this.housingUsageText = this.scene.add.text(0, startY+25, `住房使用: ${stats.total || 0}/${stats.capacity || 0}`, {
       fontSize: '14px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
@@ -49,21 +50,21 @@ export default class PopulationPanel extends BasePanel {
     // 初始化住房剩余文本
     const remainingHousing = (stats.capacity || 0) - (stats.total || 0);
     const remainingColor = remainingHousing > 0 ? '#a0e0a0' : '#e0a0a0';
-    this.housingRemainingText = this.scene.add.text(0, 0, `剩余住房: ${remainingHousing}`, {
+    this.housingRemainingText = this.scene.add.text(0, startY+50, `剩余住房: ${remainingHousing}`, {
       fontSize: '14px',
       fill: remainingColor
     }).setOrigin(0.5, 0);
 
     // 初始化总体幸福度文本
     const happinessColor = this.getHappinessColor(stats.happiness || 0);
-    this.happinessText = this.scene.add.text(0, 10, `总体幸福度: ${stats.happiness || 0}%`, {
+    this.happinessText = this.scene.add.text(0, startY+70, `总体幸福度: ${stats.happiness || 0}%`, {
       fontSize: '14px',
       fill: happinessColor,
       fontStyle: 'bold'
     }).setOrigin(0.5, 0);
 
     // 初始化阶层幸福度标题
-    this.classHappinessTitle = this.scene.add.text(0, 35, '各阶层幸福度:', {
+    this.classHappinessTitle = this.scene.add.text(0, startY+105, '各阶层幸福度:', {
       fontSize: '14px',
       fill: '#e0e0e0',
       fontStyle: 'bold'
@@ -71,7 +72,7 @@ export default class PopulationPanel extends BasePanel {
 
     // 初始化各阶层幸福度文本
     this.classHappinessTexts = {};
-    let yPos = 60;
+    let yPos = startY+140;
 
     // 下层幸福度
     const lowerHappiness = stats.socialClasses.lower?.happiness || 0;
@@ -100,7 +101,7 @@ export default class PopulationPanel extends BasePanel {
     }).setOrigin(0.5, 0);
 
     // 添加查看工人按钮
-    const viewWorkersBtn = new Button(this.scene, -40, 150, '管理工人', {
+    const viewWorkersBtn = new Button(this.scene, -40, startY+250, '管理工人', {
       width: 80,
       height: 30,
       backgroundColor: 0x4a4a4a,
@@ -110,7 +111,7 @@ export default class PopulationPanel extends BasePanel {
     });
 
     // 添加市场按钮
-    const marketBtn = new Button(this.scene, 50, 150, '查看市场', {
+    const marketBtn = new Button(this.scene, 50, startY+250, '查看市场', {
       width: 80,
       height: 30,
       backgroundColor: 0x4a6a4a,

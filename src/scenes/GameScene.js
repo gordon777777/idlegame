@@ -148,6 +148,16 @@ export default class GameScene extends Phaser.Scene {
     this.createTerrain();
     this.createInitialBuildings();
 
+    // 检查建筑系统是否正确初始化
+    if (!this.buildingSystem) {
+      console.error('GameScene: Building system not initialized');
+    } else {
+      console.log('GameScene: Building system initialized with types:', Object.keys(this.buildingSystem.buildingTypes).length);
+
+      // 打印所有建筑类型，用于调试
+      console.log('GameScene: Available building types:', Object.keys(this.buildingSystem.buildingTypes));
+    }
+
     // 初始化UI系统
     this.uiManager.createResourcePanel({
       position: { x: this.scale.width / 2, y: 70 }, // X轴居中，向下移动50px（从20到70）
@@ -162,13 +172,21 @@ export default class GameScene extends Phaser.Scene {
 
     // 創建人口面板 - 調整位置以避免與資源面板重疊
     this.uiManager.createPopulationPanel({
-      position: { x: 20, y: 150 }
+      position: { x: 50, y: 350 }
     });
 
     // 創建統一的建築選單
     this.uiManager.createBuildingMenu({
       position: { x: this.scale.width - 320, y: 320 } // 向下移动50px
     });
+
+    // 确保建筑菜单面板可见
+    if (this.uiManager.buildingMenuPanel) {
+      this.uiManager.buildingMenuPanel.show();
+      console.log('GameScene: Building menu panel shown');
+    } else {
+      console.error('GameScene: Building menu panel not created');
+    }
 
     // 創建研究按鈕
     const researchButton = this.add.rectangle(this.scale.width - 300, 20, 60, 30, 0x3a6a8c)

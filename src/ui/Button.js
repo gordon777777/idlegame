@@ -21,7 +21,7 @@ export default class Button {
     this.x = x;
     this.y = y;
     this.text = text;
-    
+
     // 設置默認配置
     this.config = {
       width: config.width || 60,
@@ -31,49 +31,55 @@ export default class Button {
       fontSize: config.fontSize || '14px',
       onClick: config.onClick || (() => {})
     };
-    
+
     // 創建按鈕元素
     this.create();
   }
-  
+
   /**
    * 創建按鈕元素
    * @private
    */
   create() {
-    // 創建矩形背景
-    this.rectangle = this.scene.add.rectangle(
-      this.x, 
-      this.y, 
-      this.config.width, 
-      this.config.height, 
-      this.config.backgroundColor
-    ).setInteractive();
-    
-    // 創建文字
-    this.textObject = this.scene.add.text(
-      this.x, 
-      this.y, 
-      this.text, 
-      {
-        fontSize: this.config.fontSize,
-        fill: this.config.textColor
-      }
-    ).setOrigin(0.5, 0.5);
-    
+    try {
+      // 創建矩形背景
+      this.rectangle = this.scene.add.rectangle(
+        this.x,
+        this.y,
+        this.config.width,
+        this.config.height,
+        this.config.backgroundColor
+      ).setInteractive();
+
+      // 創建文字
+      this.textObject = this.scene.add.text(
+        this.x,
+        this.y,
+        this.text || 'Button', // 确保文本不为空
+        {
+          fontSize: this.config.fontSize,
+          fill: this.config.textColor
+        }
+      ).setOrigin(0.5, 0.5);
+
+      console.log(`Button created: ${this.text}, position: ${this.x},${this.y}`);
+    } catch (error) {
+      console.error('Error creating button:', error);
+    }
+
     // 添加點擊事件
     this.rectangle.on('pointerdown', this.config.onClick);
-    
+
     // 添加懸停效果
     this.rectangle.on('pointerover', () => {
       this.rectangle.setFillStyle(this.config.backgroundColor, 0.8);
     });
-    
+
     this.rectangle.on('pointerout', () => {
       this.rectangle.setFillStyle(this.config.backgroundColor, 1);
     });
   }
-  
+
   /**
    * 設置按鈕是否可見
    * @param {boolean} visible - 是否可見
@@ -84,7 +90,7 @@ export default class Button {
     this.textObject.setVisible(visible);
     return this;
   }
-  
+
   /**
    * 設置按鈕是否可交互
    * @param {boolean} interactive - 是否可交互
@@ -98,7 +104,7 @@ export default class Button {
     }
     return this;
   }
-  
+
   /**
    * 設置按鈕文字
    * @param {string} text - 新的按鈕文字
@@ -109,7 +115,7 @@ export default class Button {
     this.textObject.setText(text);
     return this;
   }
-  
+
   /**
    * 設置按鈕位置
    * @param {number} x - x座標
@@ -123,7 +129,7 @@ export default class Button {
     this.textObject.setPosition(x, y);
     return this;
   }
-  
+
   /**
    * 設置按鈕背景顏色
    * @param {number} color - 顏色
@@ -134,7 +140,7 @@ export default class Button {
     this.rectangle.setFillStyle(color);
     return this;
   }
-  
+
   /**
    * 設置按鈕文字顏色
    * @param {string} color - 顏色
@@ -145,7 +151,7 @@ export default class Button {
     this.textObject.setColor(color);
     return this;
   }
-  
+
   /**
    * 設置按鈕大小
    * @param {number} width - 寬度
@@ -158,7 +164,7 @@ export default class Button {
     this.rectangle.setSize(width, height);
     return this;
   }
-  
+
   /**
    * 設置點擊回調函數
    * @param {Function} callback - 回調函數
@@ -170,15 +176,19 @@ export default class Button {
     this.rectangle.on('pointerdown', callback);
     return this;
   }
-  
+
   /**
    * 獲取按鈕元素
    * @returns {Array} - 返回按鈕的矩形和文字對象
    */
   getElements() {
+    if (!this.rectangle || !this.textObject) {
+      console.error('Button elements not created properly');
+      return [];
+    }
     return [this.rectangle, this.textObject];
   }
-  
+
   /**
    * 銷毀按鈕
    */
