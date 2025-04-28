@@ -74,11 +74,9 @@ export default class ResourcePanel extends BasePanel {
    * 创建面板内容
    */
   createContent() {
-    // 获取资源数据
-    const resourcesData = this.scene.resources.resources;
-
     // 创建资源图标和文本
     this.resourceTexts = {};
+    this.resourceSlots = []; // 存储资源槽位信息
 
     this.resources.forEach((resource, index) => {
       // 计算行和列
@@ -91,7 +89,8 @@ export default class ResourcePanel extends BasePanel {
 
       // 创建资源图标背景
       const iconBg = this.scene.add.rectangle(x, y - 15, 50, 50, 0x333333)
-        .setStrokeStyle(1, 0x555555);
+        .setStrokeStyle(1, 0x555555)
+        .setInteractive(); // 使图标背景可交互
 
       // 创建资源名称
       const displayName = this.getResourceDisplayName(resource);
@@ -111,9 +110,172 @@ export default class ResourcePanel extends BasePanel {
       // 保存引用以便更新
       this.resourceTexts[resource] = valueText;
 
+      // 存储槽位信息
+      this.resourceSlots.push({
+        index,
+        resource,
+        iconBg,
+        nameText,
+        valueText,
+        x,
+        y
+      });
+
+      // 添加点击事件
+      iconBg.on('pointerdown', () => {
+        this.showResourceSelectionMenu(index, x, y);
+      });
+
       // 添加元素到面板
       this.add([iconBg, nameText, valueText]);
     });
+  }
+
+  /**
+   * 显示资源选择菜单
+   * @param {number} slotIndex - 槽位索引
+   * @param {number} x - 菜单x坐标
+   * @param {number} y - 菜单y坐标
+   */
+  showResourceSelectionMenu(slotIndex, x, y) {
+    // 如果已经有菜单打开，先关闭它
+    if (this.resourceMenu) {
+      this.resourceMenu.destroy();
+      this.resourceMenu = null;
+    }
+
+    // 创建菜单容器
+    this.resourceMenu = this.scene.add.container(x, y);
+    this.add(this.resourceMenu);
+
+    // 获取所有资源
+    const allResources = this.scene.resources.resources;
+
+    // 创建菜单背景
+    const menuWidth = 200;
+    const menuHeight = Math.min(350, Object.keys(allResources).length * 30 + 50);
+    const menuBg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x222222, 0.9)
+      .setStrokeStyle(1, 0x444444);
+
+    // 创建菜单标题
+    const menuTitle = this.scene.add.text(0, -menuHeight/2 + 15, '选择资源', {
+      fontSize: '14px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0.5);
+
+    // 创建关闭按钮
+    const closeButton = this.scene.add.text(menuWidth/2 - 15, -menuHeight/2 + 15, 'X', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.resourceMenu.destroy();
+        this.resourceMenu = null;
+      });
+
+    // 添加背景和标题到菜单
+    this.resourceMenu.add([menuBg, menuTitle, closeButton]);
+
+    // 创建资源列表
+    const resourceList = this.scene.add.container(0, 0);
+    this.resourceMenu.add(resourceList);
+
+    // 按资源层级分组
+    const resourcesByTier = {};
+    Object.entries(allResources).forEach(([key, data]) => {
+      const tier = data.tier || 1;
+      if (!resourcesByTier[tier]) {
+        resourcesByTier[tier] = [];
+      }
+      resourcesByTier[tier].push({
+        key,
+        displayName: data.displayName || this.getResourceDisplayName(key)
+      });
+    });
+
+    // 创建分层标签
+    let yOffset = -menuHeight/2 + 40;
+    Object.keys(resourcesByTier).sort().forEach(tier => {
+      // 添加层级标题
+      const tierTitle = this.scene.add.text(-menuWidth/2 + 15, yOffset, `第${tier}级资源`, {
+        fontSize: '12px',
+        fill: '#aaaaaa'
+      }).setOrigin(0, 0.5);
+      resourceList.add(tierTitle);
+      yOffset += 20;
+
+      // 添加该层级的资源
+      resourcesByTier[tier].forEach(resource => {
+        const resourceItem = this.scene.add.text(-menuWidth/2 + 25, yOffset, resource.displayName, {
+          fontSize: '12px',
+          fill: '#ffffff'
+        }).setOrigin(0, 0.5)
+          .setInteractive()
+          .on('pointerover', () => resourceItem.setFill('#ffff00'))
+          .on('pointerout', () => resourceItem.setFill('#ffffff'))
+          .on('pointerdown', () => {
+            this.replaceResource(slotIndex, resource.key);
+            this.resourceMenu.destroy();
+            this.resourceMenu = null;
+          });
+
+        resourceList.add(resourceItem);
+        yOffset += 20;
+      });
+
+      yOffset += 5; // 层级之间的间隔
+    });
+
+    // 调整菜单位置，确保不超出屏幕
+    const screenWidth = this.scene.scale.width;
+    const screenHeight = this.scene.scale.height;
+    const menuX = this.container.x + x;
+    const menuY = this.container.y + y;
+
+    if (menuX + menuWidth/2 > screenWidth) {
+      this.resourceMenu.x -= (menuX + menuWidth/2) - screenWidth + 10;
+    }
+    if (menuX - menuWidth/2 < 0) {
+      this.resourceMenu.x -= (menuX - menuWidth/2) - 10;
+    }
+    if (menuY + menuHeight/2 > screenHeight) {
+      this.resourceMenu.y -= (menuY + menuHeight/2) - screenHeight + 10;
+    }
+    if (menuY - menuHeight/2 < 0) {
+      this.resourceMenu.y -= (menuY - menuHeight/2) - 10;
+    }
+  }
+
+  /**
+   * 替换资源槽位中的资源
+   * @param {number} slotIndex - 槽位索引
+   * @param {string} newResource - 新资源类型
+   */
+  replaceResource(slotIndex, newResource) {
+    // 获取槽位信息
+    const slot = this.resourceSlots[slotIndex];
+    if (!slot) return;
+
+    // 更新资源引用
+    const oldResource = slot.resource;
+    this.resources[slotIndex] = newResource;
+    slot.resource = newResource;
+
+    // 更新资源文本
+    const displayName = this.getResourceDisplayName(newResource);
+    slot.nameText.setText(displayName);
+
+    // 更新数值文本的名称属性
+    slot.valueText.name = newResource;
+
+    // 更新资源文本引用
+    delete this.resourceTexts[oldResource];
+    this.resourceTexts[newResource] = slot.valueText;
+
+    // 立即更新资源显示
+    this.update();
   }
 
   /**

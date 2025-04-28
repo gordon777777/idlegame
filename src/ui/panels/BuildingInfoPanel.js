@@ -194,7 +194,7 @@ export default class BuildingInfoPanel extends BasePanel {
       }));
 
       // 创建生产方法标签
-      const methodLabel = this.scene.add.text(-150, containY + 30, '生产方法:', {
+      const methodLabel = this.scene.add.text(-150, containY + 10, '生产方法:', {
         fontSize: '14px',
         fill: '#e0e0e0'
       }).setOrigin(0, 0.5);
@@ -204,7 +204,7 @@ export default class BuildingInfoPanel extends BasePanel {
         this.scene,
         this.container,
         -50,
-        containY + 30,
+        containY + 10,
         methodOptions,
         {
           width: 180,

@@ -30,19 +30,87 @@ export default class DataManager {
    * @returns {boolean} - Whether data was loaded successfully
    */
   loadData() {
-    if (!this.cache.json.exists('buildings') || 
-        !this.cache.json.exists('research') || 
+    if (!this.cache.json.exists('buildings') ||
+        !this.cache.json.exists('research') ||
         !this.cache.json.exists('resources')) {
       console.error('JSON data not found in cache. Make sure to preload data first.');
       return false;
     }
 
-    this.buildingTypes = this.cache.json.get('buildings');
+    // 获取原始数据
+    const rawBuildingTypes = this.cache.json.get('buildings');
     this.technologies = this.cache.json.get('research');
     this.resourceSettings = this.cache.json.get('resources');
+
+    // 处理建筑类型数据，确保关键属性存在
+    this.buildingTypes = this.processBuildingTypes(rawBuildingTypes);
+
     this.isDataLoaded = true;
-    
+
     return true;
+  }
+
+  /**
+   * 处理建筑类型数据，确保关键属性存在
+   * @param {Object} rawBuildingTypes - 原始建筑类型数据
+   * @returns {Object} - 处理后的建筑类型数据
+   */
+  processBuildingTypes(rawBuildingTypes) {
+    const processedBuildingTypes = {};
+
+    // 遍历所有建筑类型
+    Object.entries(rawBuildingTypes).forEach(([key, buildingType]) => {
+      // 确保关键属性存在
+      processedBuildingTypes[key] = {
+        ...buildingType,
+        byproductTypes: buildingType.byproductTypes || [],
+        productionMethods: buildingType.productionMethods || [],
+        workModes: buildingType.workModes || []
+      };
+
+      // 如果是收集器类型的建筑，但没有副产品类型，添加默认的副产品类型
+      if (buildingType.type === 'collector' && !processedBuildingTypes[key].byproductTypes) {
+        processedBuildingTypes[key].byproductTypes = [
+          {
+            id: 'none',
+            name: '无副产品',
+            description: '不生产副产品，专注于主要产出。',
+            resources: {}
+          }
+        ];
+      }
+
+      // 如果是生产类型的建筑，但没有生产方式，添加默认的生产方式
+      if ((buildingType.type === 'production' || buildingType.type === 'advanced') && !processedBuildingTypes[key].productionMethods) {
+        processedBuildingTypes[key].productionMethods = [
+          {
+            id: 'standard',
+            name: '标准生产',
+            description: '标准的生产方式，正常产出。',
+            timeModifier: 1.0,
+            enableByproducts: true,
+            workerRequirement: buildingType.workerRequirement || { count: 5, type: 'worker' }
+          }
+        ];
+      }
+
+      // 如果没有工作模式，添加默认的工作模式
+      if (!buildingType.workModes) {
+        processedBuildingTypes[key].workModes = [
+          {
+            id: 'normal',
+            name: '正常工作',
+            description: '正常工作时间，标准产出。',
+            timeModifier: 1.0,
+            workerModifier: 1.0
+          }
+        ];
+      }
+    });
+
+    console.log('Processed building types:', Object.keys(processedBuildingTypes).length);
+
+    return processedBuildingTypes;
   }
 
   /**
@@ -117,7 +185,7 @@ export default class DataManager {
   exportGameData(buildingSystem, researchSystem, resourceSystem) {
     this.saveBuildingTypes(buildingSystem.buildingTypes);
     this.saveTechnologies(researchSystem.technologies);
-    
+
     const resourceSettings = {
       resources: resourceSystem.resources,
       resourceCaps: resourceSystem.resourceCaps

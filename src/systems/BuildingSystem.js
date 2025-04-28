@@ -457,12 +457,35 @@ export default class BuildingSystem {
     // Consume resources
     this.resourceSystem.consumeResources(buildingType.cost);
 
-    // Create the building
-    const building = new Building({
+    // 获取默认定义中的建筑类型数据（如果存在）
+    const defaultBuildingType = this.defineBuildingTypes()[type];
+
+    // 合并 JSON 数据和默认数据，确保关键属性存在
+    const mergedBuildingType = {
       ...buildingType,
+      // 如果 JSON 中没有这些属性，则使用默认定义中的属性
+      byproductTypes: buildingType.byproductTypes || (defaultBuildingType?.byproductTypes || []),
+      productionMethods: buildingType.productionMethods || (defaultBuildingType?.productionMethods || []),
+      workModes: buildingType.workModes || (defaultBuildingType?.workModes || []),
       id: `${type}_${Date.now()}`,
       position
-    }, this.scene);
+    };
+
+    // 打印调试信息
+    console.log(`Creating building ${type} with:`, {
+      hasJsonByproducts: !!buildingType.byproductTypes,
+      hasJsonProductionMethods: !!buildingType.productionMethods,
+      hasJsonWorkModes: !!buildingType.workModes,
+      hasDefaultByproducts: !!(defaultBuildingType?.byproductTypes),
+      hasDefaultProductionMethods: !!(defaultBuildingType?.productionMethods),
+      hasDefaultWorkModes: !!(defaultBuildingType?.workModes),
+      finalByproductsCount: mergedBuildingType.byproductTypes.length,
+      finalProductionMethodsCount: mergedBuildingType.productionMethods.length,
+      finalWorkModesCount: mergedBuildingType.workModes.length
+    });
+
+    // Create the building
+    const building = new Building(mergedBuildingType, this.scene);
 
     // Add to building collection
     this.buildings.set(building.id, building);
