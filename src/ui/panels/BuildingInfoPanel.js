@@ -17,7 +17,7 @@ export default class BuildingInfoPanel extends BasePanel {
     // 调用父类构造函数
     super(scene, config.x || 1050, config.y || 500, {
       width: 400,
-      height: 400, // 增加面板高度以适应更多的工人信息
+      height: 580, // 增加面板高度以适应更多的工人信息
       title: buildingInfo.name || '建筑信息',
       onClose: config.onClose || (() => {
         // 如果没有提供onClose回调，则使用默认行为
@@ -176,7 +176,7 @@ export default class BuildingInfoPanel extends BasePanel {
 
     // 添加生产时间信息
     const productionInterval = this.buildingInfo.productionInterval || 0;
-    const timeText = this.scene.add.text(0, containY + this.height/2 - 60, `生产时间: ${(productionInterval/1000).toFixed(1)}秒`, {
+    const timeText = this.scene.add.text(0, containY - this.height/2 +200, `生产时间: ${(productionInterval/1000).toFixed(1)}秒`, {
       fontSize: '14px',
       fill: '#e0e0e0'
     }).setOrigin(0.5, 0);
@@ -194,7 +194,7 @@ export default class BuildingInfoPanel extends BasePanel {
       }));
 
       // 创建生产方法标签
-      const methodLabel = this.scene.add.text(-150, containY + 10, '生产方法:', {
+      const methodLabel = this.scene.add.text(-150, containY - this.height/2 +240, '生产方法:', {
         fontSize: '14px',
         fill: '#e0e0e0'
       }).setOrigin(0, 0.5);
@@ -204,7 +204,7 @@ export default class BuildingInfoPanel extends BasePanel {
         this.scene,
         this.container,
         -50,
-        containY + 10,
+        containY - this.height/2 +240,
         methodOptions,
         {
           width: 180,
@@ -230,7 +230,7 @@ export default class BuildingInfoPanel extends BasePanel {
       }));
 
       // 创建副产品类型标签
-      const byproductLabel = this.scene.add.text(-150, containY + 70, '副产品类型:', {
+      const byproductLabel = this.scene.add.text(-150, containY - this.height/2 +330, '副产品类型:', {
         fontSize: '14px',
         fill: '#e0e0e0'
       }).setOrigin(0, 0.5);
@@ -240,7 +240,7 @@ export default class BuildingInfoPanel extends BasePanel {
         this.scene,
         this.container,
         -50,
-        containY + 70,
+        containY - this.height/2 +330,
         byproductOptions,
         {
           width: 180,
@@ -266,7 +266,7 @@ export default class BuildingInfoPanel extends BasePanel {
       }));
 
       // 创建工作模式标签
-      const workModeLabel = this.scene.add.text(-150, containY + 110, '工作模式:', {
+      const workModeLabel = this.scene.add.text(-150, containY + 130, '工作模式:', {
         fontSize: '14px',
         fill: '#e0e0e0'
       }).setOrigin(0, 0.5);
@@ -276,7 +276,7 @@ export default class BuildingInfoPanel extends BasePanel {
         this.scene,
         this.container,
         -50,
-        containY + 110,
+        containY + 130,
         workModeOptions,
         {
           width: 180,
@@ -291,9 +291,9 @@ export default class BuildingInfoPanel extends BasePanel {
       uiElements.push(workModeLabel);
       uiElements.push(...workModeDropdown.getElements());
     }
-
+    let PosY =  this.height/2  -80
     // 添加优先级按钮
-    const priorityTitle = this.scene.add.text(-150, containY + this.height/2 - 80, '工人分配优先级:', {
+    const priorityTitle = this.scene.add.text(-150, PosY -30, '工人分配优先级:', {
       fontSize: '14px',
       fill: '#e0e0e0'
     }).setOrigin(0, 0.5);
@@ -302,7 +302,7 @@ export default class BuildingInfoPanel extends BasePanel {
     const currentPriority = this.buildingInfo.priority || 'medium';
 
     // 高优先级按钮
-    const highPriorityBtn = new Button(this.scene, -100, containY + this.height/2 - 60, '高', {
+    const highPriorityBtn = new Button(this.scene, -100, PosY , '高', {
       width: 60,
       height: 30,
       backgroundColor: currentPriority === 'high' ? 0x8a3a3a : 0x4a4a4a,
@@ -312,7 +312,7 @@ export default class BuildingInfoPanel extends BasePanel {
     });
 
     // 中优先级按钮
-    const mediumPriorityBtn = new Button(this.scene, 0, containY + this.height/2 - 60, '中', {
+    const mediumPriorityBtn = new Button(this.scene, 0, PosY , '中', {
       width: 60,
       height: 30,
       backgroundColor: currentPriority === 'medium' ? 0x8a8a3a : 0x4a4a4a,
@@ -322,7 +322,7 @@ export default class BuildingInfoPanel extends BasePanel {
     });
 
     // 低优先级按钮
-    const lowPriorityBtn = new Button(this.scene, 100, containY + this.height/2 - 60, '低', {
+    const lowPriorityBtn = new Button(this.scene, 100, PosY, '低', {
       width: 60,
       height: 30,
       backgroundColor: currentPriority === 'low' ? 0x3a8a3a : 0x4a4a4a,
@@ -332,14 +332,14 @@ export default class BuildingInfoPanel extends BasePanel {
     });
 
     // 添加优先级说明
-    const priorityDesc = this.scene.add.text(0, containY + this.height/2 - 40, '高优先级建筑将优先获得工人分配', {
+    const priorityDesc = this.scene.add.text(0, PosY +40, '高优先级建筑将优先获得工人分配', {
       fontSize: '12px',
       fill: '#cccccc',
       align: 'center'
     }).setOrigin(0.5, 0.5);
 
     // 添加升级按钮
-    const upgradeBtn = new Button(this.scene, 0, containY + this.height/2 - 10, '升级', {
+    const upgradeBtn = new Button(this.scene, 0, PosY +60, '升级', {
       width: 100,
       height: 30,
       backgroundColor: 0x4a6a4a,

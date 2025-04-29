@@ -154,6 +154,42 @@
         "resources": { "stone": 3 }
       }
     ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "徒手工作",
+        "description": "工人徒手加工木材，正常产出。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 10, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用工具加工木材，提高产出但需要额外资源。",
+        "timeModifier": 0.6,
+        "inputModifiers": { "enchanted_wood": 1.0, "tools": 1 },
+        "outputModifiers": { "mystic_planks": 2.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.55,
+        "workerModifier": 1.6
+      }
+    ],
     "productionInterval": 2000,
     "cost": { "magic_ore": 10 },
     "description": "開採原始魔法礦石。"
