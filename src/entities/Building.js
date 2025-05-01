@@ -60,12 +60,22 @@ export default class Building {
         this.scene.selectBuilding(this.id);
       });
 
-    // Add a progress bar for production
-    this.progressBar = this.scene.add.rectangle(
-      this.position.x,
-      this.position.y + 40,
-      0, 5, 0x00ff00
-    );
+    // 功能性建筑不需要进度条（包括住房、效用建筑等）
+    if (this.type !== 'housing' && this.type !== 'utility' && this.type !== 'special') {
+      // Add a progress bar for production
+      this.progressBar = this.scene.add.rectangle(
+        this.position.x,
+        this.position.y + 40,
+        0, 5, 0x00ff00
+      );
+    } else {
+      // 为功能性建筑创建一个空的进度条（不可见），以避免空引用错误
+      this.progressBar = this.scene.add.rectangle(
+        this.position.x,
+        this.position.y + 40,
+        0, 0, 0x00ff00
+      ).setVisible(false);
+    }
 
     // Add level indicator
     this.levelText = this.scene.add.text(
@@ -95,6 +105,9 @@ export default class Building {
    * @returns {boolean} - Whether production started
    */
   startProduction(availableResources) {
+    // 功能性建筑不参与生产（包括住房、效用建筑等）
+    if (this.type === 'housing' || this.type === 'utility' || this.type === 'special') return false;
+
     if (this.isProducing) return true;
 
     // 获取当前生产方式的输入资源需求
@@ -122,6 +135,9 @@ export default class Building {
    * @returns {Object|null} - Produced resources or null if not complete
    */
   updateProduction(time, delta, resourceSystem) {
+    // 功能性建筑不参与生产（包括住房、效用建筑等）
+    if (this.type === 'housing' || this.type === 'utility' || this.type === 'special') return null;
+
     // 如果建築不活動（沒有工人）或不在生產中，則返回空
     if (!this.isActive || !this.isProducing) return null;
 
