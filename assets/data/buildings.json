@@ -3,6 +3,7 @@
     "name": "Magic Forge",
     "type": "production",
     "sprite": "magic_forge",
+    "spriteIndex": 0,
     "recipe": {
       "input": { "magic_ore": 2 },
       "output": { "arcane_essence": 1 }
@@ -15,6 +16,7 @@
     "name": "Wood Enchanter",
     "type": "production",
     "sprite": "wood_enchanter",
+    "spriteIndex": 1,
     "recipe": {
       "input": { "enchanted_wood": 2 },
       "output": { "mystic_planks": 1 }
@@ -82,6 +84,7 @@
     "name": "Crystal Refiner",
     "type": "production",
     "sprite": "crystal_refiner",
+    "spriteIndex": 2,
     "recipe": {
       "input": { "arcane_crystal": 2 },
       "output": { "refined_crystal": 1 }
@@ -94,6 +97,7 @@
     "name": "Potion Brewery",
     "type": "production",
     "sprite": "potion_brewery",
+    "spriteIndex": 3,
     "recipe": {
       "input": { "arcane_essence": 1, "mana": 2 },
       "output": { "magical_potion": 1 }
@@ -106,6 +110,7 @@
     "name": "Artifact Workshop",
     "type": "production",
     "sprite": "artifact_workshop",
+    "spriteIndex": 4,
     "recipe": {
       "input": { "mystic_planks": 2, "refined_crystal": 1 },
       "output": { "enchanted_artifact": 1 }
@@ -118,6 +123,7 @@
     "name": "Arcane Workshop",
     "type": "advanced",
     "sprite": "arcane_workshop",
+    "spriteIndex": 5,
     "recipe": {
       "input": { "enchanted_artifact": 1, "magical_potion": 1 },
       "output": { "magical_construct": 1 }
@@ -130,6 +136,7 @@
     "name": "Magic Mine",
     "type": "collector",
     "sprite": "magic_mine",
+    "spriteIndex": 6,
     "recipe": {
       "input": {},
       "output": { "magic_ore": 1 }
@@ -198,6 +205,7 @@
     "name": "Enchanted Forest",
     "type": "collector",
     "sprite": "enchanted_forest",
+    "spriteIndex": 7,
     "recipe": {
       "input": {},
       "output": { "enchanted_wood": 1 }
@@ -210,6 +218,7 @@
     "name": "Crystal Mine",
     "type": "collector",
     "sprite": "crystal_mine",
+    "spriteIndex": 8,
     "recipe": {
       "input": {},
       "output": { "arcane_crystal": 1 }
@@ -222,6 +231,7 @@
     "name": "Mana Well",
     "type": "collector",
     "sprite": "mana_well",
+    "spriteIndex": 9,
     "recipe": {
       "input": {},
       "output": { "mana": 1 }
@@ -234,6 +244,7 @@
     "name": "Wizard Tower",
     "type": "special",
     "sprite": "wizard_tower",
+    "spriteIndex": 10,
     "recipe": {
       "input": { "mana": 2 },
       "output": { "research_point": 1 }
@@ -246,6 +257,7 @@
     "name": "Arcane Library",
     "type": "special",
     "sprite": "arcane_library",
+    "spriteIndex": 11,
     "recipe": {
       "input": { "research_point": 1 },
       "output": { "knowledge": 1 }
@@ -258,6 +270,7 @@
     "name": "Mana Fountain",
     "type": "special",
     "sprite": "mana_fountain",
+    "spriteIndex": 14,
     "recipe": {
       "input": { "arcane_essence": 1, "refined_crystal": 1 },
       "output": { "mana": 5 }
@@ -270,6 +283,7 @@
     "name": "Magic Academy",
     "type": "advanced",
     "sprite": "magic_academy",
+    "spriteIndex": 15,
     "recipe": {
       "input": { "knowledge": 1, "mana": 5 },
       "output": { "wizard": 1 }
@@ -282,6 +296,7 @@
     "name": "Research Lab",
     "type": "advanced",
     "sprite": "research_lab",
+    "spriteIndex": 16,
     "recipe": {
       "input": { "knowledge": 2, "magical_potion": 1 },
       "output": { "research_point": 5 }
@@ -294,6 +309,7 @@
     "name": "Storage Vault",
     "type": "utility",
     "sprite": "storage_vault",
+    "spriteIndex": 17,
     "recipe": {
       "input": {},
       "output": {}
@@ -306,6 +322,7 @@
     "name": "Housing District",
     "type": "housing",
     "sprite": "housing_district",
+    "spriteIndex": 12,
     "recipe": {
       "input": {},
       "output": {}
@@ -319,6 +336,7 @@
     "name": "Wizard Quarters",
     "type": "housing",
     "sprite": "wizard_quarters",
+    "spriteIndex": 13,
     "recipe": {
       "input": {},
       "output": {}
@@ -333,6 +351,7 @@
     "name": "平房",
     "type": "housing",
     "sprite": "basic_house",
+    "spriteIndex": 18,
     "recipe": {
       "input": {},
       "output": {}

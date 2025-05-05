@@ -14,21 +14,21 @@
       "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
       "sourceSize": {"w": 64, "h": 64}
     },
-    "crystal_refinery": {
+    "crystal_refiner": {
       "frame": {"x": 128, "y": 0, "w": 64, "h": 64},
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
       "sourceSize": {"w": 64, "h": 64}
     },
-    "alchemy_lab": {
+    "potion_brewery": {
       "frame": {"x": 192, "y": 0, "w": 64, "h": 64},
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
       "sourceSize": {"w": 64, "h": 64}
     },
-    "enchanting_tower": {
+    "artifact_workshop": {
       "frame": {"x": 256, "y": 0, "w": 64, "h": 64},
       "rotated": false,
       "trimmed": false,
@@ -84,14 +84,14 @@
       "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
       "sourceSize": {"w": 64, "h": 64}
     },
-    "mystic_garden": {
+    "housing_district": {
       "frame": {"x": 0, "y": 128, "w": 64, "h": 64},
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
       "sourceSize": {"w": 64, "h": 64}
     },
-    "crystal_garden": {
+    "wizard_quarters": {
       "frame": {"x": 64, "y": 128, "w": 64, "h": 64},
       "rotated": false,
       "trimmed": false,
@@ -125,14 +125,21 @@
       "trimmed": false,
       "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
       "sourceSize": {"w": 64, "h": 64}
+    },
+    "basic_house": {
+      "frame": {"x": 0, "y": 192, "w": 64, "h": 64},
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {"x": 0, "y": 0, "w": 64, "h": 64},
+      "sourceSize": {"w": 64, "h": 64}
     }
   },
   "meta": {
     "app": "Buildings Sprite Sheet",
     "version": "1.0",
-    "image": "buildings_sheet.png",
+    "image": "buildings_spritesheet.png",
     "format": "RGBA8888",
-    "size": {"w": 384, "h": 192},
+    "size": {"w": 384, "h": 256},
     "scale": "1"
   }
 }

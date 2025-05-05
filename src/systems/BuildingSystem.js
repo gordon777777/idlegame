@@ -526,8 +526,19 @@ export default class BuildingSystem {
 
     // Create ghost sprite for placement
     const buildingType = this.buildingTypes[type];
-    this.placementGhost = this.scene.add.sprite(0, 0, buildingType.sprite)
-      .setAlpha(0.5);
+
+    // 如果有 spriteIndex，使用 buildings_spritesheet 精灵图
+    if (buildingType.spriteIndex !== undefined) {
+      this.placementGhost = this.scene.add.sprite(0, 0, 'buildings_spritesheet', buildingType.spriteIndex)
+        .setAlpha(0.5);
+    } else {
+      // 否则使用单独的图像
+      this.placementGhost = this.scene.add.sprite(0, 0, buildingType.sprite)
+        .setAlpha(0.5);
+    }
+
+    // 检查精灵图尺寸，如果太大则按比例缩小
+    this.adjustPlacementGhostScale();
 
     // Add cost display
     const costText = Object.entries(buildingType.cost)
@@ -620,6 +631,30 @@ export default class BuildingSystem {
   }
 
   /**
+   * 检查并调整放置幽灵精灵的缩放比例
+   * 如果图像太大，则按比例缩小
+   */
+  adjustPlacementGhostScale() {
+    if (!this.placementGhost) return;
+
+    // 获取精灵的宽度和高度
+    const width = this.placementGhost.width;
+    const height = this.placementGhost.height;
+
+    // 定义最大尺寸（标准尺寸为64x64）
+    const maxSize = 64;
+
+    // 如果宽度或高度超过最大尺寸，则按比例缩小
+    if (width > maxSize || height > maxSize) {
+      // 计算缩放比例（取宽高比例的最小值，确保完全适应）
+      const scale = Math.min(maxSize / width, maxSize / height);
+
+      // 应用缩放
+      this.placementGhost.setScale(scale);
+    }
+  }
+
+  /**
    * Exit building placement mode
    */
   exitPlacementMode() {
@@ -656,7 +691,7 @@ export default class BuildingSystem {
   upgradeSelectedBuilding() {
     if (!this.selectedBuilding) return false;
 
-    const buildingType = this.buildingTypes[this.selectedBuilding.type];
+    // 创建升级成本对象
     const upgradeCost = {};
 
     // Calculate upgrade cost based on original cost and level

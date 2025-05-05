@@ -59,6 +59,18 @@ export default class GameScene extends Phaser.Scene {
       console.warn('Buildings sprite sheet could not be loaded:', e);
     }
 
+    // Load the buildings spritesheet
+    try {
+      this.load.spritesheet(
+        'buildings_spritesheet',
+        'assets/buildings/buildings_spritesheet.png',
+        { frameWidth: 128, frameHeight: 128 }
+      );
+      console.log('Buildings spritesheet loaded successfully');
+    } catch (e) {
+      console.warn('Buildings spritesheet could not be loaded:', e);
+    }
+
     // Load individual building images as fallback
     this.load.image('magic_forge', 'assets/buildings/magic_forge.PNG');
   }

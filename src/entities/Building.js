@@ -2,6 +2,8 @@
  * Building class for the medieval magic city-building game
  * Represents a production building that can be placed in the game world
  */
+// 統一所有建築圖標的縮放比例
+const building_icon_scale = 0.1;
 export default class Building {
   /**
    * @param {Object} config - Building configuration
@@ -23,6 +25,7 @@ export default class Building {
     this.name = config.name;
     this.type = config.type;
     this.spriteKey = config.sprite;
+    this.spriteIndex = config.spriteIndex !== undefined ? config.spriteIndex : null;
     this.recipe = config.recipe || { input: {}, output: {} };
     this.byproductTypes = config.byproductTypes || []; // 副产品类型选项
     this.currentByproductType = config.byproductTypes?.length > 0 ? config.byproductTypes[0].id : null; // 当前选择的副产品类型
@@ -54,11 +57,29 @@ export default class Building {
    * Create the sprite for this building
    */
   createSprite() {
-    this.sprite = this.scene.add.sprite(this.position.x, this.position.y, this.spriteKey)
-      .setInteractive()
-      .on('pointerdown', () => {
-        this.scene.selectBuilding(this.id);
-      });
+    // 如果有 spriteIndex，使用 buildings_spritesheet 精灵图
+    if (this.spriteIndex !== null) {
+      this.sprite = this.scene.add.sprite(this.position.x, this.position.y, 'buildings_spritesheet', this.spriteIndex)
+        .setInteractive()
+        .on('pointerdown', () => {
+          this.scene.selectBuilding(this.id);
+        });
+    } else {
+      // 否则使用单独的图像
+      this.sprite = this.scene.add.sprite(this.position.x, this.position.y, this.spriteKey)
+        .setInteractive()
+        .on('pointerdown', () => {
+          this.scene.selectBuilding(this.id);
+        });
+    }
+
+    // 尝试立即调整缩放（如果纹理已加载）
+    this.adjustSpriteScale();
+
+    // 同时在下一帧再次尝试调整缩放（确保纹理已完全加载）
+    this.scene.events.once('update', () => {
+      this.adjustSpriteScale();
+    });
 
     // 功能性建筑不需要进度条（包括住房、效用建筑等）
     if (this.type !== 'housing' && this.type !== 'utility' && this.type !== 'special') {
@@ -312,6 +333,41 @@ export default class Building {
         }
       }
     }
+  }
+
+  /**
+   * 检查并调整精灵图的缩放比例
+   * 使用统一的缩放比例 building_icon_scale
+   */
+  adjustSpriteScale() {
+    if (!this.sprite) return;
+
+    // 检查纹理是否已加载
+    let frame = this.spriteIndex !== null ? this.spriteIndex : '__BASE';
+    let textureFrame;
+
+    try {
+      textureFrame = this.sprite.texture.get(frame);
+    } catch (e) {
+      console.warn(`无法获取纹理帧 ${frame}，将在下一帧重试`);
+      this.scene.events.once('update', () => {
+        this.adjustSpriteScale();
+      });
+      return;
+    }
+
+    if (!textureFrame || !textureFrame.source[0] || !textureFrame.source[0].complete) {
+      // 如果纹理尚未加载完成，在下一帧再次尝试
+      this.scene.events.once('update', () => {
+        this.adjustSpriteScale();
+      });
+      return;
+    }
+
+    // 应用统一的缩放比例
+    this.sprite.setScale(building_icon_scale);
+
+    console.log(`Building ${this.name} scaled to ${building_icon_scale} (using unified scale)`);
   }
 
   /**
