@@ -12,6 +12,322 @@
     "cost": { "magic_ore": 20, "enchanted_wood": 10 },
     "description": "將原始魔法礦石轉化為奧術精華。"
   },
+  "fishing_dock": {
+    "name": "渔场",
+    "type": "collector",
+    "sprite": "fishing_dock",
+    "spriteIndex": 19,
+    "recipe": {
+      "input": {},
+      "output": { "fish": 2 }
+    },
+    "productionInterval": 2500,
+    "cost": { "wood_plank": 20, "stone": 10 },
+    "description": "在河流或湖泊边建造的捕鱼设施，提供稳定的鱼类供应。",
+    "workerRequirement": { "count": 5, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于捕鱼，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "rare_fish",
+        "name": "稀有鱼类",
+        "description": "有机会捕获稀有鱼类，但需要更多工人和时间。",
+        "resources": { "magical_potion": 0.1 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 7, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工捕鱼",
+        "description": "渔民使用传统方法捕鱼，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "nets",
+        "name": "渔网捕鱼",
+        "description": "使用渔网提高捕鱼效率，但需要额外资源维护。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "tool": 0.1 },
+        "outputModifiers": { "fish": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "hunters_lodge": {
+    "name": "猎人小屋",
+    "type": "collector",
+    "sprite": "hunters_lodge",
+    "spriteIndex": 20,
+    "recipe": {
+      "input": {},
+      "output": { "raw_meat": 1 }
+    },
+    "productionInterval": 3000,
+    "cost": { "wood_plank": 15, "stone": 5 },
+    "description": "猎人在此居住并狩猎野生动物，提供肉类和兽皮资源。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于狩猎肉类，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "mushroom",
+        "name": "采集蘑菇",
+        "description": "猎人在狩猎过程中同时采集森林中的蘑菇。",
+        "resources": { "wild_mushroom": 1 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "animal_hide",
+        "name": "收集兽皮",
+        "description": "猎人在狩猎过程中收集动物皮毛。",
+        "resources": { "animal_hide": 1 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "wild_herbs",
+        "name": "采集药草",
+        "description": "猎人在狩猎过程中同时采集森林中的药草。",
+        "resources": { "herb": 0.5 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "简易陷阱",
+        "description": "使用简易陷阱捕获猎物，产量较低。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "弓箭狩猎",
+        "description": "使用弓箭进行狩猎，提高效率但需要工具维护。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "tool": 0.05 },
+        "outputModifiers": { "meat": 1.3 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ]
+  },
+  "farm": {
+    "name": "农场",
+    "type": "collector",
+    "sprite": "farm",
+    "spriteIndex": 21,
+    "recipe": {
+      "input": { "water": 2 },
+      "output": { "wild_vegetable": 2, "soybean": 1 }
+    },
+    "productionInterval": 4000,
+    "cost": { "wood_plank": 10, "stone": 5 },
+    "description": "种植各种蔬菜和农作物，需要水灌溉，是城市食物供应的基础。",
+    "workerRequirement": { "count": 8, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于主要农作物，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 8, "type": "worker" }
+      },
+      {
+        "id": "grain",
+        "name": "谷物种植",
+        "description": "同时种植谷物，可用于制作面粉。",
+        "resources": { "grain_flour": 0.5 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 10, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "人力耕作",
+        "description": "使用简单工具进行耕作，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 8, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用更好的农具和灌溉系统提高效率，但需要工具维护和更多水。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "water": 3, "tool": 0.1 },
+        "outputModifiers": { "wild_vegetable": 1.5, "soybean": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "intensive",
+        "name": "密集耕作",
+        "description": "密集耕作方式，提高产量但需要更多工人。",
+        "timeModifier": 0.8,
+        "workerModifier": 1.4
+      }
+    ]
+  },
+  "orchard": {
+    "name": "果园",
+    "type": "collector",
+    "sprite": "orchard",
+    "spriteIndex": 22,
+    "recipe": {
+      "input": { "water": 3 },
+      "output": { "banana": 1, "orange": 1, "watermelon": 0.5 }
+    },
+    "productionInterval": 5000,
+    "cost": { "wood_plank": 15, "stone": 5 },
+    "description": "种植各种水果树木，需要充足的水灌溉，提供多样化的水果供应。",
+    "workerRequirement": { "count": 6, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于水果生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      },
+      {
+        "id": "firewood",
+        "name": "木柴采集",
+        "description": "从果树修剪中获取木柴作为副产品。",
+        "resources": { "firewood": 1 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 7, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "基础种植",
+        "description": "基础的果树种植和管理方法。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用专业园艺工具和灌溉系统提高效率。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "water": 4, "tool": 0.05 },
+        "outputModifiers": { "banana": 1.3, "orange": 1.3, "watermelon": 1.3 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ]
+  },
+  "bakery": {
+    "name": "面包房",
+    "type": "production",
+    "sprite": "bakery",
+    "spriteIndex": 23,
+    "recipe": {
+      "input": { "grain_flour": 2, "water": 1 },
+      "output": { "bread": 3 }
+    },
+    "productionInterval": 3000,
+    "cost": { "wood_plank": 20, "stone": 15, "red_brick": 10 },
+    "description": "将谷物粉与水混合烘焙成美味的面包，是城市居民的主食来源。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于面包生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统烘焙",
+        "description": "使用传统方法烘焙面包，品质适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "improved_oven",
+        "name": "改良烤炉",
+        "description": "使用改良的烤炉提高烘焙效率，但需要燃料。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "grain_flour": 2, "water": 1, "firewood": 1 },
+        "outputModifiers": { "bread": 4 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
   "wood_enchanter": {
     "name": "Wood Enchanter",
     "type": "production",
@@ -360,6 +676,1422 @@
     "cost": { "enchanted_wood": 10, "stone": 15 },
     "housingCapacity": 5,
     "description": "簡單的平房，提供基本居住空間。性價比高但佔地較大。"
+  },
+  "lumber_mill": {
+    "name": "伐木场",
+    "type": "production",
+    "sprite": "lumber_mill",
+    "spriteIndex": 24,
+    "recipe": {
+      "input": { "enchanted_wood": 2 },
+      "output": { "wood_plank": 4 }
+    },
+    "productionInterval": 2500,
+    "cost": { "enchanted_wood": 20, "stone": 10 },
+    "description": "将原木加工成木板，是建筑、家具和车轮制作的基础材料。",
+    "workerRequirement": { "count": 5, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于木板生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "firewood",
+        "name": "木柴副产",
+        "description": "加工过程中产生木柴作为副产品。",
+        "resources": { "firewood": 2 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      },
+      {
+        "id": "wooden_wheel",
+        "name": "木轮制作",
+        "description": "同时制作木轮作为副产品。",
+        "resources": { "wooden_wheel": 1 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 7, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工锯切",
+        "description": "工人手工锯切木材，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "water_powered",
+        "name": "水力锯木",
+        "description": "使用水力驱动锯木机，大幅提高效率。",
+        "timeModifier": 0.6,
+        "outputModifiers": { "wood_plank": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "blacksmith": {
+    "name": "铁匠铺",
+    "type": "production",
+    "sprite": "blacksmith",
+    "spriteIndex": 25,
+    "recipe": {
+      "input": { "iron_ore": 2, "firewood": 1 },
+      "output": { "iron_ingot": 1 }
+    },
+    "productionInterval": 4000,
+    "cost": { "wood_plank": 25, "stone": 20, "red_brick": 15 },
+    "description": "冶炼金属并制作各种工具和武器，是城市工业发展的基础。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于金属冶炼，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具制作",
+        "description": "同时制作基础工具作为副产品。",
+        "resources": { "tool": 0.5 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "weapons",
+        "name": "武器制作",
+        "description": "同时制作基础武器作为副产品。",
+        "resources": { "iron_sword": 0.2 },
+        "timeModifier": 1.3,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      },
+      {
+        "id": "armor",
+        "name": "盔甲制作",
+        "description": "同时制作基础盔甲作为副产品。",
+        "resources": { "iron_shield": 0.2 },
+        "timeModifier": 1.3,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统锻造",
+        "description": "使用传统锻造方法，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "improved_furnace",
+        "name": "改良熔炉",
+        "description": "使用改良熔炉提高冶炼效率，但需要更多燃料。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "iron_ore": 3, "firewood": 2, "charcoal": 1 },
+        "outputModifiers": { "iron_ingot": 1.8 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ]
+  },
+  "silver_mine": {
+    "name": "银矿",
+    "type": "collector",
+    "sprite": "silver_mine",
+    "spriteIndex": 26,
+    "recipe": {
+      "input": {},
+      "output": { "silver_ingot": 0.5 }
+    },
+    "productionInterval": 6000,
+    "cost": { "wood_plank": 30, "stone": 25, "iron_ingot": 10 },
+    "description": "开采稀有的银矿石并冶炼成银块，是贵重物品的原料。",
+    "workerRequirement": { "count": 8, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于银矿开采，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 8, "type": "worker" }
+      },
+      {
+        "id": "stone",
+        "name": "石料采集",
+        "description": "开采过程中收集石料作为副产品。",
+        "resources": { "stone": 2 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 9, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "人力开采",
+        "description": "工人手工开采银矿，产量较低。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 8, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用专业采矿工具提高效率。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "tool": 0.2 },
+        "outputModifiers": { "silver_ingot": 1.3 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.6
+      }
+    ]
+  },
+  "goblin_workshop": {
+    "name": "地精工坊",
+    "type": "production",
+    "sprite": "goblin_workshop",
+    "spriteIndex": 27,
+    "recipe": {
+      "input": { "tool": 2, "iron_ingot": 1, "arcane_crystal": 1 },
+      "output": { "goblin_tool": 1 }
+    },
+    "productionInterval": 8000,
+    "cost": { "wood_plank": 40, "iron_ingot": 20, "refined_crystal": 5 },
+    "description": "由地精工匠运营的特殊工坊，生产高效但稀有的地精工具。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于地精工具生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "地精工艺",
+        "description": "地精使用传统工艺制作工具，品质高但速度慢。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "arcane_infusion",
+        "name": "奥术注入",
+        "description": "使用奥术能量注入工具，大幅提高品质和效率。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "tool": 2, "iron_ingot": 1, "arcane_crystal": 2, "mana": 5 },
+        "outputModifiers": { "goblin_tool": 1.5 },
+        "enableByproducts": false,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ]
+  },
+  "brick_kiln": {
+    "name": "砖窑",
+    "type": "production",
+    "sprite": "brick_kiln",
+    "spriteIndex": 28,
+    "recipe": {
+      "input": { "clay": 3, "water": 1, "firewood": 1 },
+      "output": { "red_brick": 4 }
+    },
+    "productionInterval": 5000,
+    "cost": { "wood_plank": 20, "stone": 15 },
+    "description": "将粘土与水混合后烧制成红砖，是建筑的重要材料。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于红砖生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统烧制",
+        "description": "使用传统方法烧制红砖，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "improved_kiln",
+        "name": "改良窑炉",
+        "description": "使用改良窑炉提高烧制效率，但需要更多燃料和水。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "clay": 3, "water": 2, "firewood": 1, "charcoal": 1 },
+        "outputModifiers": { "red_brick": 5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "glass_workshop": {
+    "name": "玻璃工坊",
+    "type": "production",
+    "sprite": "glass_workshop",
+    "spriteIndex": 29,
+    "recipe": {
+      "input": { "sand": 3, "firewood": 2 },
+      "output": { "glass": 2 }
+    },
+    "productionInterval": 6000,
+    "cost": { "wood_plank": 25, "stone": 20, "red_brick": 15 },
+    "description": "将沙子熔炼成玻璃，用于制作窗户和容器。",
+    "workerRequirement": { "count": 5, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于玻璃生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "bottles",
+        "name": "玻璃瓶",
+        "description": "同时生产一些玻璃瓶作为副产品。",
+        "resources": { "glass_bottle": 1 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统熔炼",
+        "description": "使用传统方法熔炼玻璃，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "improved_furnace",
+        "name": "改良熔炉",
+        "description": "使用改良熔炉提高熔炼效率，但需要更多燃料。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "sand": 3, "charcoal": 2 },
+        "outputModifiers": { "glass": 2.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ]
+  },
+  "porcelain_workshop": {
+    "name": "瓷器工坊",
+    "type": "production",
+    "sprite": "porcelain_workshop",
+    "spriteIndex": 30,
+    "recipe": {
+      "input": { "porcelain_clay": 2, "charcoal": 1 },
+      "output": { "porcelain": 1 }
+    },
+    "productionInterval": 7000,
+    "cost": { "wood_plank": 30, "stone": 25, "red_brick": 20 },
+    "description": "将瓷土烧制成精美的瓷器，是贵族喜爱的奢侈品。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于瓷器生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统工艺",
+        "description": "使用传统工艺制作瓷器，品质高但产量低。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "master_craftsman",
+        "name": "大师工艺",
+        "description": "由瓷器大师主导制作，品质极高但成本更高。",
+        "timeModifier": 1.2,
+        "inputModifiers": { "porcelain_clay": 3, "charcoal": 2 },
+        "outputModifiers": { "porcelain": 1.5 },
+        "enableByproducts": false,
+        "workerRequirement": { "count": 3, "type": "craftsman" }
+      }
+    ]
+  },
+  "pottery_workshop": {
+    "name": "陶器工坊",
+    "type": "production",
+    "sprite": "pottery_workshop",
+    "spriteIndex": 31,
+    "recipe": {
+      "input": { "pottery_clay": 2, "water": 1, "firewood": 1 },
+      "output": { "pottery": 2 }
+    },
+    "productionInterval": 4000,
+    "cost": { "wood_plank": 20, "stone": 15 },
+    "description": "将陶土与水混合后制作成各种实用的陶器，如碗、罐等日用品。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于陶器生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工制作",
+        "description": "手工制作陶器，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "wheel_throwing",
+        "name": "轮盘成型",
+        "description": "使用轮盘技术和更多水提高制作效率和品质。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "pottery_clay": 2, "water": 2, "firewood": 1 },
+        "outputModifiers": { "pottery": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ]
+  },
+  "window_workshop": {
+    "name": "窗户工坊",
+    "type": "production",
+    "sprite": "window_workshop",
+    "spriteIndex": 32,
+    "recipe": {
+      "input": { "glass": 2, "wood_plank": 1 },
+      "output": { "glass_window": 1 }
+    },
+    "productionInterval": 5000,
+    "cost": { "wood_plank": 25, "stone": 15, "glass": 10 },
+    "description": "将玻璃和木材制作成窗户，用于高级建筑。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于窗户生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工制作",
+        "description": "手工制作窗户，品质适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "craftsman",
+        "name": "工匠制作",
+        "description": "由专业工匠制作窗户，品质更高但需要更多资源。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "glass": 2.5, "wood_plank": 1.5 },
+        "outputModifiers": { "glass_window": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "craftsman" }
+      }
+    ]
+  },
+  "paper_mill": {
+    "name": "造纸厂",
+    "type": "production",
+    "sprite": "paper_mill",
+    "spriteIndex": 33,
+    "recipe": {
+      "input": { "enchanted_wood": 2, "water": 3 },
+      "output": { "paper": 3 }
+    },
+    "productionInterval": 4000,
+    "cost": { "wood_plank": 30, "stone": 20, "iron_ingot": 5 },
+    "description": "将木材与水混合加工成纸张，用于书籍和文档制作。",
+    "workerRequirement": { "count": 5, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于纸张生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统造纸",
+        "description": "使用传统方法制作纸张，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "water_powered",
+        "name": "水力造纸",
+        "description": "使用水力驱动造纸机，大幅提高效率，但需要更多水。",
+        "timeModifier": 0.6,
+        "inputModifiers": { "enchanted_wood": 3, "water": 5 },
+        "outputModifiers": { "paper": 4 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "bookbindery": {
+    "name": "书籍装订所",
+    "type": "production",
+    "sprite": "bookbindery",
+    "spriteIndex": 34,
+    "recipe": {
+      "input": { "paper": 5, "wood_plank": 1 },
+      "output": { "book": 1 }
+    },
+    "productionInterval": 7000,
+    "cost": { "wood_plank": 35, "stone": 20, "glass": 5 },
+    "description": "将纸张装订成书籍，是知识传播的重要场所。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于书籍生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "knowledge",
+        "name": "知识积累",
+        "description": "在制作过程中积累知识作为副产品。",
+        "resources": { "knowledge": 0.2 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工装订",
+        "description": "手工装订书籍，品质适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "scholar",
+        "name": "学者编纂",
+        "description": "由学者参与编纂书籍，品质更高但成本更大。",
+        "timeModifier": 1.2,
+        "inputModifiers": { "paper": 6, "wood_plank": 2, "research_point": 1 },
+        "outputModifiers": { "book": 1, "knowledge": 0.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "craftsman" }
+      }
+    ]
+  },
+  "charcoal_kiln": {
+    "name": "木炭窑",
+    "type": "production",
+    "sprite": "charcoal_kiln",
+    "spriteIndex": 35,
+    "recipe": {
+      "input": { "firewood": 3 },
+      "output": { "charcoal": 2 }
+    },
+    "productionInterval": 6000,
+    "cost": { "wood_plank": 15, "stone": 25, "red_brick": 10 },
+    "description": "将木柴烧制成木炭，是高温冶炼的重要燃料。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于木炭生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统烧制",
+        "description": "使用传统方法烧制木炭，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "improved_kiln",
+        "name": "改良窑炉",
+        "description": "使用改良窑炉提高烧制效率和产量。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "firewood": 4 },
+        "outputModifiers": { "charcoal": 3 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "well": {
+    "name": "水井",
+    "type": "collector",
+    "sprite": "well",
+    "spriteIndex": 36,
+    "recipe": {
+      "input": {},
+      "output": { "water": 3 }
+    },
+    "productionInterval": 2000,
+    "cost": { "stone": 30, "wood_plank": 10 },
+    "description": "从地下抽取清洁的水源，是城市生活和生产的基础。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于取水，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "人力取水",
+        "description": "工人手动提水，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      },
+      {
+        "id": "windmill_pump",
+        "name": "风车水泵",
+        "description": "使用风车驱动水泵，大幅提高取水效率。",
+        "timeModifier": 0.6,
+        "outputModifiers": { "water": 2.0 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 1, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "iron_mine": {
+    "name": "铁矿",
+    "type": "collector",
+    "sprite": "iron_mine",
+    "spriteIndex": 37,
+    "recipe": {
+      "input": {},
+      "output": { "iron_ore_raw": 2 }
+    },
+    "productionInterval": 3500,
+    "cost": { "wood_plank": 25, "stone": 20, "tool": 5 },
+    "description": "开采铁原矿，是铁器制造的基础。",
+    "workerRequirement": { "count": 6, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于铁矿开采，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      },
+      {
+        "id": "stone",
+        "name": "石料采集",
+        "description": "开采过程中收集石料作为副产品。",
+        "resources": { "stone": 2, "gravel": 1 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 7, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "人力开采",
+        "description": "工人手工开采铁矿，产量较低。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用专业采矿工具提高效率。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "tool": 0.2 },
+        "outputModifiers": { "iron_ore_raw": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.6
+      }
+    ]
+  },
+  "ore_processing": {
+    "name": "矿石处理厂",
+    "type": "production",
+    "sprite": "ore_processing",
+    "spriteIndex": 38,
+    "recipe": {
+      "input": { "iron_ore_raw": 3, "water": 1 },
+      "output": { "iron_ore": 2 }
+    },
+    "productionInterval": 3000,
+    "cost": { "wood_plank": 20, "stone": 15, "iron_ingot": 5 },
+    "description": "将原矿石洗选加工成纯净矿石，提高冶炼效率。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于矿石处理，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "gravel",
+        "name": "碎石收集",
+        "description": "处理过程中收集碎石作为副产品。",
+        "resources": { "gravel": 2 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工筛选",
+        "description": "工人手工筛选矿石，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "water_powered",
+        "name": "水力筛选",
+        "description": "使用水力设备提高筛选效率，但需要更多水。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "iron_ore_raw": 3, "water": 2 },
+        "outputModifiers": { "iron_ore": 2.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "copper_mine": {
+    "name": "铜矿",
+    "type": "collector",
+    "sprite": "copper_mine",
+    "spriteIndex": 39,
+    "recipe": {
+      "input": {},
+      "output": { "copper_ore_raw": 2 }
+    },
+    "productionInterval": 3000,
+    "cost": { "wood_plank": 20, "stone": 15, "tool": 3 },
+    "description": "开采铜原矿，是铜器制造的基础。",
+    "workerRequirement": { "count": 5, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于铜矿开采，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "stone",
+        "name": "石料采集",
+        "description": "开采过程中收集石料作为副产品。",
+        "resources": { "stone": 2, "gravel": 1 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "人力开采",
+        "description": "工人手工开采铜矿，产量较低。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "工具辅助",
+        "description": "使用专业采矿工具提高效率。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "tool": 0.2 },
+        "outputModifiers": { "copper_ore_raw": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.6
+      }
+    ]
+  },
+  "copper_processing": {
+    "name": "铜矿处理厂",
+    "type": "production",
+    "sprite": "copper_processing",
+    "spriteIndex": 40,
+    "recipe": {
+      "input": { "copper_ore_raw": 3, "water": 1 },
+      "output": { "copper_ore": 2 }
+    },
+    "productionInterval": 2800,
+    "cost": { "wood_plank": 18, "stone": 12, "iron_ingot": 3 },
+    "description": "将铜原矿洗选加工成纯净铜矿石，提高冶炼效率。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于铜矿处理，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "gravel",
+        "name": "碎石收集",
+        "description": "处理过程中收集碎石作为副产品。",
+        "resources": { "gravel": 2 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "手工筛选",
+        "description": "工人手工筛选铜矿石，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "water_powered",
+        "name": "水力筛选",
+        "description": "使用水力设备提高筛选效率，但需要更多水。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "copper_ore_raw": 3, "water": 2 },
+        "outputModifiers": { "copper_ore": 2.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "copper_smith": {
+    "name": "铜匠铺",
+    "type": "production",
+    "sprite": "copper_smith",
+    "spriteIndex": 41,
+    "recipe": {
+      "input": { "copper_ore": 2, "firewood": 1 },
+      "output": { "copper_ingot": 1 }
+    },
+    "productionInterval": 3500,
+    "cost": { "wood_plank": 20, "stone": 15, "red_brick": 10 },
+    "description": "冶炼铜矿石并制作各种铜制品，是早期工业的重要组成部分。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于铜冶炼，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "tools",
+        "name": "铜工具制作",
+        "description": "同时制作铜制工具作为副产品。",
+        "resources": { "tool": 0.3 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统锻造",
+        "description": "使用传统锻造方法，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "improved_furnace",
+        "name": "改良熔炉",
+        "description": "使用改良熔炉提高冶炼效率，但需要更多燃料。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "copper_ore": 2, "firewood": 1, "charcoal": 1 },
+        "outputModifiers": { "copper_ingot": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.5
+      }
+    ]
+  },
+  "magic_crystal_mine": {
+    "name": "魔晶矿",
+    "type": "collector",
+    "sprite": "magic_crystal_mine",
+    "spriteIndex": 42,
+    "recipe": {
+      "input": {},
+      "output": { "magic_crystal_ore": 1 }
+    },
+    "productionInterval": 5000,
+    "cost": { "wood_plank": 30, "stone": 25, "iron_ingot": 10 },
+    "description": "开采稀有的魔晶矿石，是魔法道具和高级装备的重要原料。",
+    "workerRequirement": { "count": 7, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于魔晶矿开采，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 7, "type": "worker" }
+      },
+      {
+        "id": "magic_stone",
+        "name": "魔石采集",
+        "description": "开采过程中收集魔石作为副产品。",
+        "resources": { "magic_stone_ore": 0.5 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 8, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "人力开采",
+        "description": "工人手工开采魔晶矿，产量较低。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 7, "type": "worker" }
+      },
+      {
+        "id": "magic_tools",
+        "name": "魔法工具",
+        "description": "使用魔法工具提高开采效率。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "mana": 2 },
+        "outputModifiers": { "magic_crystal_ore": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "three_shifts",
+        "name": "三班倒",
+        "description": "三班倒工作制，生产速度提高但需要更多工人。",
+        "timeModifier": 0.6,
+        "workerModifier": 1.6
+      }
+    ]
+  },
+  "magic_crystal_workshop": {
+    "name": "魔晶工坊",
+    "type": "production",
+    "sprite": "magic_crystal_workshop",
+    "spriteIndex": 43,
+    "recipe": {
+      "input": { "magic_crystal_ore": 2, "mana": 1 },
+      "output": { "magic_crystal": 1 }
+    },
+    "productionInterval": 6000,
+    "cost": { "wood_plank": 35, "stone": 30, "iron_ingot": 15, "glass": 10 },
+    "description": "将魔晶矿石提纯为魔晶石，用于高级魔法道具的制作。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于魔晶石提纯，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "medium_crystal",
+        "name": "中品魔晶石",
+        "description": "同时生产少量中品魔晶石作为副产品。",
+        "resources": { "medium_magic_crystal": 0.2 },
+        "timeModifier": 1.3,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "基础提纯",
+        "description": "使用基础魔法提纯魔晶石，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "advanced_magic",
+        "name": "高级魔法",
+        "description": "使用高级魔法提高提纯效率和品质。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "magic_crystal_ore": 2, "mana": 3 },
+        "outputModifiers": { "magic_crystal": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "intensive",
+        "name": "密集工作",
+        "description": "密集工作模式，生产速度提高但需要更多工人。",
+        "timeModifier": 0.7,
+        "workerModifier": 1.4
+      }
+    ]
+  },
+  "leather_workshop": {
+    "name": "皮革工坊",
+    "type": "production",
+    "sprite": "leather_workshop",
+    "spriteIndex": 44,
+    "recipe": {
+      "input": { "animal_hide": 2, "water": 1 },
+      "output": { "leather": 1 }
+    },
+    "productionInterval": 3500,
+    "cost": { "wood_plank": 20, "stone": 15 },
+    "description": "将兽皮加工成皮革，用于制作衣物、盔甲和其他物品。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于皮革生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "传统鞣制",
+        "description": "使用传统方法鞣制皮革，产量适中。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "improved_tanning",
+        "name": "改良鞣制",
+        "description": "使用改良鞣制方法提高效率和品质。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "animal_hide": 2, "water": 2 },
+        "outputModifiers": { "leather": 1.5 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "intensive",
+        "name": "密集工作",
+        "description": "密集工作模式，生产速度提高但需要更多工人。",
+        "timeModifier": 0.7,
+        "workerModifier": 1.4
+      }
+    ]
+  },
+  "magic_beast_workshop": {
+    "name": "魔兽皮工坊",
+    "type": "production",
+    "sprite": "magic_beast_workshop",
+    "spriteIndex": 45,
+    "recipe": {
+      "input": { "magic_beast_hide": 1, "water": 1, "mana": 1 },
+      "output": { "leather": 3 }
+    },
+    "productionInterval": 5000,
+    "cost": { "wood_plank": 30, "stone": 25, "iron_ingot": 10 },
+    "description": "将稀有的魔兽皮加工成高品质皮革，产量高但需要特殊材料。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于高品质皮革生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "manual",
+        "name": "魔法鞣制",
+        "description": "使用魔法辅助鞣制魔兽皮，产量高。",
+        "timeModifier": 1.0,
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "advanced_magic",
+        "name": "高级魔法",
+        "description": "使用高级魔法提高鞣制效率和品质。",
+        "timeModifier": 0.7,
+        "inputModifiers": { "magic_beast_hide": 1, "water": 1, "mana": 2 },
+        "outputModifiers": { "leather": 4 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "intensive",
+        "name": "密集工作",
+        "description": "密集工作模式，生产速度提高但需要更多工人。",
+        "timeModifier": 0.7,
+        "workerModifier": 1.4
+      }
+    ]
+  },
+  "weapon_shop": {
+    "name": "武器铺",
+    "type": "production",
+    "sprite": "weapon_shop",
+    "spriteIndex": 46,
+    "recipe": {
+      "input": { "iron_ingot": 3, "wood_plank": 2 },
+      "output": { "iron_sword": 1 }
+    },
+    "productionInterval": 5000,
+    "cost": { "wood_plank": 30, "stone": 25, "iron_ingot": 15 },
+    "description": "制作各种武器和盔甲，为城市提供防御力量。",
+    "workerRequirement": { "count": 5, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于武器生产，不生产副产品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "shield",
+        "name": "盾牌制作",
+        "description": "同时制作盾牌作为副产品。",
+        "resources": { "iron_shield": 0.3 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      }
+    ],
+    "productionMethods": [
+      {
+        "id": "sword",
+        "name": "剑类武器",
+        "description": "专注于制作剑类武器。",
+        "timeModifier": 1.0,
+        "inputModifiers": { "iron_ingot": 3, "wood_plank": 2 },
+        "outputModifiers": { "iron_sword": 1 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "spear",
+        "name": "矛类武器",
+        "description": "专注于制作矛类武器。",
+        "timeModifier": 1.0,
+        "inputModifiers": { "iron_ingot": 2, "wood_plank": 3 },
+        "outputModifiers": { "spear": 1 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      },
+      {
+        "id": "bow",
+        "name": "弓类武器",
+        "description": "专注于制作弓类武器。",
+        "timeModifier": 1.0,
+        "inputModifiers": { "wood_plank": 4, "leather": 1 },
+        "outputModifiers": { "bow": 1 },
+        "enableByproducts": true,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "armor",
+        "name": "盔甲制作",
+        "description": "专注于制作盔甲。",
+        "timeModifier": 1.2,
+        "inputModifiers": { "iron_ingot": 5, "leather": 2 },
+        "outputModifiers": { "chain_mail": 1 },
+        "enableByproducts": false,
+        "workerRequirement": { "count": 6, "type": "worker" }
+      }
+    ],
+    "workModes": [
+      {
+        "id": "normal",
+        "name": "正常工作",
+        "description": "正常工作时间，标准产出。",
+        "timeModifier": 1.0,
+        "workerModifier": 1.0
+      },
+      {
+        "id": "intensive",
+        "name": "密集工作",
+        "description": "密集工作模式，生产速度提高但需要更多工人。",
+        "timeModifier": 0.7,
+        "workerModifier": 1.4
+      }
+    ]
   }
 }
 

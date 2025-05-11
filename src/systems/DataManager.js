@@ -40,7 +40,10 @@ export default class DataManager {
     // 获取原始数据
     const rawBuildingTypes = this.cache.json.get('buildings');
     this.technologies = this.cache.json.get('research');
-    this.resourceSettings = this.cache.json.get('resources');
+    const rawResourceSettings = this.cache.json.get('resources');
+
+    // 处理资源设置数据，过滤掉以comment开头的键
+    this.resourceSettings = this.processResourceSettings(rawResourceSettings);
 
     // 处理建筑类型数据，确保关键属性存在
     this.buildingTypes = this.processBuildingTypes(rawBuildingTypes);
@@ -48,6 +51,33 @@ export default class DataManager {
     this.isDataLoaded = true;
 
     return true;
+  }
+
+  /**
+   * Process resource settings data to filter out comment keys
+   * @param {Object} rawResourceSettings - Raw resource settings data
+   * @returns {Object} - Processed resource settings data
+   */
+  processResourceSettings(rawResourceSettings) {
+    if (!rawResourceSettings || !rawResourceSettings.resources) {
+      console.error('Invalid resource settings data');
+      return rawResourceSettings;
+    }
+
+    // 创建一个新的资源对象，过滤掉以comment开头的键
+    const filteredResources = {};
+    Object.entries(rawResourceSettings.resources).forEach(([key, value]) => {
+      // 如果键不是以comment开头的，则保留该资源
+      if (!key.includes('comment')) {
+        filteredResources[key] = value;
+      }
+    });
+
+    // 返回处理后的资源设置
+    return {
+      resources: filteredResources,
+      resourceCaps: rawResourceSettings.resourceCaps
+    };
   }
 
   /**
