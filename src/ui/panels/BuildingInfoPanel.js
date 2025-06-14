@@ -22,7 +22,8 @@ export default class BuildingInfoPanel extends BasePanel {
       onClose: config.onClose || (() => {
         // 如果没有提供onClose回调，则使用默认行为
         this.handleClose();
-      })
+      }),
+      autoLayout: false // BuildingInfoPanel有复杂的自定义布局
     });
 
     // 保存建筑信息

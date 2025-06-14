@@ -17,7 +17,8 @@ export default class BuildingMenuPanel extends BasePanel {
       width: 200,
       height: 500, // 增加高度以容纳更多建筑
       title: '建筑选单',
-      onClose: () => this.hide()
+      onClose: () => this.hide(),
+      autoLayout: false // BuildingMenuPanel有复杂的滚动布局和筛选功能
     });
 
     // 保存配置

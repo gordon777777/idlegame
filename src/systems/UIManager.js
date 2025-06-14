@@ -9,6 +9,7 @@ import PopulationPanel from '../ui/panels/PopulationPanel.js';
 import WorkerPanel from '../ui/panels/WorkerPanel.js';
 import ResearchPanel from '../ui/panels/ResearchPanel.js';
 import MarketPanel from '../ui/panels/MarketPanel.js';
+import EconomicPanel from '../ui/EconomicPanel.js';
 import MarketResourcePanel from '../ui/panels/MarketResourcePanel.js';
 
 export default class UIManager {
@@ -24,6 +25,7 @@ export default class UIManager {
     this.researchPanel = null;
     this.immigrantsPanel = null;
     this.marketPanel = null;
+    this.economicPanel = null;
   }
 
   /**
@@ -1078,6 +1080,31 @@ export default class UIManager {
       this.marketPanel.hide();
     } else {
       this.createMarketPanel();
+    }
+  }
+
+  /**
+   * 創建經濟面板
+   */
+  createEconomicPanel() {
+    // 如果已存在，先移除
+    if (this.economicPanel) {
+      this.economicPanel.destroy();
+    }
+
+    // 创建新的经济面板 - 向右500px，向下200px
+    this.economicPanel = new EconomicPanel(this.scene, 550, 250);
+    this.economicPanel.show();
+  }
+
+  /**
+   * 切換經濟面板顯示/隱藏
+   */
+  toggleEconomicPanel() {
+    if (this.economicPanel && this.economicPanel.container.visible) {
+      this.economicPanel.hide();
+    } else {
+      this.createEconomicPanel();
     }
   }
 

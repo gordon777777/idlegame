@@ -30,7 +30,8 @@ export default class MarketResourcePanel extends BasePanel {
           this.scene.input.off('pointermove', this.handleResourcePanelDrag, this);
         }
         this.destroy();
-      }
+      },
+      autoLayout: false // MarketResourcePanel有复杂的标签页和网格布局
     });
 
     // 保存配置

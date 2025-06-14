@@ -65,12 +65,12 @@ export default class PopulationSystem {
       lower: {
         name: '底層',
         description: '社會底層，主要從事基礎勞動工作',
-        workerTypes: ['worker', 'technician', 'artisan']
+        workerTypes: ['farmer', 'miner', 'lumberjack', 'hunter', 'fisherman', 'worker']
       },
       middle: {
         name: '中層',
         description: '自由民，擁有一定技能的工人和匠人',
-        workerTypes: ['technical_staff', 'engineer']
+        workerTypes: ['baker', 'blacksmith', 'carpenter', 'technician', 'engineer']
       },
       upper: {
         name: '上層',
@@ -120,7 +120,71 @@ export default class PopulationSystem {
 
     // 不同類型的工人
     this.workerTypes = {
-      // 底層工人
+      // 底層工人 - 基础职业
+      farmer: {
+        count: 20,
+        assigned: 0,
+        displayName: '农民',
+        description: '种植小麦，每天需要3份小麦薪酬，生存需求1份/天',
+        productionMultiplier: 1.0,
+        socialClass: 'lower',
+        experience: 0,
+        promotionChance: 0.01,
+        dailyWage: 3,
+        survivalNeed: 1
+      },
+      miner: {
+        count: 0,
+        assigned: 0,
+        displayName: '矿工',
+        description: '开采铁矿，每天需要4份小麦薪酬，每5天消耗1把铁镐',
+        productionMultiplier: 1.0,
+        socialClass: 'lower',
+        experience: 0,
+        promotionChance: 0.01,
+        dailyWage: 4,
+        survivalNeed: 1,
+        toolConsumption: { iron_pickaxe: 0.2 }
+      },
+      lumberjack: {
+        count: 0,
+        assigned: 0,
+        displayName: '伐木工',
+        description: '砍伐木材，每天需要3.5份小麦薪酬，每3天消耗1把斧头',
+        productionMultiplier: 1.0,
+        socialClass: 'lower',
+        experience: 0,
+        promotionChance: 0.01,
+        dailyWage: 3.5,
+        survivalNeed: 1,
+        toolConsumption: { axe: 0.33 }
+      },
+      hunter: {
+        count: 0,
+        assigned: 0,
+        displayName: '猎人',
+        description: '狩猎肉类，每天需要4份小麦薪酬，需要2只猎犬',
+        productionMultiplier: 1.0,
+        socialClass: 'lower',
+        experience: 0,
+        promotionChance: 0.01,
+        dailyWage: 4,
+        survivalNeed: 1,
+        animalRequirement: { hunting_dog: 2 }
+      },
+      fisherman: {
+        count: 0,
+        assigned: 0,
+        displayName: '渔民',
+        description: '捕捞鱼类，每天需要3.5份小麦薪酬，渔船每月消耗10木材',
+        productionMultiplier: 1.0,
+        socialClass: 'lower',
+        experience: 0,
+        promotionChance: 0.01,
+        dailyWage: 3.5,
+        survivalNeed: 1,
+        equipmentMaintenance: { wood: 0.33 }
+      },
       worker: {
         count: 10,
         assigned: 0,
@@ -129,7 +193,49 @@ export default class PopulationSystem {
         productionMultiplier: 1.0,
         socialClass: 'lower',
         experience: 0,
-        promotionChance: 0.01 // 每次檢查時的晉升機率
+        promotionChance: 0.01,
+        dailyWage: 3.5,
+        survivalNeed: 1
+      },
+      // 中层工人 - 专业技能职业
+      baker: {
+        count: 0,
+        assigned: 0,
+        displayName: '面包师',
+        description: '制作面包，每天需要4份小麦薪酬',
+        productionMultiplier: 1.2,
+        socialClass: 'middle',
+        experience: 0,
+        promotionChance: 0.008,
+        demotionChance: 0.002,
+        dailyWage: 4,
+        survivalNeed: 1
+      },
+      blacksmith: {
+        count: 0,
+        assigned: 0,
+        displayName: '铁匠',
+        description: '制作工具和武器，每天需要5份小麦薪酬',
+        productionMultiplier: 1.3,
+        socialClass: 'middle',
+        experience: 0,
+        promotionChance: 0.008,
+        demotionChance: 0.002,
+        dailyWage: 5,
+        survivalNeed: 1
+      },
+      carpenter: {
+        count: 0,
+        assigned: 0,
+        displayName: '木匠',
+        description: '制作木制品，每天需要4份小麦薪酬',
+        productionMultiplier: 1.2,
+        socialClass: 'middle',
+        experience: 0,
+        promotionChance: 0.008,
+        demotionChance: 0.002,
+        dailyWage: 4,
+        survivalNeed: 1
       },
       technician: {
         count: 0,
@@ -138,10 +244,12 @@ export default class PopulationSystem {
         description: '有一定技術的工人，可以操作較複雜的機器',
         productionMultiplier: 1.2,
         requiredResources: { magic_ore: 5, enchanted_wood: 5 },
-        socialClass: 'lower',
+        socialClass: 'middle',
         experience: 0,
         promotionChance: 0.008,
-        demotionChance: 0.002 // 每次檢查時的退化機率
+        demotionChance: 0.002,
+        dailyWage: 4,
+        survivalNeed: 1
       },
       artisan: {
         count: 0,
@@ -1694,6 +1802,35 @@ export default class PopulationSystem {
   }
 
   /**
+   * 获取失业率
+   * @returns {number} - 失业率百分比 (0-100)
+   */
+  getUnemploymentRate() {
+    // 计算总工人数量
+    let totalWorkers = 0;
+    let totalAssigned = 0;
+
+    for (const [, data] of Object.entries(this.workerTypes)) {
+      totalWorkers += Math.floor(data.count);
+      totalAssigned += Math.floor(data.assigned);
+    }
+
+    // 如果没有工人，失业率为0
+    if (totalWorkers === 0) {
+      return 0;
+    }
+
+    // 计算失业工人数量
+    const unemployed = totalWorkers - totalAssigned;
+
+    // 计算失业率百分比
+    const unemploymentRate = (unemployed / totalWorkers) * 100;
+
+    // 确保失业率在0-100之间
+    return Math.max(0, Math.min(100, unemploymentRate));
+  }
+
+  /**
    * 獲取人口統計信息
    * @returns {Object} - 人口統計
    */
@@ -1702,6 +1839,7 @@ export default class PopulationSystem {
       total: Math.floor(this.totalPopulation),
       capacity: this.housingCapacity,
       happiness: Math.floor(this.happinessLevel),
+      unemploymentRate: this.getUnemploymentRate(),
       workers: {},
       socialClasses: {}
     };

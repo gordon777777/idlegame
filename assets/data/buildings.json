@@ -12,75 +12,7 @@
     "cost": { "magic_ore": 20, "enchanted_wood": 10 },
     "description": "將原始魔法礦石轉化為奧術精華。"
   },
-  "fishing_dock": {
-    "name": "渔场",
-    "type": "collector",
-    "sprite": "fishing_dock",
-    "spriteIndex": 19,
-    "recipe": {
-      "input": {},
-      "output": { "fish": 2 }
-    },
-    "productionInterval": 2500,
-    "cost": { "wood_plank": 20, "stone": 10 },
-    "description": "在河流或湖泊边建造的捕鱼设施，提供稳定的鱼类供应。",
-    "workerRequirement": { "count": 5, "type": "worker" },
-    "byproductTypes": [
-      {
-        "id": "none",
-        "name": "无副产品",
-        "description": "专注于捕鱼，不生产副产品。",
-        "resources": {},
-        "timeModifier": 1.0,
-        "workerRequirement": { "count": 5, "type": "worker" }
-      },
-      {
-        "id": "rare_fish",
-        "name": "稀有鱼类",
-        "description": "有机会捕获稀有鱼类，但需要更多工人和时间。",
-        "resources": { "magical_potion": 0.1 },
-        "timeModifier": 1.2,
-        "workerRequirement": { "count": 7, "type": "worker" }
-      }
-    ],
-    "productionMethods": [
-      {
-        "id": "manual",
-        "name": "手工捕鱼",
-        "description": "渔民使用传统方法捕鱼，产量适中。",
-        "timeModifier": 1.0,
-        "enableByproducts": true,
-        "workerRequirement": { "count": 5, "type": "worker" }
-      },
-      {
-        "id": "nets",
-        "name": "渔网捕鱼",
-        "description": "使用渔网提高捕鱼效率，但需要额外资源维护。",
-        "timeModifier": 0.7,
-        "inputModifiers": { "tool": 0.1 },
-        "outputModifiers": { "fish": 1.5 },
-        "enableByproducts": true,
-        "workerRequirement": { "count": 3, "type": "worker" }
-      }
-    ],
-    "workModes": [
-      {
-        "id": "normal",
-        "name": "正常工作",
-        "description": "正常工作时间，标准产出。",
-        "timeModifier": 1.0,
-        "workerModifier": 1.0
-      },
-      {
-        "id": "three_shifts",
-        "name": "三班倒",
-        "description": "三班倒工作制，生产速度提高但需要更多工人。",
-        "timeModifier": 0.6,
-        "workerModifier": 1.5
-      }
-    ]
-  },
-  "hunters_lodge": {
+  "hunters_lodge_old": {
     "name": "猎人小屋",
     "type": "collector",
     "sprite": "hunters_lodge",
@@ -154,29 +86,31 @@
     "sprite": "farm",
     "spriteIndex": 21,
     "recipe": {
-      "input": { "water": 2 },
-      "output": { "wild_vegetable": 2, "soybean": 1 }
+      "input": { "water": 2, "manure": 0.25 },
+      "output": { "wheat": 100 }
     },
-    "productionInterval": 4000,
-    "cost": { "wood_plank": 10, "stone": 5 },
-    "description": "种植各种蔬菜和农作物，需要水灌溉，是城市食物供应的基础。",
-    "workerRequirement": { "count": 8, "type": "worker" },
+    "productionInterval": 5000,
+    "cost": { "wood": 20, "stone": 10 },
+    "description": "标准农田，20农民/天产出100份小麦。每季度需1单位粪肥，否则减产20%。",
+    "workerRequirement": { "count": 20, "type": "farmer" },
+    "dailyWage": { "wheat": 3 },
+    "fertilityRequired": true,
     "byproductTypes": [
       {
         "id": "none",
         "name": "无副产品",
-        "description": "专注于主要农作物，不生产副产品。",
+        "description": "专注于小麦种植，不生产副产品。",
         "resources": {},
         "timeModifier": 1.0,
-        "workerRequirement": { "count": 8, "type": "worker" }
+        "workerRequirement": { "count": 20, "type": "farmer" }
       },
       {
-        "id": "grain",
-        "name": "谷物种植",
-        "description": "同时种植谷物，可用于制作面粉。",
-        "resources": { "grain_flour": 0.5 },
-        "timeModifier": 1.2,
-        "workerRequirement": { "count": 10, "type": "worker" }
+        "id": "hay",
+        "name": "干草生产",
+        "description": "同时生产干草作为副产品，用于喂养牲畜。",
+        "resources": { "hay": 10 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 22, "type": "farmer" }
       }
     ],
     "productionMethods": [
@@ -186,17 +120,18 @@
         "description": "使用简单工具进行耕作，产量适中。",
         "timeModifier": 1.0,
         "enableByproducts": true,
-        "workerRequirement": { "count": 8, "type": "worker" }
+        "workerRequirement": { "count": 20, "type": "farmer" }
       },
       {
-        "id": "tools",
-        "name": "工具辅助",
-        "description": "使用更好的农具和灌溉系统提高效率，但需要工具维护和更多水。",
-        "timeModifier": 0.7,
-        "inputModifiers": { "water": 3, "tool": 0.1 },
-        "outputModifiers": { "wild_vegetable": 1.5, "soybean": 1.5 },
+        "id": "ox_plow",
+        "name": "牛犁耕作",
+        "description": "使用耕牛和犁提高效率，每10农民需1头耕牛。",
+        "timeModifier": 0.8,
+        "inputModifiers": { "water": 2, "manure": 0.25 },
+        "outputModifiers": { "wheat": 1.5 },
         "enableByproducts": true,
-        "workerRequirement": { "count": 5, "type": "worker" }
+        "workerRequirement": { "count": 15, "type": "farmer" },
+        "animalRequirement": { "ox": 2 }
       }
     ],
     "workModes": [
@@ -268,8 +203,8 @@
       }
     ]
   },
-  "bakery": {
-    "name": "面包房",
+  "bakery_old": {
+    "name": "面包房(旧)",
     "type": "production",
     "sprite": "bakery",
     "spriteIndex": 23,
@@ -279,54 +214,7 @@
     },
     "productionInterval": 3000,
     "cost": { "wood_plank": 20, "stone": 15, "red_brick": 10 },
-    "description": "将谷物粉与水混合烘焙成美味的面包，是城市居民的主食来源。",
-    "workerRequirement": { "count": 4, "type": "worker" },
-    "byproductTypes": [
-      {
-        "id": "none",
-        "name": "无副产品",
-        "description": "专注于面包生产，不生产副产品。",
-        "resources": {},
-        "timeModifier": 1.0,
-        "workerRequirement": { "count": 4, "type": "worker" }
-      }
-    ],
-    "productionMethods": [
-      {
-        "id": "manual",
-        "name": "传统烘焙",
-        "description": "使用传统方法烘焙面包，品质适中。",
-        "timeModifier": 1.0,
-        "enableByproducts": true,
-        "workerRequirement": { "count": 4, "type": "worker" }
-      },
-      {
-        "id": "improved_oven",
-        "name": "改良烤炉",
-        "description": "使用改良的烤炉提高烘焙效率，但需要燃料。",
-        "timeModifier": 0.7,
-        "inputModifiers": { "grain_flour": 2, "water": 1, "firewood": 1 },
-        "outputModifiers": { "bread": 4 },
-        "enableByproducts": true,
-        "workerRequirement": { "count": 3, "type": "worker" }
-      }
-    ],
-    "workModes": [
-      {
-        "id": "normal",
-        "name": "正常工作",
-        "description": "正常工作时间，标准产出。",
-        "timeModifier": 1.0,
-        "workerModifier": 1.0
-      },
-      {
-        "id": "three_shifts",
-        "name": "三班倒",
-        "description": "三班倒工作制，生产速度提高但需要更多工人。",
-        "timeModifier": 0.6,
-        "workerModifier": 1.5
-      }
-    ]
+    "description": "旧版面包房，已被新经济系统替代。"
   },
   "wood_enchanter": {
     "name": "Wood Enchanter",
@@ -446,7 +334,7 @@
     },
     "productionInterval": 15000,
     "cost": { "enchanted_artifact": 10, "magical_potion": 15, "refined_crystal": 20 },
-    "description": "製作魔法構造體，用於自動化魔法操作。"
+    "description": "符文熔鑄爐:製作魔法構造體，用於自動化魔法操作。"
   },
   "magic_mine": {
     "name": "Magic Mine",
@@ -457,6 +345,7 @@
       "input": {},
       "output": { "magic_ore": 1 }
     },
+
     "byproductTypes": [
       {
         "id": "none",
@@ -515,7 +404,7 @@
     ],
     "productionInterval": 2000,
     "cost": { "magic_ore": 10 },
-    "description": "開採原始魔法礦石。"
+    "description": "魔晶礦脈入口:開採原始魔法礦石。"
   },
   "enchanted_forest": {
     "name": "Enchanted Forest",
@@ -606,7 +495,7 @@
     },
     "productionInterval": 30000,
     "cost": { "knowledge": 10, "magical_potion": 20, "enchanted_artifact": 15 },
-    "description": "訓練法師，提高城市的魔法產出。"
+    "description": "浮空講堂:訓練法師，提高城市的魔法產出。"
   },
   "research_lab": {
     "name": "Research Lab",
@@ -1350,17 +1239,18 @@
   },
   "well": {
     "name": "水井",
-    "type": "collector",
+    "type": "infrastructure",
     "sprite": "well",
     "spriteIndex": 36,
     "recipe": {
       "input": {},
-      "output": { "water": 3 }
+      "output": { "water": 5 }
     },
     "productionInterval": 2000,
-    "cost": { "stone": 30, "wood_plank": 10 },
-    "description": "从地下抽取清洁的水源，是城市生活和生产的基础。",
+    "cost": { "stone": 50 },
+    "description": "从地下抽取清洁的水源，降低居民疾病率30%。",
     "workerRequirement": { "count": 2, "type": "worker" },
+    "healthBonus": 0.3,
     "byproductTypes": [
       {
         "id": "none",
@@ -2092,6 +1982,189 @@
         "workerModifier": 1.4
       }
     ]
+  },
+  "mine": {
+    "name": "铁矿",
+    "type": "collector",
+    "sprite": "iron_mine",
+    "spriteIndex": 37,
+    "recipe": {
+      "input": {},
+      "output": { "iron_ore": 20 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 50, "stone": 30 },
+    "description": "10矿工/日产出20单位铁矿，日薪4份小麦，每5天消耗1把铁镐。",
+    "workerRequirement": { "count": 10, "type": "miner" },
+    "dailyWage": { "wheat": 4 },
+    "toolConsumption": { "iron_pickaxe": 0.2 }
+  },
+  "lumber_camp": {
+    "name": "伐木场",
+    "type": "collector",
+    "sprite": "lumber_mill",
+    "spriteIndex": 24,
+    "recipe": {
+      "input": {},
+      "output": { "wood": 50 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 20, "stone": 10 },
+    "description": "5伐木工/日产出50单位木材，日薪3.5份小麦，每3天消耗1把斧头。",
+    "workerRequirement": { "count": 5, "type": "lumberjack" },
+    "dailyWage": { "wheat": 3.5 },
+    "toolConsumption": { "axe": 0.33 }
+  },
+  "hunters_lodge": {
+    "name": "猎人小屋",
+    "type": "collector",
+    "sprite": "hunters_lodge",
+    "spriteIndex": 20,
+    "recipe": {
+      "input": { "dog_food": 2 },
+      "output": { "meat": 5 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 30, "stone": 15 },
+    "description": "3猎人/日产出5份肉类，日薪4份小麦，需2只猎犬。",
+    "workerRequirement": { "count": 3, "type": "hunter" },
+    "dailyWage": { "wheat": 4 },
+    "animalRequirement": { "hunting_dog": 2 }
+  },
+  "fishing_dock": {
+    "name": "渔场",
+    "type": "collector",
+    "sprite": "fishing_dock",
+    "spriteIndex": 19,
+    "recipe": {
+      "input": {},
+      "output": { "fish": 15 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 40, "stone": 20 },
+    "description": "8渔民/日产出15份鱼类，日薪3.5份小麦，渔船每月消耗10木材。",
+    "workerRequirement": { "count": 8, "type": "fisherman" },
+    "dailyWage": { "wheat": 3.5 },
+    "equipmentMaintenance": { "wood": 0.33 }
+  },
+  "mill": {
+    "name": "磨坊",
+    "type": "production",
+    "sprite": "lumber_mill",
+    "spriteIndex": 24,
+    "recipe": {
+      "input": { "wheat": 10 },
+      "output": { "flour": 1 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 100, "stone": 50 },
+    "description": "2工人/日加工100小麦，10小麦=1份面粉，工人日薪3.5小麦。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "dailyWage": { "wheat": 3.5 }
+  },
+  "bakery": {
+    "name": "面包房",
+    "type": "production",
+    "sprite": "bakery",
+    "spriteIndex": 23,
+    "recipe": {
+      "input": { "flour": 1, "yeast": 0.5 },
+      "output": { "bread": 2 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 80, "stone": 60, "red_brick": 40 },
+    "description": "1面粉+0.5酵母=2个面包，面包售价5铜币，可满足2天生存需求。",
+    "workerRequirement": { "count": 1, "type": "baker" },
+    "dailyWage": { "wheat": 4 }
+  },
+  "smithy": {
+    "name": "铁匠铺",
+    "type": "production",
+    "sprite": "blacksmith",
+    "spriteIndex": 25,
+    "recipe": {
+      "input": { "iron_ore": 5, "wood": 2 },
+      "output": { "iron_pickaxe": 1 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 120, "stone": 80, "red_brick": 60 },
+    "description": "5铁矿+2木材=1把铁镐，铁镐售价20铜币，铁匠日薪5小麦。",
+    "workerRequirement": { "count": 1, "type": "blacksmith" },
+    "dailyWage": { "wheat": 5 }
+  },
+  "carpentry_shop": {
+    "name": "木匠铺",
+    "type": "production",
+    "sprite": "lumber_mill",
+    "spriteIndex": 24,
+    "recipe": {
+      "input": { "wood": 10 },
+      "output": { "plow": 1 }
+    },
+    "productionInterval": 8640,
+    "cost": { "wood": 80, "stone": 40 },
+    "description": "10木材=1张犁，犁售价50铜币，可使农田年产量增加200份小麦。",
+    "workerRequirement": { "count": 1, "type": "carpenter" },
+    "dailyWage": { "wheat": 4 }
+  },
+  "granary": {
+    "name": "谷仓",
+    "type": "infrastructure",
+    "sprite": "storage_vault",
+    "spriteIndex": 17,
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "wood": 200, "stone": 100 },
+    "description": "容量500，可囤货平抑价格，防止价格波动过大。",
+    "storageCapacity": 500,
+    "priceStabilization": true
+  },
+  "market": {
+    "name": "市场",
+    "type": "infrastructure",
+    "sprite": "housing_district",
+    "spriteIndex": 12,
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "wood": 200 },
+    "description": "提升交易效率50%，缩小价格波动，促进商业发展。",
+    "tradeEfficiencyBonus": 0.5
+  },
+  "castle": {
+    "name": "城堡",
+    "type": "infrastructure",
+    "sprite": "wizard_tower",
+    "spriteIndex": 10,
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "stone": 1000, "wood": 500 },
+    "description": "解锁征兵功能，但增加居民税收负担20%。",
+    "militaryUnlock": true,
+    "taxBurdenIncrease": 0.2
+  },
+  "hospital": {
+    "name": "医院",
+    "type": "infrastructure",
+    "sprite": "research_lab",
+    "spriteIndex": 16,
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "silver_coin": 200 },
+    "description": "治疗瘟疫，降低人口死亡率，提高城市健康水平。",
+    "healthBonus": 0.4,
+    "plagueResistance": true
   }
 }
 

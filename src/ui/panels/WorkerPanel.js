@@ -16,9 +16,10 @@ export default class WorkerPanel extends BasePanel {
     // 调用父类构造函数，使用向右移动300px，向下移动200px的位置
     super(scene, config.x || 300, config.y || 400, {
       width: 500,
-      height: 400,
+      height: 450,
       title: '工人管理',
-      onClose: () => this.hide()
+      onClose: () => this.hide(),
+      autoLayout: false // WorkerPanel有复杂的标签页布局，暂时不使用自动排列
     });
 
     // 保存配置
@@ -150,6 +151,9 @@ export default class WorkerPanel extends BasePanel {
    * @param {Object} stats - 人口统计信息
    */
   createOverviewTabContent(container, stats) {
+    // 创建一个子容器用于自动排列
+    const contentContainer = this.scene.add.container(0, 0);
+
     // 添加总人口信息
     const totalText = this.scene.add.text(0, 0, `总人口: ${stats.total || 0}`, {
       fontSize: '16px',
@@ -157,38 +161,48 @@ export default class WorkerPanel extends BasePanel {
       fontStyle: 'bold'
     }).setOrigin(0.5, 0);
 
-    // 添加各阶层人口信息
-    let yPos = 30;
+    // 创建阶层信息容器
+    const classContainer = this.scene.add.container(-100, 0);
     const classTexts = [];
 
     for (const [className, classData] of Object.entries(stats.socialClasses)) {
       const displayName = this.getClassDisplayName(className);
-      const classText = this.scene.add.text(-100, yPos, `${displayName}: ${classData.count || 0}`, {
+      const classText = this.scene.add.text(0, 0, `${displayName}: ${classData.count || 0}`, {
         fontSize: '14px',
         fill: '#e0e0e0'
-      }).setOrigin(0, 0.5);
+      }).setOrigin(0, 0);
 
       classTexts.push(classText);
-      yPos += 25;
     }
 
-    // 添加工人类型信息
-    yPos = 30;
+    // 手动排列阶层文本
+    classTexts.forEach((text, index) => {
+      text.y = index * 25;
+    });
+    classContainer.add(classTexts);
+
+    // 创建工人信息容器
+    const workerContainer = this.scene.add.container(100, 0);
     const workerTexts = [];
 
     for (const [workerType, count] of Object.entries(stats.workerTypes || {})) {
       const displayName = this.getWorkerDisplayName(workerType);
-      const workerText = this.scene.add.text(50, yPos, `${displayName}: ${count || 0}`, {
+      const workerText = this.scene.add.text(0, 0, `${displayName}: ${count || 0}`, {
         fontSize: '14px',
         fill: '#e0e0e0'
-      }).setOrigin(0, 0.5);
+      }).setOrigin(0, 0);
 
       workerTexts.push(workerText);
-      yPos += 25;
     }
 
+    // 手动排列工人文本
+    workerTexts.forEach((text, index) => {
+      text.y = index * 25;
+    });
+    workerContainer.add(workerTexts);
+
     // 添加吸引移民按钮
-    const immigrantBtn = new Button(this.scene, 0, 150, '吸引移民', {
+    const immigrantBtn = new Button(this.scene, 0, 0, '吸引移民', {
       width: 120,
       height: 30,
       backgroundColor: 0x4a6a4a,
@@ -197,8 +211,18 @@ export default class WorkerPanel extends BasePanel {
       onClick: () => this.showImmigrantsPanel()
     });
 
-    // 添加元素到容器
-    container.add([totalText, ...classTexts, ...workerTexts, ...immigrantBtn.getElements()]);
+    // 手动排列主要元素
+    totalText.y = 0;
+    classContainer.y = 40;
+    workerContainer.y = 40;
+    immigrantBtn.getElements()[0].y = 150; // 按钮背景
+    immigrantBtn.getElements()[1].y = 150; // 按钮文本
+
+    // 添加元素到内容容器
+    contentContainer.add([totalText, classContainer, workerContainer, ...immigrantBtn.getElements()]);
+
+    // 添加内容容器到主容器
+    container.add(contentContainer);
   }
 
   /**

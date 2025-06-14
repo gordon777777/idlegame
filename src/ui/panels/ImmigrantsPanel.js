@@ -19,7 +19,7 @@ export default class ImmigrantsPanel extends BasePanel {
     // 调用父类构造函数
     super(scene, config.x || centerX, config.y || centerY, {
       width: 400,
-      height: 300,
+      height: 350,
       title: `招募${config.className ? ImmigrantsPanel.getClassDisplayName(config.className) : ''}移民`,
       onClose: () => {
         // 隐藏面板
@@ -28,7 +28,12 @@ export default class ImmigrantsPanel extends BasePanel {
         if (this.scene.uiManager && this.scene.uiManager.immigrantsPanel === this) {
           this.scene.uiManager.immigrantsPanel = null;
         }
-      }
+      },
+      autoLayout: true,
+      layoutDirection: 'vertical',
+      layoutAlignment: 'center',
+      layoutSpacing: 25,
+      layoutPadding: { top: 60, left: 20, right: 20, bottom: 20 }
     });
 
     // 保存配置
@@ -91,69 +96,79 @@ export default class ImmigrantsPanel extends BasePanel {
     const playerGold = this.scene.playerGold || 0;
 
     // 添加说明文本
-    const infoText = this.scene.add.text(0, -100, `招募${this.getClassDisplayName(this.className)}移民\n新移民将增加你的人口，但需要支付金币`, {
+    const infoText = this.scene.add.text(0, 0, `招募${this.getClassDisplayName(this.className)}移民\n新移民将增加你的人口，但需要支付金币`, {
       fontSize: '14px',
       fill: '#cccccc',
       align: 'center'
     }).setOrigin(0.5, 0);
 
     // 添加金币显示
-    this.goldText = this.scene.add.text(0, -60, `目前拥有金币: ${Math.floor(playerGold)}`, {
+    this.goldText = this.scene.add.text(0, 0, `目前拥有金币: ${Math.floor(playerGold)}`, {
       fontSize: '16px',
       fill: '#ffdd00',
       fontStyle: 'bold'
     }).setOrigin(0.5, 0);
 
-    // 添加数量选择
-    const amountLabel = this.scene.add.text(-100, -20, '招募数量:', {
+    // 创建数量选择容器
+    const amountContainer = this.scene.add.container(0, 0);
+
+    // 添加数量选择标签
+    const amountLabel = this.scene.add.text(-100, 0, '招募数量:', {
       fontSize: '14px',
       fill: '#ffffff'
     }).setOrigin(0, 0.5);
 
     // 创建数量输入框背景
-    const amountInput = this.scene.add.rectangle(0, -20, 60, 30, 0x333333)
+    const amountInput = this.scene.add.rectangle(0, 0, 60, 30, 0x333333)
       .setStrokeStyle(1, 0x555555);
 
     // 创建数量文本
-    this.amountText = this.scene.add.text(0, -20, this.recruitAmount.toString(), {
+    this.amountText = this.scene.add.text(0, 0, this.recruitAmount.toString(), {
       fontSize: '16px',
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5);
 
-    // 创建快速选择按钮
-    const quickButtons = [];
+    amountContainer.add([amountLabel, amountInput, this.amountText]);
+
+    // 创建快速选择按钮容器
+    const quickButtonsContainer = this.scene.add.container(0, 0);
     const amounts = [1, 5, 10, 20, 50];
     let xPos = -150;
 
     amounts.forEach(amount => {
-      const quickBtn = this.scene.add.rectangle(xPos, 20, 50, 30, 0x4a4a4a)
+      const quickBtn = this.scene.add.rectangle(xPos, 0, 50, 30, 0x4a4a4a)
         .setInteractive()
         .on('pointerdown', () => {
           this.setRecruitAmount(amount);
         });
 
-      const quickText = this.scene.add.text(xPos, 20, amount.toString(), {
+      const quickText = this.scene.add.text(xPos, 0, amount.toString(), {
         fontSize: '14px',
         fill: '#ffffff'
       }).setOrigin(0.5, 0.5);
 
-      quickButtons.push(quickBtn, quickText);
+      quickButtonsContainer.add([quickBtn, quickText]);
       xPos += 60;
     });
 
-    // 创建预览区域
-    const previewBackground = this.scene.add.rectangle(0, 60, 300, 60, 0x333333)
+    // 创建预览区域容器
+    const previewContainer = this.scene.add.container(0, 0);
+
+    // 创建预览背景
+    const previewBackground = this.scene.add.rectangle(0, 0, 300, 60, 0x333333)
       .setStrokeStyle(1, 0x555555);
 
     // 创建预览文本
-    this.previewText = this.scene.add.text(0, 60, `招募 ${this.recruitAmount} 名${this.getClassDisplayName(this.className)}移民\n需要支付: ${recruitCost} 金币`, {
+    this.previewText = this.scene.add.text(0, 0, `招募 ${this.recruitAmount} 名${this.getClassDisplayName(this.className)}移民\n需要支付: ${recruitCost} 金币`, {
       fontSize: '14px',
       fill: '#ffffff',
       align: 'center'
     }).setOrigin(0.5, 0.5);
 
+    previewContainer.add([previewBackground, this.previewText]);
+
     // 创建确认按钮
-    const confirmBtn = new Button(this.scene, 0, 110, '确认招募', {
+    const confirmBtn = new Button(this.scene, 0, 0, '确认招募', {
       width: 120,
       height: 30,
       backgroundColor: 0x4a6a4a,
@@ -162,12 +177,13 @@ export default class ImmigrantsPanel extends BasePanel {
       onClick: () => this.confirmRecruit()
     });
 
-    // 添加元素到面板
+    // 使用自动排列添加所有元素
     this.add([
-      infoText, this.goldText,
-      amountLabel, amountInput, this.amountText,
-      ...quickButtons,
-      previewBackground, this.previewText,
+      infoText,
+      this.goldText,
+      amountContainer,
+      quickButtonsContainer,
+      previewContainer,
       ...confirmBtn.getElements()
     ]);
   }

@@ -26,7 +26,8 @@ export default class ResourcePanel extends BasePanel {
       width: panelWidth,
       height: panelHeight,
       title: '资源',
-      onClose: () => this.hide()
+      onClose: () => this.hide(),
+      autoLayout: false // ResourcePanel使用自定义网格布局
     });
 
     // 保存布局配置

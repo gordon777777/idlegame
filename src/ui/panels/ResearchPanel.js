@@ -17,7 +17,8 @@ export default class ResearchPanel extends BasePanel {
       width: 600,
       height: 500,
       title: '研究技术',
-      onClose: () => this.hide()
+      onClose: () => this.hide(),
+      autoLayout: false // ResearchPanel有复杂的自定义布局
     });
 
     // 保存配置

@@ -50,6 +50,20 @@ export default class Building {
     this.workerRequirement = config.workerRequirement || { count: 10, type: 'worker' }; // 默认工人需求
     this.priority = config.priority || 'medium'; // 工人分配优先级: 'high', 'medium', 'low'
 
+    // 新经济系统参数
+    this.dailyWage = config.dailyWage || {}; // 工人日薪
+    this.toolConsumption = config.toolConsumption || {}; // 工具消耗
+    this.animalRequirement = config.animalRequirement || {}; // 动物需求
+    this.equipmentMaintenance = config.equipmentMaintenance || {}; // 设备维护
+    this.fertilityRequired = config.fertilityRequired || false; // 是否需要肥力
+    this.healthBonus = config.healthBonus || 0; // 健康加成
+    this.tradeEfficiencyBonus = config.tradeEfficiencyBonus || 0; // 贸易效率加成
+    this.militaryUnlock = config.militaryUnlock || false; // 是否解锁军事功能
+    this.taxBurdenIncrease = config.taxBurdenIncrease || 0; // 税收负担增加
+    this.plagueResistance = config.plagueResistance || false; // 瘟疫抗性
+    this.storageCapacity = config.storageCapacity || 0; // 存储容量
+    this.priceStabilization = config.priceStabilization || false; // 价格稳定
+
     this.createSprite();
   }
 
@@ -165,8 +179,15 @@ export default class Building {
     // 获取当前生产时间（已包含所有修正因素）
     const adjustedInterval = this.getCurrentProductionTime();
 
-    // 計算進度 - 結合建築效率和工人效率
-    const totalEfficiency = this.efficiency * this.workerEfficiency;
+    // 检查天气影响（仅对农业建筑有效）
+    let weatherModifier = 1.0;
+    if (this.scene.economicSystem && (this.type === 'collector' && this.name.includes('农'))) {
+      const weatherEffect = this.scene.economicSystem.getWeatherEffect();
+      weatherModifier = weatherEffect.productionModifier;
+    }
+
+    // 計算進度 - 結合建築效率、工人效率和天气效果
+    const totalEfficiency = this.efficiency * this.workerEfficiency * weatherModifier;
     this.productionProgress += (delta * totalEfficiency);
     const progressPercent = Math.min(1, this.productionProgress / adjustedInterval);
 
