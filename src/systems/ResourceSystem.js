@@ -367,6 +367,22 @@ class ResourceSystem {
       message: `成功出售 ${amount} 個 ${this.resources[resourceType].displayName || resourceType}，獲得 ${profit} 金幣`
     };
   }
-}
 
+
+
+
+
+  updateDaily() {
+    this.dataManager.resourceValues.forEach(value => {
+      value.recover();
+      value.resetDailyConsumption();
+    });
+  }
+
+  applyConsumption() {
+    this.dataManager.resourceValues.forEach(value => {
+      value.ensureMaxValue();
+    });
+  }
+}
 export default ResourceSystem;

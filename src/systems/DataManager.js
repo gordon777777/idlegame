@@ -222,4 +222,17 @@ export default class DataManager {
     };
     this.saveResourceSettings(resourceSettings);
   }
+//import { ResourceValue } from '../utils/ResourceValue';
+// 在loadResources方法中添加
+  initResourceValues() {
+  this.resourceValues = new Map();
+  const valuesConfig = this.game.cache.json.get('resources').resourceValues;
+  
+  Object.entries(valuesConfig).forEach(([type, config]) => {
+    this.resourceValues.set(type, new ResourceValue({
+      type,
+      ...config
+    }));
+  });
+  }
 }

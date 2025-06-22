@@ -134,5 +134,29 @@
     "furniture": 500,
     "pottery": 2000,
     "glass": 1000
+  },
+
+"resourceValues": {
+
+    "happiness": {
+      "dailyRecovery": 100,
+      "maxValue": 500,
+      "consumptionPerCitizen": 2
+    },
+    "transport": {
+      "dailyRecovery": 50,
+      "maxValue": 300,
+      "baseConsumption": 20
+    },
+    "security": {
+      "dailyRecovery": 30,
+      "maxValue": 200,
+      "crimeReduction": 0.2
+    },
+    "health": {
+      "dailyRecovery": 40,
+      "maxValue": 400,
+      "diseaseResistance": 0.3
+    }
   }
 }
