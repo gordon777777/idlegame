@@ -114,6 +114,12 @@ export default class GameScene extends Phaser.Scene {
     // 初始化市場系統
     this.marketSystem = new MarketSystem();
 
+    // 市場系統初始化完成
+    console.log('MarketSystem initialized with', Object.keys(this.marketSystem.prices).length, 'resources and', Object.keys(this.marketSystem.resourceValuePrices).length, 'resource values');
+
+    // 添加一些示例本地事件用於測試
+    this.setupExampleLocalEvents();
+
     // 初始化经济系统
     this.economicSystem = new EconomicSystem(this.resources, this.populationSystem, this.marketSystem);
 
@@ -604,5 +610,65 @@ export default class GameScene extends Phaser.Scene {
     } else {
       console.error('DataManager not initialized');
     }
+  }
+
+  /**
+   * 設置示例本地事件用於測試
+   */
+  setupExampleLocalEvents() {
+    // 30秒後觸發豐收節事件
+    this.time.delayedCall(30000, () => {
+      this.marketSystem.addLocalEvent({
+        id: 'harvest_festival',
+        name: '豐收節',
+        description: '豐收節期間，食物價格下降，快樂度服務需求增加',
+        duration: 120000, // 2分鐘
+        priceModifiers: {
+          wheat: 0.7,
+          bread: 0.8,
+          simple_meal: 0.75
+        },
+        resourceValueModifiers: {
+          happiness: 1.3 // 快樂度服務價格上漲30%
+        }
+      });
+    });
+
+    // 60秒後觸發商路阻斷事件
+    this.time.delayedCall(60000, () => {
+      this.marketSystem.addLocalEvent({
+        id: 'trade_route_blocked',
+        name: '商路阻斷',
+        description: '商路被阻斷，奢侈品價格上漲，運力服務需求激增',
+        duration: 180000, // 3分鐘
+        priceModifiers: {
+          wine: 2.0,
+          fine_clothing: 1.8,
+          jewelry: 2.5
+        },
+        resourceValueModifiers: {
+          transport: 2.0, // 運力服務價格翻倍
+          security: 1.5   // 安保力服務價格上漲50%
+        }
+      });
+    });
+
+    // 90秒後觸發瘟疫威脅事件
+    this.time.delayedCall(90000, () => {
+      this.marketSystem.addLocalEvent({
+        id: 'plague_threat',
+        name: '瘟疫威脅',
+        description: '瘟疫威脅來臨，健康度服務需求大增',
+        duration: 150000, // 2.5分鐘
+        priceModifiers: {
+          bread: 1.2,
+          meat: 1.3
+        },
+        resourceValueModifiers: {
+          health: 2.5, // 健康度服務價格上漲150%
+          security: 1.2
+        }
+      });
+    });
   }
 }

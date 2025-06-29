@@ -25,6 +25,7 @@
 
     "_comment_hunting": "========== 狩猎资源 ==========",
     "meat": { "value": 50, "production": 0, "tier": 1, "displayName": "肉类", "basePrice": 4, "isFood": true, "survivalValue": 1 },
+    "animal_hide": { "value": 30, "production": 0, "tier": 1, "displayName": "兽皮", "basePrice": 3, "isMaterial": true, "isClothing": true },
     "hunting_dog": { "value": 3, "production": 0, "tier": 2, "displayName": "猎犬", "basePrice": 50, "isLivestock": true },
 
     "_comment_fishing": "========== 渔业资源 ==========",
@@ -73,7 +74,10 @@
     "salt": { "value": 50, "production": 0, "tier": 2, "displayName": "盐", "basePrice": 8, "isBasicResource": true },
 
     "_comment_processed_goods": "========== 加工品 ==========",
-    "cloth": { "value": 30, "production": 0, "tier": 2, "displayName": "布料", "basePrice": 6, "isMaterial": true },
+    "cloth": { "value": 30, "production": 0, "tier": 2, "displayName": "布料", "basePrice": 6, "isMaterial": true, "isClothing": true },
+    "leather": { "value": 20, "production": 0, "tier": 2, "displayName": "皮革", "basePrice": 8, "isMaterial": true, "isClothing": true },
+    "simple_meal": { "value": 40, "production": 0, "tier": 1, "displayName": "简单餐食", "basePrice": 3, "isFood": true, "survivalValue": 1 },
+    "linen": { "value": 25, "production": 0, "tier": 2, "displayName": "亚麻布", "basePrice": 5, "isMaterial": true, "isClothing": true },
     "furniture": { "value": 10, "production": 0, "tier": 3, "displayName": "家具", "basePrice": 25, "isLuxury": true },
     "pottery": { "value": 40, "production": 0, "tier": 2, "displayName": "陶器", "basePrice": 5, "isBuildingMaterial": true },
     "glass": { "value": 20, "production": 0, "tier": 2, "displayName": "玻璃", "basePrice": 12, "isBuildingMaterial": true }
@@ -97,6 +101,7 @@
     "axe": 100,
     "meat": 2000,
     "hunting_dog": 20,
+    "animal_hide": 1000,
     "fish": 2000,
     "fishing_boat": 10,
     "mill": 5,
@@ -131,6 +136,9 @@
     "spice": 1000,
     "salt": 2000,
     "cloth": 1500,
+    "leather": 800,
+    "simple_meal": 2000,
+    "linen": 1200,
     "furniture": 500,
     "pottery": 2000,
     "glass": 1000
@@ -141,22 +149,46 @@
     "happiness": {
       "dailyRecovery": 100,
       "maxValue": 500,
-      "consumptionPerCitizen": 2
+      "consumptionPerCitizen": 2,
+      "basePrice": 15,
+      "displayName": "快樂度",
+      "description": "提升居民滿意度和工作效率",
+      "marketable": true,
+      "volatility": 0.12,
+      "tier": 2
     },
     "transport": {
       "dailyRecovery": 50,
       "maxValue": 300,
-      "baseConsumption": 20
+      "baseConsumption": 20,
+      "basePrice": 25,
+      "displayName": "運力",
+      "description": "提供貨物運輸和人員調動能力",
+      "marketable": true,
+      "volatility": 0.15,
+      "tier": 2
     },
     "security": {
       "dailyRecovery": 30,
       "maxValue": 200,
-      "crimeReduction": 0.2
+      "crimeReduction": 0.2,
+      "basePrice": 35,
+      "displayName": "安保力",
+      "description": "維護城市治安和居民安全",
+      "marketable": true,
+      "volatility": 0.18,
+      "tier": 3
     },
     "health": {
       "dailyRecovery": 40,
       "maxValue": 400,
-      "diseaseResistance": 0.3
+      "diseaseResistance": 0.3,
+      "basePrice": 20,
+      "displayName": "健康度",
+      "description": "提升居民健康水平和疾病抵抗力",
+      "marketable": true,
+      "volatility": 0.10,
+      "tier": 2
     }
   }
 }

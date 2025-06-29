@@ -2165,6 +2165,192 @@
     "description": "治疗瘟疫，降低人口死亡率，提高城市健康水平。",
     "healthBonus": 0.4,
     "plagueResistance": true
+  },
+
+  "_comment_resource_value_buildings": "========== 资源值建筑 ==========",
+  "tavern": {
+    "name": "酒馆",
+    "type": "resource_value",
+    "sprite": "tavern",
+    "spriteIndex": 50,
+    "recipe": {
+      "input": { "bread": 2, "meat": 1 },
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "wood_plank": 30, "stone": 20, "iron_ingot": 5 },
+    "description": "为居民提供娱乐和社交场所，每季度增加快乐度资源值50点。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "resourceValueBonus": {
+      "happiness": 50
+    },
+    "dailyConsumption": {
+      "bread": 2,
+      "meat": 1
+    }
+  },
+
+  "labor_hall": {
+    "name": "人力馆",
+    "type": "resource_value",
+    "sprite": "labor_hall",
+    "spriteIndex": 51,
+    "recipe": {
+      "input": { "bread": 1 },
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "wood_plank": 25, "stone": 15 },
+    "description": "组织和调配劳动力，每季度增加运力资源值100点。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "resourceValueBonus": {
+      "transport": 100
+    },
+    "dailyConsumption": {
+      "bread": 1
+    },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "基础运力",
+        "description": "提供基础运力支持。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      },
+      {
+        "id": "cart_upgrade",
+        "name": "人力车升级",
+        "description": "配备人力车，运力资源值增加50%。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "resourceValueModifier": { "transport": 1.5 },
+        "workerRequirement": { "count": 3, "type": "worker" },
+        "cost": { "wood_plank": 10, "iron_ingot": 2 }
+      }
+    ]
+  },
+
+  "guard_post": {
+    "name": "守卫所",
+    "type": "resource_value",
+    "sprite": "guard_post",
+    "spriteIndex": 52,
+    "recipe": {
+      "input": { "bread": 3, "iron_ingot": 1 },
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": { "stone": 40, "iron_ingot": 15, "wood_plank": 10 },
+    "description": "维护城市治安，每季度增加安保力资源值75点。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "resourceValueBonus": {
+      "security": 75
+    },
+    "dailyConsumption": {
+      "bread": 3,
+      "iron_ingot": 1
+    }
+  },
+
+  "textile_workshop": {
+    "name": "纺织工坊",
+    "type": "production",
+    "sprite": "textile_workshop",
+    "spriteIndex": 53,
+    "recipe": {
+      "input": { "linen": 2 },
+      "output": { "cloth": 3 }
+    },
+    "productionInterval": 4000,
+    "cost": { "wood_plank": 20, "stone": 10 },
+    "description": "将亚麻等原料纺织成布料，为居民提供基本衣物材料。",
+    "workerRequirement": { "count": 3, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于纺织布料。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" }
+      },
+      {
+        "id": "dye_cloth",
+        "name": "染色布料",
+        "description": "生产染色布料，品质更高。",
+        "resources": { "fine_clothing": 1 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      }
+    ]
+  },
+
+  "simple_kitchen": {
+    "name": "简易厨房",
+    "type": "production",
+    "sprite": "simple_kitchen",
+    "spriteIndex": 54,
+    "recipe": {
+      "input": { "wheat": 3, "meat": 1, "water": 1 },
+      "output": { "simple_meal": 4 }
+    },
+    "productionInterval": 2500,
+    "cost": { "stone": 15, "iron_ingot": 5, "wood_plank": 10 },
+    "description": "为底层居民制作简单但营养的餐食。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于制作简单餐食。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      },
+      {
+        "id": "soup_kitchen",
+        "name": "汤厨模式",
+        "description": "制作更多汤类餐食，产量增加但品质略降。",
+        "resources": {},
+        "timeModifier": 0.8,
+        "outputModifiers": { "simple_meal": 1.5 },
+        "workerRequirement": { "count": 3, "type": "worker" }
+      }
+    ]
+  },
+
+  "linen_farm": {
+    "name": "亚麻农场",
+    "type": "production",
+    "sprite": "linen_farm",
+    "spriteIndex": 55,
+    "recipe": {
+      "input": { "water": 2 },
+      "output": { "linen": 2 }
+    },
+    "productionInterval": 6000,
+    "cost": { "wood_plank": 15, "stone": 5 },
+    "description": "种植亚麻，为纺织业提供原料。",
+    "workerRequirement": { "count": 4, "type": "worker" },
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "无副产品",
+        "description": "专注于种植亚麻。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "worker" }
+      },
+      {
+        "id": "seed_collection",
+        "name": "种子收集",
+        "description": "收集亚麻种子用于扩大种植。",
+        "resources": { "linen": 1 },
+        "timeModifier": 1.1,
+        "workerRequirement": { "count": 5, "type": "worker" }
+      }
+    ]
   }
 }
 

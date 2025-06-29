@@ -158,7 +158,10 @@ export default class MarketResourcePanel extends BasePanel {
   filterResources(selectedTier) {
     // 获取资源和市场数据
     const resources = this.scene.resources.resources;
-    const marketStats = this.scene.marketSystem.getMarketStats();
+    const marketStats = this.scene.marketSystem.getExtendedMarketStats();
+
+    // 市場資源過濾
+    console.log('Filtering market resources - tier:', selectedTier, 'resources:', Object.keys(resources).length, 'prices:', Object.keys(marketStats.prices).length, 'resource values:', Object.keys(marketStats.resourceValuePrices || {}).length);
 
     // 清空资源容器
     this.resourceContainer.removeAll();
@@ -194,6 +197,31 @@ export default class MarketResourcePanel extends BasePanel {
 
       xPos += 100;
       itemCount++;
+    }
+
+    // 添加資源值 (happiness, transport, security, health)
+    if (marketStats.resourceValuePrices) {
+      for (const [resourceValueType, priceData] of Object.entries(marketStats.resourceValuePrices)) {
+        const tier = priceData.tier || 2;
+
+        // 如果选择了特定层级且不匹配，则跳过
+        if (selectedTier !== 'all' && tier !== parseInt(selectedTier)) {
+          continue;
+        }
+
+        // 计算位置
+        if (itemCount > 0 && itemCount % itemsPerRow === 0) {
+          yPos += 60;
+          xPos = -250;
+        }
+
+        // 创建资源值显示元素
+        const resourceValueUI = this.createResourceValueListItem(resourceValueType, priceData, xPos, yPos);
+        this.resourceContainer.add(resourceValueUI);
+
+        xPos += 100;
+        itemCount++;
+      }
     }
   }
 
@@ -509,5 +537,208 @@ export default class MarketResourcePanel extends BasePanel {
     } else {
       this.previewText.setText('请选择资源、交易模式并输入有效数量');
     }
+  }
+
+  /**
+   * 创建资源值列表项
+   * @param {string} resourceValueType - 资源值类型
+   * @param {Object} priceData - 价格数据
+   * @param {number} xPos - X位置
+   * @param {number} yPos - Y位置
+   * @returns {Array} - UI元素数组
+   */
+  createResourceValueListItem(resourceValueType, priceData, xPos, yPos) {
+    const resourceValueElements = [];
+
+    // 背景
+    const background = this.scene.add.rectangle(xPos, yPos, 90, 50, 0x2a2a2a, 0.8)
+      .setOrigin(0, 0);
+    resourceValueElements.push(background);
+
+    // 资源值图标 (使用特殊颜色区分)
+    const iconColor = this.getResourceValueColor(resourceValueType);
+    const icon = this.scene.add.rectangle(xPos + 10, yPos + 10, 20, 20, iconColor)
+      .setOrigin(0, 0);
+    resourceValueElements.push(icon);
+
+    // 资源值名称
+    const nameText = this.scene.add.text(xPos + 35, yPos + 5, priceData.displayName, {
+      fontSize: '10px',
+      fill: '#ffffff'
+    }).setOrigin(0, 0);
+    resourceValueElements.push(nameText);
+
+    // 当前价格
+    const priceText = this.scene.add.text(xPos + 35, yPos + 18, `${priceData.currentPrice}金`, {
+      fontSize: '9px',
+      fill: '#ffdd00'
+    }).setOrigin(0, 0);
+    resourceValueElements.push(priceText);
+
+    // 通胀调整指示
+    const inflationRatio = priceData.currentPrice / priceData.inflationAdjustedPrice;
+    const inflationColor = inflationRatio > 1.1 ? '#ff6666' : inflationRatio < 0.9 ? '#66ff66' : '#cccccc';
+    const inflationText = this.scene.add.text(xPos + 35, yPos + 30, `通胀: ${(inflationRatio * 100).toFixed(0)}%`, {
+      fontSize: '8px',
+      fill: inflationColor
+    }).setOrigin(0, 0);
+    resourceValueElements.push(inflationText);
+
+    // 库存信息
+    const inventoryText = this.scene.add.text(xPos + 5, yPos + 40, `库存: ${priceData.marketInventory}/${priceData.marketCapacity}`, {
+      fontSize: '8px',
+      fill: '#aaaaaa'
+    }).setOrigin(0, 0);
+    resourceValueElements.push(inventoryText);
+
+    // 点击事件
+    background.setInteractive();
+    background.on('pointerdown', () => {
+      this.showResourceValueTradeDialog(resourceValueType, priceData);
+    });
+
+    // 悬停效果
+    background.on('pointerover', () => {
+      background.setFillStyle(0x3a3a3a, 0.9);
+    });
+
+    background.on('pointerout', () => {
+      background.setFillStyle(0x2a2a2a, 0.8);
+    });
+
+    return resourceValueElements;
+  }
+
+  /**
+   * 获取资源值的颜色
+   * @param {string} resourceValueType - 资源值类型
+   * @returns {number} - 颜色值
+   */
+  getResourceValueColor(resourceValueType) {
+    const colors = {
+      happiness: 0xffdd00, // 金色
+      transport: 0x00ddff, // 青色
+      security: 0xff6666, // 红色
+      health: 0x66ff66   // 绿色
+    };
+    return colors[resourceValueType] || 0xcccccc;
+  }
+
+  /**
+   * 显示资源值交易对话框
+   * @param {string} resourceValueType - 资源值类型
+   * @param {Object} priceData - 价格数据
+   */
+  showResourceValueTradeDialog(resourceValueType, priceData) {
+    // 创建交易对话框
+    const dialogWidth = 300;
+    const dialogHeight = 200;
+    const dialogX = this.scene.scale.width / 2 - dialogWidth / 2;
+    const dialogY = this.scene.scale.height / 2 - dialogHeight / 2;
+
+    // 背景
+    const dialogBg = this.scene.add.rectangle(dialogX, dialogY, dialogWidth, dialogHeight, 0x1a1a1a, 0.95)
+      .setOrigin(0, 0)
+      .setDepth(1000);
+
+    // 标题
+    const title = this.scene.add.text(dialogX + dialogWidth/2, dialogY + 20, `${priceData.displayName}交易`, {
+      fontSize: '16px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0).setDepth(1001);
+
+    // 价格信息
+    const priceInfo = this.scene.add.text(dialogX + 20, dialogY + 50,
+      `当前价格: ${priceData.currentPrice}金币/点\n` +
+      `基础价格: ${priceData.basePrice}金币/点\n` +
+      `通胀调整: ${priceData.inflationAdjustedPrice.toFixed(1)}金币/点\n` +
+      `可用库存: ${priceData.marketInventory}点`, {
+      fontSize: '12px',
+      fill: '#cccccc'
+    }).setOrigin(0, 0).setDepth(1001);
+
+    // 购买按钮
+    const buyButton = this.scene.add.rectangle(dialogX + 80, dialogY + 150, 60, 30, 0x4a6a4a)
+      .setOrigin(0, 0)
+      .setDepth(1001)
+      .setInteractive();
+
+    const buyText = this.scene.add.text(dialogX + 110, dialogY + 165, '购买', {
+      fontSize: '12px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5).setDepth(1002);
+
+    // 关闭按钮
+    const closeButton = this.scene.add.rectangle(dialogX + 160, dialogY + 150, 60, 30, 0x6a4a4a)
+      .setOrigin(0, 0)
+      .setDepth(1001)
+      .setInteractive();
+
+    const closeText = this.scene.add.text(dialogX + 190, dialogY + 165, '关闭', {
+      fontSize: '12px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5).setDepth(1002);
+
+    // 购买事件
+    buyButton.on('pointerdown', () => {
+      this.handleResourceValuePurchase(resourceValueType, 10); // 默认购买10点
+      this.closeDialog([dialogBg, title, priceInfo, buyButton, buyText, closeButton, closeText]);
+    });
+
+    // 关闭事件
+    closeButton.on('pointerdown', () => {
+      this.closeDialog([dialogBg, title, priceInfo, buyButton, buyText, closeButton, closeText]);
+    });
+  }
+
+  /**
+   * 处理资源值购买
+   * @param {string} resourceValueType - 资源值类型
+   * @param {number} amount - 购买数量
+   */
+  handleResourceValuePurchase(resourceValueType, amount) {
+    const result = this.scene.marketSystem.buyResourceValue(resourceValueType, amount, this.scene.playerGold);
+
+    if (result.success) {
+      this.scene.playerGold -= result.cost;
+      this.scene.updateGoldDisplay();
+
+      // 显示成功消息
+      this.showMessage(result.message, '#66ff66');
+
+      // 刷新面板
+      this.filterResources(this.currentTier);
+    } else {
+      // 显示错误消息
+      this.showMessage(result.message, '#ff6666');
+    }
+  }
+
+  /**
+   * 关闭对话框
+   * @param {Array} elements - 要销毁的元素数组
+   */
+  closeDialog(elements) {
+    elements.forEach(element => element.destroy());
+  }
+
+  /**
+   * 显示消息
+   * @param {string} message - 消息内容
+   * @param {string} color - 消息颜色
+   */
+  showMessage(message, color = '#ffffff') {
+    const messageText = this.scene.add.text(this.scene.scale.width / 2, 100, message, {
+      fontSize: '14px',
+      fill: color,
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5, 0.5).setDepth(2000);
+
+    // 3秒后自动消失
+    this.scene.time.delayedCall(3000, () => {
+      messageText.destroy();
+    });
   }
 }

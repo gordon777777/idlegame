@@ -9,6 +9,21 @@ export default class MarketSystem {
     // 市場價格
     this.prices = {};
 
+    // 資源值價格 (happiness, transport, security, health)
+    this.resourceValuePrices = {};
+
+    // 通脹率系統
+    this.inflationRate = 1.0; // 基礎通脹率
+    this.inflationHistory = []; // 通脹歷史記錄
+    this.lastInflationUpdate = 0;
+    this.inflationUpdateInterval = 60000; // 每分鐘更新一次通脹率
+
+    // 本地事件修正系統
+    this.localEvents = {
+      active: [],
+      priceModifiers: {}
+    };
+
     // 價格波動設置
     this.priceFluctuationInterval = config.priceFluctuationInterval || 60000; // 每分鐘波動一次
     this.priceFluctuationTimer = 0;
@@ -52,24 +67,35 @@ export default class MarketSystem {
     // 商品與資源的對應關係
     this.goodsToResources = {
       // 底層需求對應資源
-      basic_food: ['enchanted_wood', 'mana'],
-      cloth: ['enchanted_wood', 'magic_ore'],
-      basic_housing: ['enchanted_wood', 'magic_ore'],
+      basic_food: ['wheat', 'bread', 'simple_meal', 'meat', 'fish'],
+      cloth: ['cloth', 'linen', 'animal_hide', 'leather'],
+      basic_housing: ['wood', 'wood_plank', 'stone', 'clay'],
+      fuel: ['firewood', 'charcoal'],
+      tools: ['axe', 'iron_pickaxe', 'plow', 'tool'],
 
       // 中層需求對應資源
-      fine_food: ['enchanted_wood', 'mana', 'arcane_crystal'],
-      wine: ['mana', 'arcane_essence'],
-      clothing: ['enchanted_wood', 'mystic_planks'],
-      standard_housing: ['magic_ore', 'mystic_planks'],
-      furniture: ['enchanted_wood', 'mystic_planks'],
+      fine_food: ['bread', 'meat', 'fish', 'flour', 'yeast'],
+      wine: ['wine', 'salt', 'spice'],
+      clothing: ['cloth', 'leather', 'fine_clothing'],
+      standard_housing: ['wood_plank', 'red_brick', 'iron_ingot', 'pottery'],
+      furniture: ['furniture', 'wood_plank', 'iron_ingot'],
 
       // 上層需求對應資源
-      gourmet_food: ['enchanted_wood', 'mana', 'magical_potion'],
-      fine_wine: ['mana', 'arcane_essence', 'magical_potion'],
-      luxury_clothing: ['mystic_planks', 'refined_crystal'],
-      mansion: ['mystic_planks', 'refined_crystal', 'magical_construct'],
-      artwork: ['refined_crystal', 'magical_potion', 'enchanted_artifact'],
-      crafts: ['arcane_essence', 'refined_crystal', 'enchanted_artifact']
+      gourmet_food: ['wine', 'spice', 'fine_clothing'],
+      fine_wine: ['wine', 'spice'],
+      luxury_clothing: ['fine_clothing', 'jewelry'],
+      mansion: ['red_brick', 'iron_ingot', 'glass', 'furniture'],
+      artwork: ['art', 'jewelry', 'glass'],
+      crafts: ['pottery', 'glass', 'art'],
+
+      // 原材料和基礎資源
+      raw_materials: ['iron_ore', 'wood', 'clay', 'stone'],
+      processed_materials: ['iron_ingot', 'wood_plank', 'red_brick', 'glass'],
+
+      // 魔法資源 (保留原有)
+      magic_basic: ['magic_ore', 'enchanted_wood', 'arcane_crystal', 'mana'],
+      magic_processed: ['arcane_essence', 'mystic_planks', 'refined_crystal'],
+      magic_advanced: ['magical_potion', 'enchanted_artifact', 'magical_construct']
     };
 
     // 消費計時器
@@ -78,6 +104,9 @@ export default class MarketSystem {
 
     // 初始化市場價格
     this.initializePrices();
+
+    // 初始化資源值價格
+    this.initializeResourceValuePrices();
   }
 
   /**
@@ -106,6 +135,40 @@ export default class MarketSystem {
   }
 
   /**
+   * 初始化資源值價格和庫存
+   */
+  initializeResourceValuePrices() {
+    // 資源值的基礎配置
+    const resourceValueConfigs = {
+      happiness: { basePrice: 15, volatility: 0.12, tier: 2 },
+      transport: { basePrice: 25, volatility: 0.15, tier: 2 },
+      security: { basePrice: 35, volatility: 0.18, tier: 3 },
+      health: { basePrice: 20, volatility: 0.10, tier: 2 }
+    };
+
+    // 為每種資源值設置價格
+    for (const [resourceValueType, config] of Object.entries(resourceValueConfigs)) {
+      this.resourceValuePrices[resourceValueType] = {
+        basePrice: config.basePrice,
+        currentPrice: config.basePrice,
+        inflationAdjustedPrice: config.basePrice,
+        demand: 1.0,
+        supply: 1.0,
+        volatility: config.volatility,
+        tier: config.tier,
+        lastUpdate: Date.now()
+      };
+
+      // 初始化市場庫存 (資源值的"庫存"代表可購買的服務量)
+      this.marketInventory[resourceValueType] = {
+        amount: 50, // 初始可用服務量
+        maxCapacity: 200, // 最大服務容量
+        lastUpdate: Date.now()
+      };
+    }
+  }
+
+  /**
    * 獲取資源的基礎價格
    * @param {string} resource - 資源類型
    * @returns {number} - 基礎價格
@@ -113,24 +176,88 @@ export default class MarketSystem {
   getBasePriceForResource(resource) {
     // 根據資源稀有度設置基礎價格
     const rarityMap = {
-      // 基礎資源 (tier 1)
+      // 貨幣系統
+      copper_coin: 1,
+      silver_coin: 100,
+      gold_coin: 1000,
+
+      // 基礎農業資源 (tier 1)
+      wheat: 1,
+      manure: 2,
+      hay: 1,
+      dog_food: 2,
+      meat: 4,
+      fish: 3,
+      wild_vegetable: 1,
+
+      // 基礎原材料 (tier 1)
+      iron_ore: 2,
+      wood: 1,
+      clay: 1,
+      stone: 1,
+      water: 0.5,
+      animal_hide: 3,
+      firewood: 2,
+
+      // 加工食品 (tier 2)
+      yeast: 5,
+      flour: 2,
+      bread: 5,
+      simple_meal: 3,
+
+      // 加工材料 (tier 2)
+      iron_ingot: 8,
+      wood_plank: 3,
+      red_brick: 4,
+      charcoal: 4,
+      cloth: 6,
+      leather: 8,
+      linen: 5,
+      pottery: 5,
+      glass: 12,
+      salt: 8,
+
+      // 工具和設備 (tier 2)
+      iron_pickaxe: 20,
+      axe: 15,
+      plow: 50,
+      tool: 10,
+      ox: 100,
+      hunting_dog: 50,
+      fishing_boat: 200,
+
+      // 奢侈品 (tier 3)
+      wine: 20,
+      fine_clothing: 50,
+      furniture: 25,
+      spice: 30,
+
+      // 高級奢侈品 (tier 4)
+      jewelry: 100,
+      art: 200,
+
+      // 建築物
+      mill: 500,
+      bakery_building: 800,
+      smithy: 1000,
+      carpentry: 600,
+      irrigation: 150,
+      granary: 300,
+      well: 50,
+      market_building: 200,
+      castle: 1500,
+      hospital: 200,
+
+      // 魔法資源 (保留原有)
       magic_ore: 10,
       enchanted_wood: 8,
       arcane_crystal: 12,
       mana: 5,
-      stone: 3,
-
-      // 加工資源 (tier 2)
       arcane_essence: 20,
       mystic_planks: 18,
       refined_crystal: 25,
-
-      // 高級資源 (tier 3)
       magical_potion: 40,
       enchanted_artifact: 60,
-      knowledge: 30,
-
-      // 終極產品 (tier 4)
       magical_construct: 100
     };
 
@@ -145,28 +272,207 @@ export default class MarketSystem {
   getVolatilityForResource(resource) {
     // 高級資源波動性更大
     const volatilityMap = {
-      // 基礎資源 (tier 1)
+      // 貨幣系統 (穩定)
+      copper_coin: 0.01,
+      silver_coin: 0.02,
+      gold_coin: 0.03,
+
+      // 基礎農業資源 (tier 1) - 低波動性
+      wheat: 0.05,
+      manure: 0.03,
+      hay: 0.04,
+      meat: 0.08,
+      fish: 0.07,
+      wild_vegetable: 0.06,
+
+      // 基礎原材料 (tier 1) - 低波動性
+      iron_ore: 0.05,
+      wood: 0.04,
+      clay: 0.03,
+      stone: 0.02,
+      water: 0.01,
+      animal_hide: 0.06,
+      firewood: 0.05,
+
+      // 加工食品 (tier 2) - 中等波動性
+      yeast: 0.08,
+      flour: 0.06,
+      bread: 0.07,
+      simple_meal: 0.06,
+
+      // 加工材料 (tier 2) - 中等波動性
+      iron_ingot: 0.08,
+      wood_plank: 0.06,
+      red_brick: 0.07,
+      charcoal: 0.08,
+      cloth: 0.09,
+      leather: 0.1,
+      linen: 0.08,
+      pottery: 0.07,
+      glass: 0.12,
+      salt: 0.1,
+
+      // 工具和設備 (tier 2) - 中等波動性
+      iron_pickaxe: 0.1,
+      axe: 0.09,
+      plow: 0.12,
+      tool: 0.08,
+      ox: 0.15,
+      hunting_dog: 0.12,
+      fishing_boat: 0.18,
+
+      // 奢侈品 (tier 3) - 高波動性
+      wine: 0.15,
+      fine_clothing: 0.18,
+      furniture: 0.14,
+      spice: 0.2,
+
+      // 高級奢侈品 (tier 4) - 很高波動性
+      jewelry: 0.25,
+      art: 0.3,
+
+      // 建築物 - 低波動性
+      mill: 0.05,
+      bakery_building: 0.06,
+      smithy: 0.07,
+      carpentry: 0.06,
+      irrigation: 0.04,
+      granary: 0.05,
+      well: 0.03,
+      market_building: 0.08,
+      castle: 0.1,
+      hospital: 0.07,
+
+      // 魔法資源 (保留原有)
       magic_ore: 0.05,
       enchanted_wood: 0.05,
       arcane_crystal: 0.08,
       mana: 0.03,
-      stone: 0.02,
-
-      // 加工資源 (tier 2)
       arcane_essence: 0.1,
       mystic_planks: 0.1,
       refined_crystal: 0.12,
-
-      // 高級資源 (tier 3)
       magical_potion: 0.15,
       enchanted_artifact: 0.2,
-      knowledge: 0.1,
-
-      // 終極產品 (tier 4)
       magical_construct: 0.25
     };
 
     return volatilityMap[resource] || 0.1; // 默認波動性為0.1
+  }
+
+  /**
+   * 計算市場通脹率
+   * 基於所有商品的平均價格變化
+   */
+  calculateInflationRate() {
+    if (Object.keys(this.prices).length === 0) return 1.0;
+
+    let totalPriceRatio = 0;
+    let validPrices = 0;
+
+    // 計算所有商品的價格比率
+    for (const [resource, priceInfo] of Object.entries(this.prices)) {
+      if (priceInfo.basePrice > 0) {
+        totalPriceRatio += priceInfo.currentPrice / priceInfo.basePrice;
+        validPrices++;
+      }
+    }
+
+    // 計算平均通脹率
+    const averageInflation = validPrices > 0 ? totalPriceRatio / validPrices : 1.0;
+
+    // 平滑通脹率變化，避免劇烈波動
+    this.inflationRate = (this.inflationRate * 0.8) + (averageInflation * 0.2);
+
+    // 記錄通脹歷史
+    this.inflationHistory.push({
+      timestamp: Date.now(),
+      rate: this.inflationRate
+    });
+
+    // 只保留最近10次記錄
+    if (this.inflationHistory.length > 10) {
+      this.inflationHistory.shift();
+    }
+
+    return this.inflationRate;
+  }
+
+  /**
+   * 添加本地事件
+   * @param {Object} event - 事件對象
+   */
+  addLocalEvent(event) {
+    this.localEvents.active.push({
+      id: event.id || `event_${Date.now()}`,
+      name: event.name,
+      description: event.description,
+      duration: event.duration || 300000, // 默認5分鐘
+      startTime: Date.now(),
+      priceModifiers: event.priceModifiers || {},
+      resourceValueModifiers: event.resourceValueModifiers || {}
+    });
+
+    console.log(`本地事件開始: ${event.name}`);
+  }
+
+  /**
+   * 更新本地事件
+   */
+  updateLocalEvents() {
+    const currentTime = Date.now();
+
+    // 移除過期事件
+    this.localEvents.active = this.localEvents.active.filter(event => {
+      const isExpired = (currentTime - event.startTime) > event.duration;
+      if (isExpired) {
+        console.log(`本地事件結束: ${event.name}`);
+      }
+      return !isExpired;
+    });
+
+    // 計算當前活躍事件的價格修正
+    this.localEvents.priceModifiers = {};
+
+    for (const event of this.localEvents.active) {
+      // 合併商品價格修正
+      for (const [resource, modifier] of Object.entries(event.priceModifiers)) {
+        if (!this.localEvents.priceModifiers[resource]) {
+          this.localEvents.priceModifiers[resource] = 1.0;
+        }
+        this.localEvents.priceModifiers[resource] *= modifier;
+      }
+
+      // 合併資源值價格修正
+      for (const [resourceValue, modifier] of Object.entries(event.resourceValueModifiers)) {
+        const key = `rv_${resourceValue}`;
+        if (!this.localEvents.priceModifiers[key]) {
+          this.localEvents.priceModifiers[key] = 1.0;
+        }
+        this.localEvents.priceModifiers[key] *= modifier;
+      }
+    }
+  }
+
+  /**
+   * 更新資源值價格
+   * 應用通脹率和本地事件修正
+   */
+  updateResourceValuePrices() {
+    for (const [resourceValueType, priceInfo] of Object.entries(this.resourceValuePrices)) {
+      // 應用通脹率
+      const inflationAdjustedPrice = priceInfo.basePrice * this.inflationRate;
+
+      // 應用本地事件修正
+      const eventModifier = this.localEvents.priceModifiers[`rv_${resourceValueType}`] || 1.0;
+
+      // 應用隨機波動
+      const randomFactor = 1 + (Math.random() - 0.5) * priceInfo.volatility;
+
+      // 計算最終價格
+      priceInfo.inflationAdjustedPrice = inflationAdjustedPrice;
+      priceInfo.currentPrice = Math.max(1, Math.floor(inflationAdjustedPrice * eventModifier * randomFactor));
+      priceInfo.lastUpdate = Date.now();
+    }
   }
 
   /**
@@ -177,6 +483,16 @@ export default class MarketSystem {
    * @param {Object} populationSystem - 人口系統引用
    */
   update(time, delta, resources, populationSystem) {
+    // 更新本地事件
+    this.updateLocalEvents();
+
+    // 更新通脹率
+    if (time - this.lastInflationUpdate >= this.inflationUpdateInterval) {
+      this.lastInflationUpdate = time;
+      this.calculateInflationRate();
+      this.updateResourceValuePrices();
+    }
+
     // 更新價格波動
     this.priceFluctuationTimer += delta;
     if (this.priceFluctuationTimer >= this.priceFluctuationInterval) {
@@ -722,5 +1038,177 @@ export default class MarketSystem {
     const actualPrice = Math.floor(currentPrice * priceAdjustment);
 
     return actualPrice;
+  }
+
+  /**
+   * 購買資源值服務
+   * @param {string} resourceValueType - 資源值類型 (happiness, transport, security, health)
+   * @param {number} amount - 購買數量
+   * @param {number} playerGold - 玩家擁有的金幣
+   * @returns {Object} - 交易結果
+   */
+  buyResourceValue(resourceValueType, amount, playerGold) {
+    // 檢查是否為有效的資源值類型
+    if (!this.resourceValuePrices[resourceValueType]) {
+      return { success: false, cost: 0, message: '無效的資源值類型' };
+    }
+
+    // 檢查市場庫存是否足夠
+    const marketInventoryInfo = this.marketInventory[resourceValueType];
+    if (!marketInventoryInfo || marketInventoryInfo.amount < amount) {
+      return {
+        success: false,
+        cost: 0,
+        message: '市場服務容量不足',
+        availableAmount: marketInventoryInfo?.amount || 0
+      };
+    }
+
+    // 計算價格
+    const priceInfo = this.resourceValuePrices[resourceValueType];
+    const unitPrice = priceInfo.currentPrice;
+    const totalCost = amount * unitPrice;
+
+    // 檢查玩家金幣是否足夠
+    if (playerGold < totalCost) {
+      return {
+        success: false,
+        cost: totalCost,
+        message: '金幣不足',
+        maxAffordableAmount: Math.floor(playerGold / unitPrice)
+      };
+    }
+
+    // 執行交易
+    marketInventoryInfo.amount -= amount;
+    marketInventoryInfo.lastUpdate = Date.now();
+
+    // 記錄交易
+    this.recordTransaction(`rv_${resourceValueType}`, -amount, unitPrice);
+
+    // 更新價格 (購買會提高價格)
+    const priceImpact = Math.min(0.15, (amount / marketInventoryInfo.maxCapacity) * 0.3);
+    priceInfo.currentPrice = Math.ceil(priceInfo.currentPrice * (1 + priceImpact));
+
+    // 增加月度營業額
+    this.monthlyRevenue += totalCost;
+
+    return {
+      success: true,
+      cost: totalCost,
+      unitPrice: unitPrice,
+      message: `成功購買 ${amount} 點${this.getResourceValueDisplayName(resourceValueType)}服務`
+    };
+  }
+
+  /**
+   * 出售資源值服務 (通常由玩家的建築提供)
+   * @param {string} resourceValueType - 資源值類型
+   * @param {number} amount - 出售數量
+   * @returns {Object} - 交易結果
+   */
+  sellResourceValue(resourceValueType, amount) {
+    // 檢查是否為有效的資源值類型
+    if (!this.resourceValuePrices[resourceValueType]) {
+      return { success: false, profit: 0, message: '無效的資源值類型' };
+    }
+
+    // 檢查市場庫存空間是否足夠
+    const marketInventoryInfo = this.marketInventory[resourceValueType];
+    if (!marketInventoryInfo) {
+      return { success: false, profit: 0, message: '市場庫存信息不存在' };
+    }
+
+    const remainingCapacity = marketInventoryInfo.maxCapacity - marketInventoryInfo.amount;
+    if (remainingCapacity < amount) {
+      return {
+        success: false,
+        profit: 0,
+        message: '市場容量不足',
+        maxAmount: remainingCapacity
+      };
+    }
+
+    // 計算價格 (出售價格通常低於購買價格)
+    const priceInfo = this.resourceValuePrices[resourceValueType];
+    const sellPriceModifier = 0.8; // 出售價格為市場價格的80%
+    const unitPrice = Math.floor(priceInfo.currentPrice * sellPriceModifier);
+    const totalProfit = amount * unitPrice;
+
+    // 執行交易
+    marketInventoryInfo.amount += amount;
+    marketInventoryInfo.lastUpdate = Date.now();
+
+    // 記錄交易
+    this.recordTransaction(`rv_${resourceValueType}`, amount, unitPrice);
+
+    // 更新價格 (出售會降低價格)
+    const priceImpact = Math.min(0.1, (amount / marketInventoryInfo.maxCapacity) * 0.2);
+    priceInfo.currentPrice = Math.max(1, Math.floor(priceInfo.currentPrice * (1 - priceImpact)));
+
+    return {
+      success: true,
+      profit: totalProfit,
+      unitPrice: unitPrice,
+      message: `成功出售 ${amount} 點${this.getResourceValueDisplayName(resourceValueType)}服務，獲得 ${totalProfit} 金幣`
+    };
+  }
+
+  /**
+   * 獲取資源值的顯示名稱
+   * @param {string} resourceValueType - 資源值類型
+   * @returns {string} - 顯示名稱
+   */
+  getResourceValueDisplayName(resourceValueType) {
+    const displayNames = {
+      happiness: '快樂度',
+      transport: '運力',
+      security: '安保力',
+      health: '健康度'
+    };
+    return displayNames[resourceValueType] || resourceValueType;
+  }
+
+  /**
+   * 獲取資源值當前價格
+   * @param {string} resourceValueType - 資源值類型
+   * @returns {number} - 當前價格
+   */
+  getResourceValuePrice(resourceValueType) {
+    return this.resourceValuePrices[resourceValueType]?.currentPrice || 0;
+  }
+
+  /**
+   * 獲取完整的市場統計信息（包含資源值）
+   * @returns {Object} - 擴展的市場統計
+   */
+  getExtendedMarketStats() {
+    const basicStats = this.getMarketStats();
+
+    // 添加資源值價格信息
+    basicStats.resourceValuePrices = {};
+    for (const [resourceValueType, priceInfo] of Object.entries(this.resourceValuePrices)) {
+      basicStats.resourceValuePrices[resourceValueType] = {
+        currentPrice: priceInfo.currentPrice,
+        basePrice: priceInfo.basePrice,
+        inflationAdjustedPrice: priceInfo.inflationAdjustedPrice,
+        priceRatio: priceInfo.currentPrice / priceInfo.basePrice,
+        marketInventory: this.marketInventory[resourceValueType]?.amount || 0,
+        marketCapacity: this.marketInventory[resourceValueType]?.maxCapacity || 200,
+        displayName: this.getResourceValueDisplayName(resourceValueType)
+      };
+    }
+
+    // 添加通脹率信息
+    basicStats.inflationRate = this.inflationRate;
+    basicStats.inflationHistory = this.inflationHistory;
+
+    // 添加本地事件信息
+    basicStats.localEvents = {
+      active: this.localEvents.active,
+      priceModifiers: this.localEvents.priceModifiers
+    };
+
+    return basicStats;
   }
 }
