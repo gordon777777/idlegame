@@ -65,6 +65,10 @@
       "buildingWorkHours": {
         "magic_forge": 24
       },
+      "resourceValues": {
+        "happiness": 50,
+        "transport": 30
+      },
       "time": 2
     },
     "effects": {
@@ -244,6 +248,12 @@
       "gold": 500,
       "buildingWorkHours": {
         "arcane_workshop": 72
+      },
+      "resourceValues": {
+        "happiness": 200,
+        "transport": 150,
+        "security": 100,
+        "health": 120
       },
       "time": 5
     },

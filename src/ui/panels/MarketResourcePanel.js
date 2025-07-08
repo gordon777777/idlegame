@@ -104,12 +104,11 @@ export default class MarketResourcePanel extends BasePanel {
       { id: '4', name: '四级', x: 150, color: 0x8a4a6a }
     ];
 
-    // 创建标签页容器
-    this.tabContainers = {};
+    // 创建标签页状态
     this.activeTab = 'all';
     this.tabButtons = [];
 
-    // 创建资源容器
+    // 创建资源容器 - 使用相对于面板的坐标
     this.resourceContainer = this.scene.add.container(0, -80);
     this.add(this.resourceContainer);
 
@@ -139,10 +138,6 @@ export default class MarketResourcePanel extends BasePanel {
 
       this.tabButtons.push(tabBtn);
 
-      // 为每个标签页创建内容容器
-      this.tabContainers[tab.id] = this.scene.add.container(0, -80);
-      this.tabContainers[tab.id].visible = (tab.id === this.activeTab);
-
       // 添加按钮元素到面板
       this.add(tabBtn.getElements());
     });
@@ -163,12 +158,21 @@ export default class MarketResourcePanel extends BasePanel {
     // 市場資源過濾
     console.log('Filtering market resources - tier:', selectedTier, 'resources:', Object.keys(resources).length, 'prices:', Object.keys(marketStats.prices).length, 'resource values:', Object.keys(marketStats.resourceValuePrices || {}).length);
 
-    // 清空资源容器
-    this.resourceContainer.removeAll();
+    // 清空资源容器 - 确保所有子元素都被正确移除
+    this.resourceContainer.removeAll(true); // 第二个参数为true表示销毁子元素
 
-    let yPos = 0;
-    let xPos = -250;
+    // 计算面板内容区域的边界
+    const panelWidth = this.width;
+    const panelHeight = this.height;
+    const contentStartY = 0; // 相对于resourceContainer的起始Y位置
+    const contentMaxHeight = 280; // 最大内容高度，留出底部按钮空间
+
+    // 布局参数
+    let yPos = contentStartY;
+    let xPos = -panelWidth/2 + 60; // 从面板左边开始，留出边距
     let itemsPerRow = 5;
+    let itemWidth = 100;
+    let itemHeight = 60;
     let itemCount = 0;
 
     // 遍历资源并根据选择的层级过滤
@@ -185,17 +189,23 @@ export default class MarketResourcePanel extends BasePanel {
         continue;
       }
 
-      // 计算位置
+      // 计算位置 - 确保不超出面板边界
       if (itemCount > 0 && itemCount % itemsPerRow === 0) {
-        yPos += 60;
-        xPos = -250;
+        yPos += itemHeight;
+        xPos = -panelWidth/2 + 60;
+
+        // 检查是否超出内容区域高度
+        if (yPos > contentMaxHeight) {
+          console.warn('Market panel content exceeds maximum height, some items may not be visible');
+          break;
+        }
       }
 
       // 创建资源显示元素
       const resourceUI = this.createResourceListItem(resourceType, resourceData, marketStats, xPos, yPos);
       this.resourceContainer.add(resourceUI);
 
-      xPos += 100;
+      xPos += itemWidth;
       itemCount++;
     }
 
@@ -209,17 +219,23 @@ export default class MarketResourcePanel extends BasePanel {
           continue;
         }
 
-        // 计算位置
+        // 计算位置 - 确保不超出面板边界
         if (itemCount > 0 && itemCount % itemsPerRow === 0) {
-          yPos += 60;
-          xPos = -250;
+          yPos += itemHeight;
+          xPos = -panelWidth/2 + 60;
+
+          // 检查是否超出内容区域高度
+          if (yPos > contentMaxHeight) {
+            console.warn('Market panel content exceeds maximum height, some items may not be visible');
+            break;
+          }
         }
 
         // 创建资源值显示元素
         const resourceValueUI = this.createResourceValueListItem(resourceValueType, priceData, xPos, yPos);
         this.resourceContainer.add(resourceValueUI);
 
-        xPos += 100;
+        xPos += itemWidth;
         itemCount++;
       }
     }
@@ -434,6 +450,22 @@ export default class MarketResourcePanel extends BasePanel {
   }
 
   /**
+   * 选择资源值
+   * @param {string} resourceValueType - 资源值类型
+   * @param {string} tradeMode - 交易模式
+   */
+  selectResourceValue(resourceValueType, tradeMode) {
+    this.selectedResource = resourceValueType;
+
+    if (tradeMode) {
+      this.tradeMode = tradeMode;
+    }
+
+    // 更新预览
+    this.updatePreview();
+  }
+
+  /**
    * 更新预览
    */
   updatePreview() {
@@ -547,66 +579,66 @@ export default class MarketResourcePanel extends BasePanel {
    * @param {number} yPos - Y位置
    * @returns {Array} - UI元素数组
    */
-  createResourceValueListItem(resourceValueType, priceData, xPos, yPos) {
-    const resourceValueElements = [];
+  createResourceValueListItem(resourceValueType, priceData, x, y) {
+    // 创建资源值容器
+    const container = this.scene.add.container(x, y);
 
-    // 背景
-    const background = this.scene.add.rectangle(xPos, yPos, 90, 50, 0x2a2a2a, 0.8)
-      .setOrigin(0, 0);
-    resourceValueElements.push(background);
+    // 获取资源值名称
+    const displayName = priceData.displayName || resourceValueType;
 
-    // 资源值图标 (使用特殊颜色区分)
+    // 创建资源值图标背景
     const iconColor = this.getResourceValueColor(resourceValueType);
-    const icon = this.scene.add.rectangle(xPos + 10, yPos + 10, 20, 20, iconColor)
-      .setOrigin(0, 0);
-    resourceValueElements.push(icon);
+    const iconBg = this.scene.add.rectangle(0, 0, 80, 50, 0x333333)
+      .setStrokeStyle(1, 0x555555);
 
-    // 资源值名称
-    const nameText = this.scene.add.text(xPos + 35, yPos + 5, priceData.displayName, {
-      fontSize: '10px',
+    // 创建资源值名称
+    const nameText = this.scene.add.text(0, -15, displayName, {
+      fontSize: '12px',
       fill: '#ffffff'
-    }).setOrigin(0, 0);
-    resourceValueElements.push(nameText);
+    }).setOrigin(0.5, 0.5);
 
-    // 当前价格
-    const priceText = this.scene.add.text(xPos + 35, yPos + 18, `${priceData.currentPrice}金`, {
-      fontSize: '9px',
+    // 创建资源值价格
+    const priceText = this.scene.add.text(0, 0, `价格: ${priceData.currentPrice.toFixed(2)}`, {
+      fontSize: '10px',
       fill: '#ffdd00'
-    }).setOrigin(0, 0);
-    resourceValueElements.push(priceText);
+    }).setOrigin(0.5, 0.5);
 
-    // 通胀调整指示
+    // 创建通胀信息
     const inflationRatio = priceData.currentPrice / priceData.inflationAdjustedPrice;
     const inflationColor = inflationRatio > 1.1 ? '#ff6666' : inflationRatio < 0.9 ? '#66ff66' : '#cccccc';
-    const inflationText = this.scene.add.text(xPos + 35, yPos + 30, `通胀: ${(inflationRatio * 100).toFixed(0)}%`, {
-      fontSize: '8px',
+    const inflationText = this.scene.add.text(0, 15, `通胀: ${(inflationRatio * 100).toFixed(0)}%`, {
+      fontSize: '10px',
       fill: inflationColor
-    }).setOrigin(0, 0);
-    resourceValueElements.push(inflationText);
+    }).setOrigin(0.5, 0.5);
 
-    // 库存信息
-    const inventoryText = this.scene.add.text(xPos + 5, yPos + 40, `库存: ${priceData.marketInventory}/${priceData.marketCapacity}`, {
-      fontSize: '8px',
-      fill: '#aaaaaa'
-    }).setOrigin(0, 0);
-    resourceValueElements.push(inventoryText);
-
-    // 点击事件
-    background.setInteractive();
-    background.on('pointerdown', () => {
-      this.showResourceValueTradeDialog(resourceValueType, priceData);
+    // 创建买入按钮
+    const buyBtn = new TradeButton(this.scene, -20, 30, '买', {
+      resourceType: resourceValueType,
+      tradeMode: 'buy',
+      width: 30,
+      height: 20,
+      onClick: (type, mode) => this.selectResourceValue(type, mode)
     });
 
-    // 悬停效果
-    background.on('pointerover', () => {
-      background.setFillStyle(0x3a3a3a, 0.9);
+    // 创建卖出按钮
+    const sellBtn = new TradeButton(this.scene, 20, 30, '卖', {
+      resourceType: resourceValueType,
+      tradeMode: 'sell',
+      width: 30,
+      height: 20,
+      onClick: (type, mode) => this.selectResourceValue(type, mode)
     });
 
-    background.on('pointerout', () => {
-      background.setFillStyle(0x2a2a2a, 0.8);
-    });
+    // 添加元素到容器
+    container.add([iconBg, nameText, priceText, inflationText, ...buyBtn.getElements(), ...sellBtn.getElements()]);
 
-    return resourceValueElements;
+    // 设置容器为可交互
+    iconBg.setInteractive()
+      .on('pointerdown', () => {
+        this.selectResourceValue(resourceValueType);
+      });
+
+    return container;
   }
 
   /**

@@ -14,22 +14,27 @@ export default class ResearchPanel extends BasePanel {
   constructor(scene, config = {}) {
     // 调用父类构造函数
     super(scene, config.x || 400, config.y || 300, {
-      width: 600,
-      height: 500,
-      title: '研究技术',
+      width: 800,
+      height: 600,
+      title: '研究技术树',
       onClose: () => this.hide(),
-      autoLayout: false // ResearchPanel有复杂的自定义布局
+      autoLayout: false // ResearchPanel有复杂的树状布局
     });
 
     // 保存配置
     this.config = config;
 
-    // 拖拉相关变量
-    this.isResearchDragging = false;
-    this.researchDragStartX = 0;
-    this.researchDragStartY = 0;
-    this.researchDragPointerStartX = 0;
-    this.researchDragPointerStartY = 0;
+    // 樹狀結構相關屬性
+    this.techNodes = new Map(); // 存儲技術節點
+    this.connections = []; // 存儲連接線
+    this.nodeWidth = 120;
+    this.nodeHeight = 60;
+    this.levelSpacing = 150; // 層級間距
+    this.nodeSpacing = 80; // 同層節點間距
+
+    // UI狀態管理
+    this.currentDialog = null; // 當前打開的對話框元素
+    this.tooltip = null; // 當前顯示的提示框
 
     // 创建面板内容
     this.createContent();
@@ -76,198 +81,719 @@ export default class ResearchPanel extends BasePanel {
       return;
     }
 
-    // 获取可用的研究项目
-    const availableTechnologies = researchSystem.getAvailableTechnologies();
-    const completedResearch = researchSystem.completedResearch;
-    const researchProgress = researchSystem.getResearchProgress();
+    // 清除現有內容
+    this.clearContent();
 
-    // 添加研究进度文本
-    let progressText;
-    let progressDetails = [];
+    // 獲取所有技術數據
+    const allTechnologies = this.getAllTechnologies(researchSystem);
+
+    // 計算樹狀結構佈局
+    const treeLayout = this.calculateTreeLayout(allTechnologies);
+
+    // 創建連接線
+    this.createConnections(treeLayout, allTechnologies);
+
+    // 創建技術節點
+    this.createTechNodes(treeLayout, researchSystem);
+
+    // 添加研究進度顯示
+    this.createProgressDisplay(researchSystem);
+  }
+
+  /**
+   * 清除現有內容
+   */
+  clearContent() {
+    // 清除技術節點
+    this.techNodes.forEach(node => {
+      if (node.container) node.container.destroy();
+    });
+    this.techNodes.clear();
+
+    // 清除連接線
+    this.connections.forEach(line => {
+      if (line.destroy) line.destroy();
+    });
+    this.connections = [];
+
+    // 清除提示框
+    if (this.tooltip) {
+      this.tooltip.destroy();
+      this.tooltip = null;
+    }
+
+    // 清除當前對話框
+    this.closeCurrentDialog();
+  }
+
+  /**
+   * 獲取所有技術數據
+   */
+  getAllTechnologies(researchSystem) {
+    const technologies = {};
+
+    // 從研究系統獲取所有技術
+    Object.keys(researchSystem.technologies).forEach(techId => {
+      const tech = researchSystem.getTechnology(techId);
+      if (tech) {
+        technologies[techId] = tech;
+      }
+    });
+
+    return technologies;
+  }
+
+  /**
+   * 計算樹狀結構佈局
+   */
+  calculateTreeLayout(technologies) {
+    const layout = {};
+    const levels = {};
+    const visited = new Set();
+
+    // 計算每個技術的層級
+    const calculateLevel = (techId, level = 0) => {
+      if (visited.has(techId)) return levels[techId] || 0;
+
+      visited.add(techId);
+      const tech = technologies[techId];
+      if (!tech) return level;
+
+      let maxPrereqLevel = -1;
+      if (tech.prerequisites && tech.prerequisites.length > 0) {
+        tech.prerequisites.forEach(prereqId => {
+          const prereqLevel = calculateLevel(prereqId, level);
+          maxPrereqLevel = Math.max(maxPrereqLevel, prereqLevel);
+        });
+        level = maxPrereqLevel + 1;
+      }
+
+      levels[techId] = level;
+      return level;
+    };
+
+    // 計算所有技術的層級
+    Object.keys(technologies).forEach(techId => {
+      calculateLevel(techId);
+    });
+
+    // 按層級組織技術
+    const levelGroups = {};
+    Object.entries(levels).forEach(([techId, level]) => {
+      if (!levelGroups[level]) levelGroups[level] = [];
+      levelGroups[level].push(techId);
+    });
+
+    // 計算每個技術的位置
+    Object.entries(levelGroups).forEach(([level, techIds]) => {
+      const levelNum = parseInt(level);
+      const x = -this.width/2 + 100 + levelNum * this.levelSpacing;
+
+      techIds.forEach((techId, index) => {
+        const totalNodes = techIds.length;
+        const startY = -(totalNodes - 1) * this.nodeSpacing / 2;
+        const y = startY + index * this.nodeSpacing;
+
+        layout[techId] = { x, y, level: levelNum };
+      });
+    });
+
+    return layout;
+  }
+
+  /**
+   * 創建連接線
+   */
+  createConnections(layout, technologies) {
+    Object.entries(technologies).forEach(([techId, tech]) => {
+      if (tech.prerequisites && tech.prerequisites.length > 0) {
+        const toPos = layout[techId];
+        if (!toPos) return;
+
+        tech.prerequisites.forEach(prereqId => {
+          const fromPos = layout[prereqId];
+          if (!fromPos) return;
+
+          // 創建連接線
+          const line = this.scene.add.graphics();
+          line.lineStyle(2, 0x666666);
+          line.beginPath();
+          line.moveTo(fromPos.x + this.nodeWidth/2, fromPos.y);
+          line.lineTo(toPos.x - this.nodeWidth/2, toPos.y);
+          line.strokePath();
+
+          this.connections.push(line);
+          this.add(line);
+        });
+      }
+    });
+  }
+
+  /**
+   * 創建技術節點
+   */
+  createTechNodes(layout, researchSystem) {
+    Object.entries(layout).forEach(([techId, position]) => {
+      const tech = researchSystem.getTechnology(techId);
+      if (!tech) return;
+
+      // 創建節點容器
+      const nodeContainer = this.scene.add.container(position.x, position.y);
+
+      // 確定節點顏色
+      let nodeColor = 0x333333; // 默認顏色
+      let borderColor = 0x666666;
+      let textColor = '#cccccc';
+
+      if (tech.completed) {
+        nodeColor = 0x2a5a2a; // 已完成 - 綠色
+        borderColor = 0x4a8a4a;
+        textColor = '#aaffaa';
+      } else if (researchSystem.activeResearch === techId) {
+        nodeColor = 0x5a5a2a; // 正在研究 - 黃色
+        borderColor = 0x8a8a4a;
+        textColor = '#ffffaa';
+      } else if (researchSystem.getAvailableTechnologies().some(t => t.id === techId)) {
+        nodeColor = 0x2a2a5a; // 可研究 - 藍色
+        borderColor = 0x4a4a8a;
+        textColor = '#aaaaff';
+      } else if (tech.failed) {
+        nodeColor = 0x5a2a2a; // 失敗 - 紅色
+        borderColor = 0x8a4a4a;
+        textColor = '#ffaaaa';
+      }
+
+      // 創建節點背景
+      const nodeBackground = this.scene.add.rectangle(0, 0, this.nodeWidth, this.nodeHeight, nodeColor)
+        .setStrokeStyle(2, borderColor);
+
+      // 創建節點文字
+      const nodeText = this.scene.add.text(0, -8, tech.name, {
+        fontSize: '12px',
+        fill: textColor,
+        align: 'center',
+        wordWrap: { width: this.nodeWidth - 10 }
+      }).setOrigin(0.5, 0.5);
+
+      // 添加成功率顯示
+      if (!tech.completed) {
+        const successRate = tech.successRate || 1.0;
+        const failures = tech.failures || 0;
+
+        // 顯示調整後的成功率
+        let successRateText = `${Math.floor(successRate * 100)}%`;
+        if (failures > 0) {
+          successRateText += ` (+${failures * 5}%)`;
+        }
+
+        const successText = this.scene.add.text(0, 12, successRateText, {
+          fontSize: '10px',
+          fill: failures > 0 ? '#ffaa88' : '#888888'
+        }).setOrigin(0.5, 0.5);
+        nodeContainer.add(successText);
+      }
+
+      // 設置節點交互
+      nodeBackground.setInteractive()
+        .on('pointerdown', () => this.onNodeClick(techId))
+        .on('pointerover', () => this.onNodeHover(techId, nodeContainer))
+        .on('pointerout', () => this.onNodeOut(techId, nodeContainer));
+
+      nodeContainer.add([nodeBackground, nodeText]);
+      this.add(nodeContainer);
+
+      // 存儲節點引用
+      this.techNodes.set(techId, {
+        container: nodeContainer,
+        background: nodeBackground,
+        text: nodeText,
+        tech: tech
+      });
+    });
+  }
+
+  /**
+   * 創建研究進度顯示
+   */
+  createProgressDisplay(researchSystem) {
+    const researchProgress = researchSystem.getResearchProgress();
+    let yOffset = -this.height/2 + 40;
 
     if (researchProgress.active) {
       const { technology, totalProgress, successRate, attempts } = researchProgress;
 
-      // 主进度文本
-      progressText = this.scene.add.text(0, -220, `正在研究: ${technology.name} (${Math.floor(totalProgress * 100)}%)`, {
-        fontSize: '16px',
+      // 主進度文字
+      const progressText = this.scene.add.text(0, yOffset,
+        `正在研究: ${technology.name} (${Math.floor(totalProgress * 100)}%)`, {
+        fontSize: '14px',
         fill: '#ffffff',
         fontStyle: 'bold'
-      }).setOrigin(0.5, 0);
+      }).setOrigin(0.5, 0.5);
 
-      // 成功率文本
-      const successRateText = this.scene.add.text(0, -200, `成功率: ${Math.floor(successRate * 100)}% (尝试次数: ${attempts})`, {
+      yOffset += 20;
+
+      // 成功率文字
+      const { baseSuccessRate, failures } = researchProgress;
+      const successText = this.scene.add.text(0, yOffset,
+        `成功率: ${Math.floor(successRate * 100)}% (基礎: ${Math.floor(baseSuccessRate * 100)}%)`, {
         fontSize: '12px',
         fill: '#aaffaa'
-      }).setOrigin(0.5, 0);
-      progressDetails.push(successRateText);
+      }).setOrigin(0.5, 0.5);
 
-      // 研究点数进度
-      if (researchProgress.researchPointsProgress.required > 0) {
-        const rpProgress = researchProgress.researchPointsProgress;
-        const rpText = this.scene.add.text(0, -185, `研究点数: ${Math.floor(rpProgress.current)}/${rpProgress.required} (${Math.floor(rpProgress.percent * 100)}%)`, {
-          fontSize: '12px',
-          fill: '#ccccff'
-        }).setOrigin(0.5, 0);
-        progressDetails.push(rpText);
-      }
+      yOffset += 15;
 
-      // 时间进度
-      if (researchProgress.timeProgress.required > 0) {
-        const timeProgress = researchProgress.timeProgress;
-        const timeText = this.scene.add.text(0, -170, `时间: ${timeProgress.current.toFixed(1)}/${timeProgress.required} 天 (${Math.floor(timeProgress.percent * 100)}%)`, {
-          fontSize: '12px',
-          fill: '#ccccff'
-        }).setOrigin(0.5, 0);
-        progressDetails.push(timeText);
-      }
+      // 失敗次數文字
+      const failureText = this.scene.add.text(0, yOffset,
+        `失敗次數: ${failures} (每次失敗+5%成功率)`, {
+        fontSize: '11px',
+        fill: failures > 0 ? '#ffaa88' : '#888888'
+      }).setOrigin(0.5, 0.5);
 
-      // 建筑工时进度
-      let yOffset = -155;
-      if (researchProgress.buildingWorkHoursProgress && Object.keys(researchProgress.buildingWorkHoursProgress).length > 0) {
-        Object.entries(researchProgress.buildingWorkHoursProgress).forEach(([buildingType, progress]) => {
-          const buildingText = this.scene.add.text(0, yOffset, `${buildingType} 工时: ${Math.floor(progress.current)}/${progress.required} 小时 (${Math.floor(progress.percent * 100)}%)`, {
-            fontSize: '12px',
+      yOffset += 20;
+
+      // 顯示學院能力進度
+      const progressElements = [progressText, successText, failureText];
+      if (researchProgress.resourceValueProgress && Object.keys(researchProgress.resourceValueProgress).length > 0) {
+        Object.entries(researchProgress.resourceValueProgress).forEach(([valueType, progress]) => {
+          const remaining = progress.required - progress.current;
+          const resourceValue = this.scene.resourceSystem?.dataManager?.resourceValues?.get(valueType);
+          const currentAvailable = resourceValue?.currentValue || 0;
+
+          const valueText = this.scene.add.text(0, yOffset,
+            `${this.getResourceValueDisplayName(valueType)}: ${Math.floor(progress.current)}/${progress.required} (還需: ${Math.floor(remaining)})`, {
+            fontSize: '11px',
             fill: '#ccccff'
-          }).setOrigin(0.5, 0);
-          progressDetails.push(buildingText);
+          }).setOrigin(0.5, 0.5);
+
+          yOffset += 15;
+
+          // 顯示當前可用量
+          const availableText = this.scene.add.text(0, yOffset,
+            `目前可用: ${Math.floor(currentAvailable)}`, {
+            fontSize: '10px',
+            fill: currentAvailable > 0 ? '#aaffaa' : '#ffaaaa'
+          }).setOrigin(0.5, 0.5);
+
+          progressElements.push(valueText, availableText);
           yOffset += 15;
         });
       }
-    } else {
-      progressText = this.scene.add.text(0, -200, '没有正在进行的研究', {
-        fontSize: '16px',
-        fill: '#cccccc'
-      }).setOrigin(0.5, 0);
+
+      this.add(progressElements);
+      yOffset += 15;
     }
 
-    // 添加可用研究标题
-    const availableTitle = this.scene.add.text(-250, -160, '可用研究:', {
-      fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0, 0);
+    // 顯示研究隊列
+    this.updateQueueDisplay(yOffset);
+  }
 
-    // 添加已完成研究标题
-    const completedTitle = this.scene.add.text(50, -160, '已完成研究:', {
-      fontSize: '18px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0, 0);
+  /**
+   * 更新隊列顯示
+   */
+  updateQueueDisplay(startY = -this.height/2 + 100) {
+    // 清除現有隊列顯示
+    if (this.queueElements) {
+      this.queueElements.forEach(element => {
+        if (element.destroy) element.destroy();
+      });
+    }
 
-    // 创建可用研究按钮
-    const researchButtons = [];
-    let yPos = -120;
+    this.queueElements = [];
+    const researchSystem = this.scene.researchSystem;
+    const queue = researchSystem.getResearchQueue();
 
-    availableTechnologies.forEach(tech => {
-      // 计算按钮颜色
-      let backgroundColor = 0x4a6a4a; // 默认颜色
-      if (tech.failed) {
-        backgroundColor = 0x8a3a3a; // 失败的研究显示红色
-      }
-
-      // 创建研究按钮
-      const researchBtn = new Button(this.scene, -200, yPos, tech.name, {
-        width: 200,
-        height: 30,
-        backgroundColor: backgroundColor,
+    if (queue.length > 0) {
+      // 隊列標題
+      const queueTitle = this.scene.add.text(0, startY, `研究隊列 (${queue.length})`, {
         fontSize: '14px',
-        textColor: '#ffffff',
-        onClick: () => this.startResearch(tech.id)
+        fill: '#ffff88',
+        fontStyle: 'bold'
+      }).setOrigin(0.5, 0.5);
+
+      this.queueElements.push(queueTitle);
+      let yPos = startY + 25;
+
+      // 顯示隊列中的技術
+      queue.forEach((techId, index) => {
+        const tech = researchSystem.getTechnology(techId);
+        if (!tech) return;
+
+        const queueText = this.scene.add.text(0, yPos, `${index + 1}. ${tech.name}`, {
+          fontSize: '12px',
+          fill: '#ccccff'
+        }).setOrigin(0.5, 0.5);
+
+        // 添加移除按鈕
+        const removeBtn = this.scene.add.text(150, yPos, '✕', {
+          fontSize: '12px',
+          fill: '#ff6666'
+        }).setOrigin(0.5, 0.5)
+        .setInteractive()
+        .on('pointerdown', () => this.removeFromQueue(techId));
+
+        this.queueElements.push(queueText, removeBtn);
+        yPos += 20;
       });
 
-      // 创建研究描述
-      const description = this.scene.add.text(-90, yPos - 10, tech.description || '', {
-        fontSize: '12px',
-        fill: '#cccccc',
-        wordWrap: { width: 200 }
-      }).setOrigin(0, 0.5);
+      this.add(this.queueElements);
+    }
+  }
 
-      // 收集所有需求文本
-      const requirementTexts = [];
-      let reqYOffset = 5;
+  /**
+   * 從隊列中移除技術
+   */
+  removeFromQueue(techId) {
+    const researchSystem = this.scene.researchSystem;
+    if (!researchSystem) return;
 
-      // 研究点数需求
-      if (tech.requirements && tech.requirements.researchPoints) {
-        const rpText = this.scene.add.text(-90, yPos + reqYOffset, `研究点: ${tech.requirements.researchPoints}`, {
-          fontSize: '10px',
-          fill: '#aaaaaa'
-        }).setOrigin(0, 0.5);
-        requirementTexts.push(rpText);
-        reqYOffset += 12;
-      }
+    const result = researchSystem.removeFromQueue(techId);
+    const color = result.success ? '#66ff66' : '#ff6666';
+    this.showMessage(result.message, color);
 
-      // 资源需求
-      if (tech.requirements && tech.requirements.resources) {
-        Object.entries(tech.requirements.resources).forEach(([resource, amount]) => {
-          const resourceText = this.scene.add.text(-90, yPos + reqYOffset, `${resource}: ${amount}`, {
-            fontSize: '10px',
-            fill: '#aaaaaa'
-          }).setOrigin(0, 0.5);
-          requirementTexts.push(resourceText);
-          reqYOffset += 12;
-        });
-      }
+    if (result.success) {
+      this.updateQueueDisplay();
+    }
+  }
 
-      // 金币需求
-      if (tech.requirements && tech.requirements.gold) {
-        const goldText = this.scene.add.text(-90, yPos + reqYOffset, `金币: ${tech.requirements.gold}`, {
-          fontSize: '10px',
-          fill: '#aaaaaa'
-        }).setOrigin(0, 0.5);
-        requirementTexts.push(goldText);
-        reqYOffset += 12;
-      }
+  /**
+   * 節點點擊事件
+   */
+  onNodeClick(techId) {
+    const researchSystem = this.scene.researchSystem;
+    if (!researchSystem) return;
 
-      // 时间需求
-      if (tech.requirements && tech.requirements.time) {
-        const timeText = this.scene.add.text(-90, yPos + reqYOffset, `时间: ${tech.requirements.time} 天`, {
-          fontSize: '10px',
-          fill: '#aaaaaa'
-        }).setOrigin(0, 0.5);
-        requirementTexts.push(timeText);
-        reqYOffset += 12;
-      }
+    // 如果有正在進行的研究，顯示選項對話框
+    if (researchSystem.activeResearch) {
+      this.showResearchOptions(techId);
+    } else {
+      this.startResearch(techId);
+    }
+  }
 
-      // 成功率
-      const successRateText = this.scene.add.text(0, yPos + reqYOffset, `成功率: ${Math.floor(tech.successRate * 100)}%`, {
-        fontSize: '10px',
-        fill: tech.failed ? '#ff8888' : '#88ff88'
-      }).setOrigin(0, 0.5);
-      requirementTexts.push(successRateText);
+  /**
+   * 節點懸停事件
+   */
+  onNodeHover(techId, nodeContainer) {
+    // 放大效果
+    nodeContainer.setScale(1.1);
 
-      // 尝试次数
-      if (tech.attempts > 0) {
-        const attemptsText = this.scene.add.text(80, yPos + reqYOffset, `尝试: ${tech.attempts}`, {
-          fontSize: '10px',
-          fill: '#aaaaaa'
-        }).setOrigin(0, 0.5);
-        requirementTexts.push(attemptsText);
-      }
+    // 清除舊的提示框
+    if (this.tooltip) {
+      this.tooltip.destroy();
+      this.tooltip = null;
+    }
 
-      researchButtons.push(...researchBtn.getElements(), description, ...requirementTexts);
-      yPos += 80; // 增加间距以容纳更多信息
+    // 顯示詳細需求信息
+    this.showTechTooltip(techId, nodeContainer);
+  }
+
+  /**
+   * 顯示技術詳細信息提示框
+   */
+  showTechTooltip(techId, nodeContainer) {
+    const researchSystem = this.scene.researchSystem;
+    const tech = researchSystem.getTechnology(techId);
+    if (!tech) return;
+
+    const requirements = tech.requirements || {};
+    let tooltipText = `${tech.name}\n${tech.description}\n\n需求:`;
+
+    // 添加資源需求
+    if (requirements.resources) {
+      tooltipText += '\n資源:';
+      Object.entries(requirements.resources).forEach(([resourceType, amount]) => {
+        const available = this.scene.resourceSystem?.resources[resourceType]?.value || 0;
+        tooltipText += `\n  ${resourceType}: ${amount} (有: ${available})`;
+      });
+    }
+
+    // 添加金錢需求
+    if (requirements.gold) {
+      const available = this.scene.gameState?.playerGold || 0;
+      tooltipText += `\n金幣: ${requirements.gold} (有: ${available})`;
+    }
+
+    // 添加學院能力需求
+    if (requirements.resourceValues) {
+      tooltipText += '\n學院能力 (每日消耗):';
+      Object.entries(requirements.resourceValues).forEach(([valueType, amount]) => {
+        const displayName = this.getResourceValueDisplayName(valueType);
+        tooltipText += `\n  ${displayName}: ${amount}`;
+      });
+    }
+
+    // 添加時間需求
+    if (requirements.time) {
+      tooltipText += `\n時間: ${requirements.time} 天`;
+    }
+
+    // 添加成功率信息
+    tooltipText += `\n\n成功率: ${Math.floor(tech.successRate * 100)}%`;
+    if (tech.failures > 0) {
+      tooltipText += ` (基礎: ${Math.floor(tech.baseSuccessRate * 100)}%, +${tech.failures * 5}%)`;
+    }
+
+    // 創建提示框
+    this.tooltip = this.scene.add.text(nodeContainer.x + 80, nodeContainer.y - 50, tooltipText, {
+      fontSize: '10px',
+      fill: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 8, y: 6 },
+      wordWrap: { width: 200 }
+    }).setOrigin(0, 0.5).setDepth(2000);
+
+    this.add(this.tooltip);
+  }
+
+  /**
+   * 節點離開事件
+   */
+  onNodeOut(techId, nodeContainer) {
+    // 恢復原始大小
+    nodeContainer.setScale(1.0);
+
+    // 清除提示框
+    if (this.tooltip) {
+      this.tooltip.destroy();
+      this.tooltip = null;
+    }
+  }
+
+  /**
+   * 顯示研究選項對話框
+   */
+  showResearchOptions(techId) {
+    const researchSystem = this.scene.researchSystem;
+    const tech = researchSystem.getTechnology(techId);
+    if (!tech) return;
+
+    // 關閉現有的對話框
+    this.closeCurrentDialog();
+
+    // 檢查是否可以研究
+    const canResearch = researchSystem.getAvailableTechnologies().some(t => t.id === techId);
+    if (!canResearch) {
+      this.showMessage('該技術目前無法研究', '#ff6666');
+      return;
+    }
+
+    // 計算對話框高度（根據需求內容調整）
+    const requirements = tech.requirements || {};
+    let dialogHeight = 200;
+    let requirementCount = 0;
+
+    if (requirements.resources) requirementCount += Object.keys(requirements.resources).length;
+    if (requirements.gold) requirementCount++;
+    if (requirements.resourceValues) requirementCount += Object.keys(requirements.resourceValues).length;
+
+    dialogHeight += requirementCount * 15;
+
+    // 創建全屏背景遮罩（點擊關閉對話框）
+    const overlay = this.scene.add.rectangle(0, 0, this.scene.scale.width * 2, this.scene.scale.height * 2, 0x000000, 0.3)
+      .setDepth(999)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.closeCurrentDialog();
+      });
+
+    // 創建對話框背景
+    const dialogBg = this.scene.add.rectangle(0, 0, 350, dialogHeight, 0x000000, 0.8)
+      .setStrokeStyle(2, 0x666666)
+      .setDepth(1000)
+      .setInteractive(); // 讓背景可交互，防止點擊穿透
+
+    // 創建對話框標題
+    const dialogTitle = this.scene.add.text(0, -dialogHeight/2 + 20, `研究: ${tech.name}`, {
+      fontSize: '16px',
+      fill: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0.5).setDepth(1001);
+
+    // 創建說明文字
+    const dialogText = this.scene.add.text(0, -dialogHeight/2 + 45, '目前有研究正在進行中', {
+      fontSize: '12px',
+      fill: '#cccccc'
+    }).setOrigin(0.5, 0.5).setDepth(1001);
+
+    // 顯示研究需求
+    const requirementElements = [];
+    let yPos = -dialogHeight/2 + 70;
+
+    // 顯示需求標題
+    const reqTitle = this.scene.add.text(0, yPos, '研究需求:', {
+      fontSize: '13px',
+      fill: '#ffff88',
+      fontStyle: 'bold'
+    }).setOrigin(0.5, 0.5).setDepth(1001);
+    requirementElements.push(reqTitle);
+    yPos += 20;
+
+    // 顯示資源需求
+    if (requirements.resources) {
+      Object.entries(requirements.resources).forEach(([resourceType, amount]) => {
+        const available = this.scene.resourceSystem?.resources[resourceType]?.value || 0;
+        const color = available >= amount ? '#aaffaa' : '#ffaaaa';
+        const reqText = this.scene.add.text(0, yPos, `${resourceType}: ${amount} (有: ${available})`, {
+          fontSize: '11px',
+          fill: color
+        }).setOrigin(0.5, 0.5).setDepth(1001);
+        requirementElements.push(reqText);
+        yPos += 15;
+      });
+    }
+
+    // 顯示金錢需求
+    if (requirements.gold) {
+      const available = this.scene.gameState?.playerGold || 0;
+      const color = available >= requirements.gold ? '#aaffaa' : '#ffaaaa';
+      const goldText = this.scene.add.text(0, yPos, `金幣: ${requirements.gold} (有: ${available})`, {
+        fontSize: '11px',
+        fill: color
+      }).setOrigin(0.5, 0.5).setDepth(1001);
+      requirementElements.push(goldText);
+      yPos += 15;
+    }
+
+    // 顯示學院能力需求
+    if (requirements.resourceValues) {
+      Object.entries(requirements.resourceValues).forEach(([valueType, amount]) => {
+        const resourceValue = this.scene.resourceSystem?.dataManager?.resourceValues?.get(valueType);
+        const available = resourceValue?.currentValue || 0;
+        const displayName = this.getResourceValueDisplayName(valueType);
+        const rvText = this.scene.add.text(0, yPos, `${displayName}: ${amount} (每日消耗)`, {
+          fontSize: '11px',
+          fill: '#ccccff'
+        }).setOrigin(0.5, 0.5).setDepth(1001);
+        requirementElements.push(rvText);
+        yPos += 15;
+      });
+    }
+
+    // 創建立即開始按鈕
+    const btnY = dialogHeight/2 - 50;
+    const startNowBtn = this.scene.add.rectangle(-70, btnY, 120, 30, 0x4a6a4a)
+      .setStrokeStyle(1, 0x6a8a6a)
+      .setInteractive()
+      .setDepth(1001);
+
+    const startNowText = this.scene.add.text(-70, btnY, '立即開始', {
+      fontSize: '12px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5).setDepth(1002);
+
+    // 創建加入隊列按鈕
+    const queueBtn = this.scene.add.rectangle(70, btnY, 120, 30, 0x4a4a6a)
+      .setStrokeStyle(1, 0x6a6a8a)
+      .setInteractive()
+      .setDepth(1001);
+
+    const queueText = this.scene.add.text(70, btnY, '加入隊列', {
+      fontSize: '12px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5).setDepth(1002);
+
+    // 創建取消按鈕
+    const cancelY = dialogHeight/2 - 15;
+    const cancelBtn = this.scene.add.rectangle(0, cancelY, 80, 25, 0x6a4a4a)
+      .setStrokeStyle(1, 0x8a6a6a)
+      .setInteractive()
+      .setDepth(1001);
+
+    const cancelText = this.scene.add.text(0, cancelY, '取消', {
+      fontSize: '12px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5).setDepth(1002);
+
+    // 存儲對話框元素
+    const dialogElements = [overlay, dialogBg, dialogTitle, dialogText, ...requirementElements, startNowBtn, startNowText, queueBtn, queueText, cancelBtn, cancelText];
+
+    // 保存當前對話框引用
+    this.currentDialog = dialogElements;
+
+    // 設置按鈕事件
+    startNowBtn.on('pointerdown', () => {
+      this.closeCurrentDialog();
+      this.startResearch(techId);
     });
 
-    // 创建已完成研究文本
-    const completedResearchTexts = [];
-    yPos = -120;
-
-    completedResearch.forEach(techId => {
-      const tech = researchSystem.getTechnology(techId);
-      if (!tech) return;
-
-      const techText = this.scene.add.text(50, yPos, tech.name, {
-        fontSize: '14px',
-        fill: '#00ff00'
-      }).setOrigin(0, 0.5);
-
-      completedResearchTexts.push(techText);
-      yPos += 30;
+    queueBtn.on('pointerdown', () => {
+      this.closeCurrentDialog();
+      this.addToQueue(techId);
     });
 
-    // 添加元素到面板
-    this.add([progressText, ...progressDetails, availableTitle, completedTitle, ...researchButtons, ...completedResearchTexts]);
+    cancelBtn.on('pointerdown', () => {
+      this.closeCurrentDialog();
+    });
+
+    // 添加到場景
+    this.add(dialogElements);
+  }
+
+  /**
+   * 關閉當前對話框
+   */
+  closeCurrentDialog() {
+    if (this.currentDialog) {
+      this.currentDialog.forEach(element => {
+        if (element && element.destroy) element.destroy();
+      });
+      this.currentDialog = null;
+    }
+  }
+
+  /**
+   * 關閉對話框（向後兼容）
+   */
+  closeDialog(elements) {
+    elements.forEach(element => {
+      if (element && element.destroy) element.destroy();
+    });
+  }
+
+  /**
+   * 添加到研究隊列
+   */
+  addToQueue(techId) {
+    const researchSystem = this.scene.researchSystem;
+    if (!researchSystem) return;
+
+    const result = researchSystem.addToQueue(techId);
+    const color = result.success ? '#66ff66' : '#ff6666';
+    this.showMessage(result.message, color);
+
+    if (result.success) {
+      this.updateQueueDisplay();
+    }
+  }
+
+  /**
+   * 顯示消息
+   */
+  showMessage(message, color = '#ffffff') {
+    const notification = this.scene.add.text(this.scene.scale.width / 2, 100, message, {
+      fontSize: '16px',
+      fill: color,
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5, 0.5).setDepth(100);
+
+    // 3秒後自動消失
+    this.scene.time.delayedCall(3000, () => {
+      notification.destroy();
+    });
+  }
+
+  /**
+   * 獲取學院能力顯示名稱
+   */
+  getResourceValueDisplayName(valueType) {
+    const displayNames = {
+      happiness: '快樂度',
+      transport: '運力',
+      security: '安保力',
+      health: '健康度'
+    };
+    return displayNames[valueType] || valueType;
   }
 
   /**
@@ -326,15 +852,20 @@ export default class ResearchPanel extends BasePanel {
   }
 
   /**
-   * 处理研究面板拖拉
-   * @param {Phaser.Input.Pointer} pointer - 鼠标指针
+   * 隱藏面板時的清理工作
    */
-  handleDrag(pointer) {
-    if (this.isResearchDragging) {
-      const dx = pointer.x - this.researchDragPointerStartX;
-      const dy = pointer.y - this.researchDragPointerStartY;
-      this.container.x = this.researchDragStartX + dx;
-      this.container.y = this.researchDragStartY + dy;
+  hide() {
+    // 關閉當前對話框
+    this.closeCurrentDialog();
+
+    // 清除提示框
+    if (this.tooltip) {
+      this.tooltip.destroy();
+      this.tooltip = null;
     }
+
+    // 調用父類的hide方法
+    super.hide();
   }
+
 }

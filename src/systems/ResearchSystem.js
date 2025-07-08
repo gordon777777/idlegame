@@ -21,9 +21,11 @@ export default class ResearchSystem {
     this.researchTimeProgress = 0; // 研究时间进度（天）
     this.failedResearch = new Set(); // 记录失败的研究
     this.researchAttempts = {}; // 记录每项研究的尝试次数
+    this.researchFailures = {}; // 记录每项研究的失败次数
     this.consumedResources = {}; // 记录已消耗的资源
     this.consumedGold = 0; // 记录已消耗的金币
     this.buildingWorkHoursProgress = {}; // 记录建筑工时进度
+    this.researchQueue = []; // 研究隊列
   }
 
   /**
@@ -214,16 +216,21 @@ export default class ResearchSystem {
       });
     }
 
+    // 處理學院能力的每日消耗
+    this.processResourceValueConsumption(deltaSeconds);
+
     // 检查研究是否完成
     const requirements = tech.requirements || {};
     const requiredTime = requirements.time || 0;
     const requiredResearchPoints = requirements.researchPoints || 0;
     const requiredBuildingWorkHours = requirements.buildingWorkHours || {};
+    const requiredResourceValues = requirements.resourceValues || {};
 
     // 检查所有条件是否满足
     let timeComplete = this.researchTimeProgress >= requiredTime;
     let pointsComplete = this.researchProgress >= requiredResearchPoints;
     let buildingWorkHoursComplete = true;
+    let resourceValuesComplete = true;
 
     // 检查建筑工时是否满足
     Object.entries(requiredBuildingWorkHours).forEach(([buildingType, hours]) => {
@@ -233,8 +240,16 @@ export default class ResearchSystem {
       }
     });
 
+    // 檢查學院能力是否滿足
+    Object.entries(requiredResourceValues).forEach(([valueType, amount]) => {
+      const progress = this.resourceValueProgress[valueType] || { consumed: 0 };
+      if (progress.consumed < amount) {
+        resourceValuesComplete = false;
+      }
+    });
+
     // 如果所有条件都满足，尝试完成研究
-    if (timeComplete && pointsComplete && buildingWorkHoursComplete) {
+    if (timeComplete && pointsComplete && buildingWorkHoursComplete && resourceValuesComplete) {
       this.tryCompleteResearch(this.activeResearch);
     }
   }
@@ -268,6 +283,12 @@ export default class ResearchSystem {
       return { success: false, message: '前置研究条件未满足' };
     }
 
+    // 檢查並立即扣除資源和金錢
+    const resourceCheckResult = this.checkAndConsumeInitialRequirements(tech);
+    if (!resourceCheckResult.success) {
+      return resourceCheckResult;
+    }
+
     // 检查资源需求
     if (tech.requirements && tech.requirements.resources) {
       if (!this.resourceSystem.hasResources(tech.requirements.resources)) {
@@ -282,28 +303,22 @@ export default class ResearchSystem {
       }
     }
 
-    // 消耗资源
-    if (tech.requirements && tech.requirements.resources) {
-      this.resourceSystem.consumeResources(tech.requirements.resources);
-      this.consumedResources = { ...tech.requirements.resources };
-    }
-
-    // 消耗金币
-    if (tech.requirements && tech.requirements.gold && this.gameState) {
-      this.gameState.playerGold -= tech.requirements.gold;
-      this.consumedGold = tech.requirements.gold;
-
-      // 更新金币显示
-      if (typeof this.gameState.updateGoldDisplay === 'function') {
-        this.gameState.updateGoldDisplay();
-      }
-    }
-
     // 初始化研究状态
     this.activeResearch = techId;
     this.researchProgress = 0;
     this.researchTimeProgress = 0;
     this.buildingWorkHoursProgress = {};
+    this.resourceValueProgress = {}; // 學院能力進度
+
+    // 初始化學院能力需求進度
+    if (tech.requirements && tech.requirements.resourceValues) {
+      Object.entries(tech.requirements.resourceValues).forEach(([valueType, amount]) => {
+        this.resourceValueProgress[valueType] = {
+          required: amount,
+          consumed: 0
+        };
+      });
+    }
 
     // 记录尝试次数
     if (!this.researchAttempts[techId]) {
@@ -311,7 +326,110 @@ export default class ResearchSystem {
     }
     this.researchAttempts[techId]++;
 
+    // 更新金币显示
+    if (this.gameState && typeof this.gameState.updateGoldDisplay === 'function') {
+      this.gameState.updateGoldDisplay();
+    }
+
     return { success: true, message: `开始研究: ${tech.name}` };
+  }
+
+  /**
+   * 檢查並消耗研究的初始需求（資源和金錢）
+   * @param {Object} tech - 技術對象
+   * @returns {Object} - 結果對象
+   */
+  checkAndConsumeInitialRequirements(tech) {
+    const requirements = tech.requirements || {};
+
+    // 檢查資源需求
+    if (requirements.resources) {
+      for (const [resourceType, amount] of Object.entries(requirements.resources)) {
+        const available = this.resourceSystem.resources[resourceType]?.value || 0;
+        if (available < amount) {
+          return {
+            success: false,
+            message: `資源不足：需要 ${amount} ${resourceType}，目前只有 ${available}`
+          };
+        }
+      }
+    }
+
+    // 檢查金錢需求
+    if (requirements.gold) {
+      const availableGold = this.gameState?.playerGold || 0;
+      if (availableGold < requirements.gold) {
+        return {
+          success: false,
+          message: `金幣不足：需要 ${requirements.gold}，目前只有 ${availableGold}`
+        };
+      }
+    }
+
+    // 檢查學院能力需求（不立即扣除，只檢查是否存在）
+    if (requirements.resourceValues) {
+      for (const [valueType, amount] of Object.entries(requirements.resourceValues)) {
+        const resourceValue = this.resourceSystem.dataManager?.resourceValues?.get(valueType);
+        if (!resourceValue) {
+          return {
+            success: false,
+            message: `學院能力類型不存在：${valueType}`
+          };
+        }
+      }
+    }
+
+    // 所有檢查通過，開始消耗資源和金錢
+    if (requirements.resources) {
+      this.resourceSystem.consumeResources(requirements.resources);
+      this.consumedResources = { ...requirements.resources };
+    }
+
+    if (requirements.gold) {
+      if (this.gameState) {
+        this.gameState.playerGold -= requirements.gold;
+      }
+      this.consumedGold = requirements.gold;
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * 處理學院能力的每日消耗
+   * @param {number} deltaSeconds - 時間增量（秒）
+   */
+  processResourceValueConsumption(deltaSeconds) {
+    if (!this.activeResearch || !this.resourceValueProgress) return;
+
+    const tech = this.technologies[this.activeResearch];
+    if (!tech || !tech.requirements || !tech.requirements.resourceValues) return;
+
+    // 計算每秒應該消耗的學院能力（假設1天 = 24小時 = 86400秒）
+    const secondsPerDay = 86400;
+
+    Object.entries(tech.requirements.resourceValues).forEach(([valueType, totalRequired]) => {
+      const progress = this.resourceValueProgress[valueType];
+      if (!progress || progress.consumed >= totalRequired) return;
+
+      const resourceValue = this.resourceSystem.dataManager?.resourceValues?.get(valueType);
+      if (!resourceValue) return;
+
+      // 計算每秒需要消耗的量
+      const dailyConsumptionRate = totalRequired / (tech.requirements.time || 1); // 按研究天數分攤
+      const perSecondConsumption = dailyConsumptionRate / secondsPerDay;
+      const consumptionThisFrame = perSecondConsumption * deltaSeconds;
+
+      // 檢查是否有足夠的學院能力
+      const availableAmount = resourceValue.currentValue;
+      const actualConsumption = Math.min(consumptionThisFrame, availableAmount, totalRequired - progress.consumed);
+
+      if (actualConsumption > 0) {
+        // 消耗學院能力
+        resourceValue.addConsumption(actualConsumption);
+        progress.consumed += actualConsumption;
+      }
+    });
   }
 
   /**
@@ -323,12 +441,12 @@ export default class ResearchSystem {
     const tech = this.technologies[techId];
     if (!tech) return { success: false, message: '研究技术不存在' };
 
-    // 获取成功率
-    const successRate = tech.successRate || 1.0;
+    // 获取基础成功率
+    const baseSuccessRate = tech.successRate || 1.0;
 
-    // 每次尝试增加成功率
-    const attempts = this.researchAttempts[techId] || 1;
-    const adjustedSuccessRate = Math.min(1.0, successRate + (attempts - 1) * 0.1);
+    // 每次失敗增加5%成功率
+    const failures = this.researchFailures[techId] || 0;
+    const adjustedSuccessRate = Math.min(1.0, baseSuccessRate + failures * 0.05);
 
     // 随机判定是否成功
     const roll = Math.random();
@@ -342,15 +460,25 @@ export default class ResearchSystem {
       // 研究失败
       this.failedResearch.add(techId);
 
+      // 增加失敗次數
+      if (!this.researchFailures[techId]) {
+        this.researchFailures[techId] = 0;
+      }
+      this.researchFailures[techId]++;
+
       // 重置研究状态
       this.activeResearch = null;
       this.researchProgress = 0;
       this.researchTimeProgress = 0;
       this.buildingWorkHoursProgress = {};
+      this.resourceValueProgress = {};
+
+      // 計算下次研究的成功率
+      const nextSuccessRate = Math.min(1.0, baseSuccessRate + this.researchFailures[techId] * 0.05);
 
       return {
         success: false,
-        message: `研究失败: ${tech.name}\n成功率: ${Math.floor(adjustedSuccessRate * 100)}%\n尝试次数: ${attempts}`
+        message: `研究失败: ${tech.name}\n當前成功率: ${Math.floor(adjustedSuccessRate * 100)}%\n失敗次數: ${this.researchFailures[techId]}\n下次成功率: ${Math.floor(nextSuccessRate * 100)}%`
       };
     }
   }
@@ -365,12 +493,30 @@ export default class ResearchSystem {
     // Mark as completed
     this.completedResearch.add(techId);
 
+    // 清除失敗記錄（研究成功後重置）
+    if (this.researchFailures[techId]) {
+      delete this.researchFailures[techId];
+    }
+    this.failedResearch.delete(techId);
+
     // Apply effects
     this.applyResearchEffects(techId);
 
     // Reset active research
     this.activeResearch = null;
     this.researchProgress = 0;
+    this.researchTimeProgress = 0;
+    this.consumedResources = {};
+    this.consumedGold = 0;
+    this.buildingWorkHoursProgress = {};
+    this.resourceValueProgress = {};
+
+    // 自動開始隊列中的下一個研究
+    if (this.researchQueue.length > 0) {
+      setTimeout(() => {
+        this.startNextInQueue();
+      }, 100); // 短暫延遲以確保UI更新
+    }
   }
 
   /**
@@ -460,15 +606,21 @@ export default class ResearchSystem {
       })
       .map(techId => {
         const tech = this.technologies[techId];
+        const baseSuccessRate = tech.successRate || 1.0;
+        const failures = this.researchFailures[techId] || 0;
+        const adjustedSuccessRate = Math.min(1.0, baseSuccessRate + failures * 0.05);
+
         return {
           id: techId,
           name: tech.name,
           description: tech.description,
           requirements: tech.requirements,
           prerequisites: tech.prerequisites,
-          successRate: tech.successRate || 1.0,
+          successRate: adjustedSuccessRate,
+          baseSuccessRate: baseSuccessRate,
           effects: tech.effects,
           attempts: this.researchAttempts[techId] || 0,
+          failures: failures,
           failed: this.failedResearch.has(techId)
         };
       });
@@ -483,16 +635,22 @@ export default class ResearchSystem {
     const tech = this.technologies[techId];
     if (!tech) return null;
 
+    const baseSuccessRate = tech.successRate || 1.0;
+    const failures = this.researchFailures[techId] || 0;
+    const adjustedSuccessRate = Math.min(1.0, baseSuccessRate + failures * 0.05);
+
     return {
       id: techId,
       name: tech.name,
       description: tech.description,
       requirements: tech.requirements,
       prerequisites: tech.prerequisites,
-      successRate: tech.successRate || 1.0,
+      successRate: adjustedSuccessRate,
+      baseSuccessRate: baseSuccessRate,
       effects: tech.effects,
       completed: this.completedResearch.has(techId),
       attempts: this.researchAttempts[techId] || 0,
+      failures: failures,
       failed: this.failedResearch.has(techId)
     };
   }
@@ -526,6 +684,19 @@ export default class ResearchSystem {
       });
     }
 
+    // 計算學院能力進度
+    let resourceValueProgress = {};
+    if (requirements.resourceValues) {
+      Object.entries(requirements.resourceValues).forEach(([valueType, amount]) => {
+        const progress = this.resourceValueProgress[valueType] || { consumed: 0 };
+        resourceValueProgress[valueType] = {
+          current: progress.consumed,
+          required: amount,
+          percent: Math.min(1, progress.consumed / amount)
+        };
+      });
+    }
+
     // 计算总体进度
     let totalProgressFactors = 1; // 进度因素数量
     let totalProgressSum = researchPointsProgress; // 进度总和
@@ -545,12 +716,22 @@ export default class ResearchSystem {
       });
     }
 
+    if (requirements.resourceValues) {
+      const valueTypes = Object.keys(requirements.resourceValues);
+      totalProgressFactors += valueTypes.length;
+
+      valueTypes.forEach(valueType => {
+        const progress = resourceValueProgress[valueType].percent || 0;
+        totalProgressSum += progress;
+      });
+    }
+
     const totalProgress = totalProgressSum / totalProgressFactors;
 
     // 计算成功率
     const baseSuccessRate = tech.successRate || 1.0;
-    const attempts = this.researchAttempts[this.activeResearch] || 1;
-    const adjustedSuccessRate = Math.min(1.0, baseSuccessRate + (attempts - 1) * 0.1);
+    const failures = this.researchFailures[this.activeResearch] || 0;
+    const adjustedSuccessRate = Math.min(1.0, baseSuccessRate + failures * 0.05);
 
     return {
       active: true,
@@ -567,11 +748,114 @@ export default class ResearchSystem {
         percent: timeProgress
       },
       buildingWorkHoursProgress,
+      resourceValueProgress,
       consumedResources: this.consumedResources,
       consumedGold: this.consumedGold,
       totalProgress,
       successRate: adjustedSuccessRate,
-      attempts
+      baseSuccessRate: baseSuccessRate,
+      failures: failures,
+      attempts: this.researchAttempts[this.activeResearch] || 1,
+      queue: this.researchQueue
     };
+  }
+
+  /**
+   * 添加研究到隊列
+   * @param {string} techId - 技術ID
+   * @returns {Object} - 結果對象
+   */
+  addToQueue(techId) {
+    const tech = this.technologies[techId];
+
+    if (!tech) {
+      return { success: false, message: '研究技術不存在' };
+    }
+
+    if (this.completedResearch.has(techId)) {
+      return { success: false, message: '該技術已經研究完成' };
+    }
+
+    if (this.activeResearch === techId) {
+      return { success: false, message: '該技術正在研究中' };
+    }
+
+    if (this.researchQueue.includes(techId)) {
+      return { success: false, message: '該技術已在隊列中' };
+    }
+
+    // 檢查前置條件是否滿足
+    const prerequisitesMet = tech.prerequisites.every(req =>
+      this.completedResearch.has(req)
+    );
+
+    if (!prerequisitesMet) {
+      return { success: false, message: '前置研究條件未滿足' };
+    }
+
+    this.researchQueue.push(techId);
+    return { success: true, message: `${tech.name} 已添加到研究隊列` };
+  }
+
+  /**
+   * 從隊列中移除研究
+   * @param {string} techId - 技術ID
+   * @returns {Object} - 結果對象
+   */
+  removeFromQueue(techId) {
+    const index = this.researchQueue.indexOf(techId);
+    if (index === -1) {
+      return { success: false, message: '該技術不在隊列中' };
+    }
+
+    this.researchQueue.splice(index, 1);
+    const tech = this.technologies[techId];
+    return { success: true, message: `${tech.name} 已從隊列中移除` };
+  }
+
+  /**
+   * 重新排列隊列
+   * @param {Array} newQueue - 新的隊列順序
+   * @returns {Object} - 結果對象
+   */
+  reorderQueue(newQueue) {
+    // 驗證新隊列包含相同的技術
+    if (newQueue.length !== this.researchQueue.length) {
+      return { success: false, message: '隊列長度不匹配' };
+    }
+
+    for (const techId of newQueue) {
+      if (!this.researchQueue.includes(techId)) {
+        return { success: false, message: '隊列包含無效技術' };
+      }
+    }
+
+    this.researchQueue = [...newQueue];
+    return { success: true, message: '隊列已重新排列' };
+  }
+
+  /**
+   * 獲取研究隊列
+   * @returns {Array} - 隊列中的技術ID陣列
+   */
+  getResearchQueue() {
+    return [...this.researchQueue];
+  }
+
+  /**
+   * 開始下一個隊列中的研究
+   * @returns {Object} - 結果對象
+   */
+  startNextInQueue() {
+    if (this.activeResearch) {
+      return { success: false, message: '已有正在進行的研究' };
+    }
+
+    if (this.researchQueue.length === 0) {
+      return { success: false, message: '隊列為空' };
+    }
+
+    const nextTechId = this.researchQueue.shift();
+    return this.startResearch(nextTechId);
   }
 }
