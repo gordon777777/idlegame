@@ -11,6 +11,7 @@ import ResearchPanel from '../ui/panels/ResearchPanel.js';
 import MarketPanel from '../ui/panels/MarketPanel.js';
 import EconomicPanel from '../ui/EconomicPanel.js';
 import MarketResourcePanel from '../ui/panels/MarketResourcePanel.js';
+import AdventurerPanel from '../ui/panels/AdventurerPanel.js';
 
 export default class UIManager {
   constructor(scene) {
@@ -26,6 +27,7 @@ export default class UIManager {
     this.immigrantsPanel = null;
     this.marketPanel = null;
     this.economicPanel = null;
+    this.adventurerPanel = null;
   }
 
   /**
@@ -1106,6 +1108,13 @@ export default class UIManager {
     } else {
       this.createEconomicPanel();
     }
+  }
+
+  /**
+   * 切換冒險者面板顯示/隱藏
+   */
+  toggleAdventurerPanel() {
+    return AdventurerPanel.togglePanel(this.scene);
   }
 
   /**

@@ -7,6 +7,7 @@ import MarketSystem from '../systems/MarketSystem';
 import TimeSystem from '../systems/TimeSystem';
 import ResearchSystem from '../systems/ResearchSystem';
 import EconomicSystem from '../systems/EconomicSystem';
+import AdventurerSystem from '../systems/AdventurerSystem';
 import DataManager from '../systems/DataManager';
 import DebugUtils from '../utils/DebugUtils';
 
@@ -123,6 +124,10 @@ export default class GameScene extends Phaser.Scene {
     // 初始化经济系统
     this.economicSystem = new EconomicSystem(this.resources, this.populationSystem, this.marketSystem);
 
+    // 初始化冒險者系統
+    this.adventurerSystem = new AdventurerSystem(this.resources, this.buildingSystem);
+    this.adventurerSystem.gameState = this; // 設置遊戲狀態引用
+
     // 創建金幣顯示
     this.goldText = this.add.text(this.scale.width - 20, 20, `金幣: ${this.playerGold}`, {
       fontSize: '18px',
@@ -234,6 +239,18 @@ export default class GameScene extends Phaser.Scene {
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5);
 
+    // 創建冒險者按鈕
+    const adventurerButton = this.add.rectangle(this.scale.width - 140, 20, 60, 30, 0x6a4a6a)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.uiManager.toggleAdventurerPanel();
+      });
+
+    const adventurerText = this.add.text(this.scale.width - 140, 20, '冒險者', {
+      fontSize: '14px',
+      fill: '#ffffff'
+    }).setOrigin(0.5, 0.5);
+
     // 更新資源顯示
     this.uiManager.updateResources(this.resources.resources);
 
@@ -324,6 +341,11 @@ export default class GameScene extends Phaser.Scene {
     // 更新经济系统
     if (this.economicSystem) {
       this.economicSystem.update(time, delta);
+    }
+
+    // 更新冒險者系統
+    if (this.adventurerSystem) {
+      this.adventurerSystem.update(delta);
     }
 
     // 每秒更新一次UI

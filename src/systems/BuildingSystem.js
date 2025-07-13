@@ -741,4 +741,21 @@ export default class BuildingSystem {
       }
     }
   }
+
+  /**
+   * Get all buildings of a specific type
+   * @param {string} type - The building type to search for
+   * @returns {Array} - Array of buildings matching the type
+   */
+  getBuildingsByType(type) {
+    const matchingBuildings = [];
+
+    for (const building of this.buildings.values()) {
+      if (building.type === type) {
+        matchingBuildings.push(building);
+      }
+    }
+
+    return matchingBuildings;
+  }
 }

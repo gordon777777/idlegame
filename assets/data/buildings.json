@@ -2351,6 +2351,340 @@
         "workerRequirement": { "count": 5, "type": "worker" }
       }
     ]
+  },
+  "adventurer_guild": {
+    "name": "冒險者公會",
+    "type": "special",
+    "sprite": "adventurer_guild",
+    "spriteIndex": 50,
+    "recipe": {
+      "input": {},
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": {
+      "wood_plank": 50,
+      "stone": 30,
+      "iron": 20,
+      "gold": 500
+    },
+    "description": "冒險者聚集的地方，可以管理冒險者團隊並發布任務。建造後啟動冒險者管理系統。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "specialFunction": "adventurer_management",
+    "byproductTypes": [
+      {
+        "id": "none",
+        "name": "基本運營",
+        "description": "提供基本的冒險者管理服務。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" }
+      },
+      {
+        "id": "recruitment",
+        "name": "積極招募",
+        "description": "主動招募新的冒險者團隊，增加團隊數量。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "worker" },
+        "specialEffect": "increased_recruitment"
+      },
+      {
+        "id": "training",
+        "name": "訓練支援",
+        "description": "為冒險者提供訓練，提高任務成功率。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 4, "type": "craftsman" },
+        "specialEffect": "training_bonus"
+      }
+    ]
+  },
+  "inn": {
+    "name": "旅館",
+    "type": "adventurer_support",
+    "sprite": "inn",
+    "spriteIndex": 51,
+    "recipe": {
+      "input": { "food": 2, "water": 1 },
+      "output": {}
+    },
+    "productionInterval": 3600000,
+    "cost": {
+      "wood_plank": 30,
+      "stone": 20,
+      "cloth": 10
+    },
+    "description": "為冒險者提供休息場所，可以治療傷勢並提供臨時增益效果。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "specialFunction": "adventurer_healing",
+    "byproductTypes": [
+      {
+        "id": "basic_rest",
+        "name": "基本休息",
+        "description": "提供基本的治療和休息服務。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" },
+        "specialEffect": "basic_healing"
+      },
+      {
+        "id": "luxury_service",
+        "name": "豪華服務",
+        "description": "提供高級服務，額外增加戰鬥力加成。",
+        "resources": { "wine": 1 },
+        "timeModifier": 1.2,
+        "workerRequirement": { "count": 3, "type": "craftsman" },
+        "specialEffect": "luxury_buff"
+      }
+    ]
+  },
+  "tavern": {
+    "name": "酒館",
+    "type": "adventurer_support",
+    "sprite": "tavern",
+    "spriteIndex": 52,
+    "recipe": {
+      "input": { "ale": 1, "food": 1 },
+      "output": {}
+    },
+    "productionInterval": 3600000,
+    "cost": {
+      "wood_plank": 25,
+      "stone": 15,
+      "iron": 5
+    },
+    "description": "冒險者聚集的地方，可以收集情報、接受黑市任務和招募新成員。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "specialFunction": "adventurer_tavern",
+    "byproductTypes": [
+      {
+        "id": "information_hub",
+        "name": "情報中心",
+        "description": "收集各種情報，提高任務成功率。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" },
+        "specialEffect": "information_bonus"
+      },
+      {
+        "id": "black_market",
+        "name": "黑市交易",
+        "description": "提供非法任務和黑市交易機會。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "rogue" },
+        "specialEffect": "black_market_access"
+      }
+    ]
+  },
+  "weapon_shop": {
+    "name": "武器店",
+    "type": "adventurer_support",
+    "sprite": "weapon_shop",
+    "spriteIndex": 53,
+    "recipe": {
+      "input": { "iron": 2, "wood": 1 },
+      "output": { "weapon": 1 }
+    },
+    "productionInterval": 7200000,
+    "cost": {
+      "wood_plank": 40,
+      "stone": 25,
+      "iron": 15,
+      "gold": 200
+    },
+    "description": "從市場收購武器材料，精製成高品質武器出售給冒險者。",
+    "workerRequirement": { "count": 3, "type": "craftsman" },
+    "specialFunction": "weapon_crafting",
+    "byproductTypes": [
+      {
+        "id": "basic_weapons",
+        "name": "基礎武器",
+        "description": "製作基本品質的武器。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "craftsman" },
+        "specialEffect": "basic_weapon_quality"
+      },
+      {
+        "id": "masterwork_weapons",
+        "name": "大師級武器",
+        "description": "製作高品質的大師級武器。",
+        "resources": { "mana": 1 },
+        "timeModifier": 1.5,
+        "workerRequirement": { "count": 4, "type": "master_craftsman" },
+        "specialEffect": "masterwork_weapon_quality"
+      }
+    ]
+  },
+  "armor_shop": {
+    "name": "防具店",
+    "type": "adventurer_support",
+    "sprite": "armor_shop",
+    "spriteIndex": 54,
+    "recipe": {
+      "input": { "iron": 3, "leather": 1 },
+      "output": { "armor": 1 }
+    },
+    "productionInterval": 7200000,
+    "cost": {
+      "wood_plank": 35,
+      "stone": 20,
+      "iron": 20,
+      "gold": 180
+    },
+    "description": "從市場收購防具材料，精製成高品質防具出售給冒險者。",
+    "workerRequirement": { "count": 3, "type": "craftsman" },
+    "specialFunction": "armor_crafting",
+    "byproductTypes": [
+      {
+        "id": "basic_armor",
+        "name": "基礎防具",
+        "description": "製作基本品質的防具。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "craftsman" },
+        "specialEffect": "basic_armor_quality"
+      },
+      {
+        "id": "enchanted_armor",
+        "name": "附魔防具",
+        "description": "製作附魔的高品質防具。",
+        "resources": { "mana": 1 },
+        "timeModifier": 1.5,
+        "workerRequirement": { "count": 4, "type": "master_craftsman" },
+        "specialEffect": "enchanted_armor_quality"
+      }
+    ]
+  },
+  "item_shop": {
+    "name": "道具店",
+    "type": "adventurer_support",
+    "sprite": "item_shop",
+    "spriteIndex": 55,
+    "recipe": {
+      "input": { "herbs": 2, "water": 1, "food": 1 },
+      "output": { "adventurer_supplies": 1 }
+    },
+    "productionInterval": 3600000,
+    "cost": {
+      "wood_plank": 25,
+      "stone": 15,
+      "gold": 150
+    },
+    "description": "從市場收購物資，精製成冒險者專用的補給品。",
+    "workerRequirement": { "count": 2, "type": "worker" },
+    "specialFunction": "supply_crafting",
+    "byproductTypes": [
+      {
+        "id": "basic_supplies",
+        "name": "基礎補給",
+        "description": "製作基本的冒險補給品。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "worker" },
+        "specialEffect": "basic_supply_quality"
+      },
+      {
+        "id": "premium_supplies",
+        "name": "高級補給",
+        "description": "製作高品質的冒險補給品，持續時間更長。",
+        "resources": { "mana": 1 },
+        "timeModifier": 1.3,
+        "workerRequirement": { "count": 3, "type": "craftsman" },
+        "specialEffect": "premium_supply_quality"
+      }
+    ]
+  },
+  "church": {
+    "name": "教會",
+    "type": "adventurer_support",
+    "sprite": "church",
+    "spriteIndex": 56,
+    "recipe": {
+      "input": { "mana": 3, "holy_water": 1 },
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": {
+      "stone": 50,
+      "wood_plank": 30,
+      "gold": 300,
+      "holy_relic": 1
+    },
+    "description": "神聖的場所，可以復活陣亡的冒險者並提供神聖祝福。",
+    "workerRequirement": { "count": 2, "type": "cleric" },
+    "specialFunction": "adventurer_resurrection",
+    "byproductTypes": [
+      {
+        "id": "basic_healing",
+        "name": "基礎治療",
+        "description": "提供基本的復活和治療服務。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 2, "type": "cleric" },
+        "specialEffect": "basic_resurrection"
+      },
+      {
+        "id": "divine_blessing",
+        "name": "神聖祝福",
+        "description": "提供強力的復活服務和永久祝福效果。",
+        "resources": { "holy_water": 1 },
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "high_priest" },
+        "specialEffect": "divine_blessing"
+      }
+    ]
+  },
+  "training_camp": {
+    "name": "訓練營",
+    "type": "adventurer_support",
+    "sprite": "training_camp",
+    "spriteIndex": 57,
+    "recipe": {
+      "input": { "food": 2, "weapon": 1 },
+      "output": {}
+    },
+    "productionInterval": 0,
+    "cost": {
+      "wood_plank": 45,
+      "stone": 30,
+      "iron": 25,
+      "gold": 250
+    },
+    "description": "專業的訓練場所，可以提升冒險者的各項能力。",
+    "workerRequirement": { "count": 3, "type": "veteran" },
+    "specialFunction": "adventurer_training",
+    "byproductTypes": [
+      {
+        "id": "basic_training",
+        "name": "基礎訓練",
+        "description": "提供基本的戰鬥技能訓練。",
+        "resources": {},
+        "timeModifier": 1.0,
+        "workerRequirement": { "count": 3, "type": "veteran" },
+        "specialEffect": "basic_training"
+      },
+      {
+        "id": "advanced_training",
+        "name": "高級訓練",
+        "description": "提供專業的高級戰鬥訓練，大幅提升能力。",
+        "resources": { "weapon": 1, "armor": 1 },
+        "timeModifier": 1.5,
+        "workerRequirement": { "count": 4, "type": "master_trainer" },
+        "specialEffect": "advanced_training"
+      },
+      {
+        "id": "specialized_training",
+        "name": "專精訓練",
+        "description": "針對不同職業提供專門的技能訓練。",
+        "resources": { "mana": 1, "weapon": 1 },
+        "timeModifier": 2.0,
+        "workerRequirement": { "count": 5, "type": "grandmaster" },
+        "specialEffect": "specialized_training"
+      }
+    ]
   }
 }
 
