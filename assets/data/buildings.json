@@ -2354,18 +2354,16 @@
   },
   "adventurer_guild": {
     "name": "冒險者公會",
-    "type": "special",
+    "type": "adventurer_guild",
     "sprite": "adventurer_guild",
-    "spriteIndex": 50,
+    "spriteIndex": 17,
     "recipe": {
       "input": {},
       "output": {}
     },
     "productionInterval": 0,
     "cost": {
-      "wood_plank": 50,
-      "stone": 30,
-      "iron": 20,
+      "stone": 10,
       "gold": 500
     },
     "description": "冒險者聚集的地方，可以管理冒險者團隊並發布任務。建造後啟動冒險者管理系統。",
@@ -2601,7 +2599,7 @@
     "name": "教會",
     "type": "adventurer_support",
     "sprite": "church",
-    "spriteIndex": 56,
+    "spriteIndex": 16,
     "recipe": {
       "input": { "mana": 3, "holy_water": 1 },
       "output": {}
@@ -2641,7 +2639,7 @@
     "name": "訓練營",
     "type": "adventurer_support",
     "sprite": "training_camp",
-    "spriteIndex": 57,
+    "spriteIndex": 17,
     "recipe": {
       "input": { "food": 2, "weapon": 1 },
       "output": {}

@@ -14,4 +14,8 @@ const config = {
   backgroundColor: '#1a1a1a'
 };
 
-new Phaser.Game(config);
+// 創建遊戲實例並將其賦值給全局變量，方便調試和測試
+const game = new Phaser.Game(config);
+window.game = game;
+
+console.log('🎮 遊戲已啟動，可通過 window.game 訪問');

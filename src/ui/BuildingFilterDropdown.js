@@ -30,7 +30,8 @@ export default class BuildingFilterDropdown {
       { id: 'housing', text: '住房建筑', color: 0x4a6a6a },
       { id: 'advanced', text: '高级建筑', color: 0x6a6a4a },
       { id: 'special', text: '特殊建筑', color: 0x4a4a4a },
-      { id: 'utility', text: '功能建筑', color: 0x6a4a6a }
+      { id: 'utility', text: '功能建筑', color: 0x6a4a6a },
+      { id: 'adventurer_guild', text: '冒险者公会', color: 0x6a4a6a }
     ];
     
     this.create();

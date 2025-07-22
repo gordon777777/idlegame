@@ -64,6 +64,7 @@
     "clay": { "value": 100, "production": 0, "tier": 1, "displayName": "泥巴", "basePrice": 1, "isBuildingMaterial": true },
     "firewood": { "value": 150, "production": 0, "tier": 1, "displayName": "木柴", "basePrice": 2, "isFuel": true },
     "charcoal": { "value": 80, "production": 0, "tier": 2, "displayName": "炭", "basePrice": 4, "isFuel": true },
+    "gold": { "value": 500, "production": 0, "tier": 2, "displayName": "金", "basePrice": 100, "isFuel": false },
 
     "_comment_luxury_goods": "========== 奢侈品 ==========",
     "wine": { "value": 10, "production": 0, "tier": 3, "displayName": "美酒", "basePrice": 20, "isLuxury": true },
@@ -141,7 +142,8 @@
     "linen": 1200,
     "furniture": 500,
     "pottery": 2000,
-    "glass": 1000
+    "glass": 1000,
+    "gold": 1000
   },
 
 "resourceValues": {

@@ -1,5 +1,6 @@
 import Adventurer from '../entities/Adventurer.js';
 import AdventurerTeam from '../entities/AdventurerTeam.js';
+import AdventurerAI from './AdventurerAI.js';
 
 /**
  * 冒險者管理系統
@@ -29,6 +30,9 @@ export default class AdventurerSystem {
 
     // 檢查支援建築
     this.checkSupportBuildings();
+
+    // 初始化AI系統
+    this.ai = new AdventurerAI(this);
   }
 
   /**
@@ -38,12 +42,32 @@ export default class AdventurerSystem {
     if (this.buildingSystem) {
       const guild = this.buildingSystem.getBuildingsByType('adventurer_guild');
       const wasActive = this.isActive;
+
+      // 添加詳細的 debug 信息
+      console.log(`AdventurerSystem.checkAdventurerGuild() - Found ${guild.length} adventurer_guild buildings:`);
+      guild.forEach((building, index) => {
+        console.log(`  Guild ${index + 1}: ID=${building.id}, isActive=${building.isActive}, type=${building.type}, name=${building.name}`);
+        if (!building.isActive) {
+          console.log(`    Guild ${index + 1} is inactive - possible reasons: insufficient workers, building not properly initialized`);
+        }
+      });
+
       this.isActive = guild.length > 0 && guild.some(building => building.isActive);
+
+      console.log(`AdventurerSystem status: wasActive=${wasActive}, isActive=${this.isActive}`);
+      console.log(`Activation condition: hasGuilds=${guild.length > 0}, hasActiveGuilds=${guild.some(building => building.isActive)}`);
 
       // 如果剛剛啟動，初始化系統
       if (!wasActive && this.isActive) {
+        console.log(`AdventurerSystem activating for the first time!`);
         this.activate();
+      } else if (wasActive && !this.isActive) {
+        console.log(`AdventurerSystem deactivated - no active guilds found`);
+      } else if (!this.isActive) {
+        console.log(`AdventurerSystem remains inactive - no active adventurer guilds`);
       }
+    } else {
+      console.log(`AdventurerSystem.checkAdventurerGuild() - buildingSystem not available`);
     }
   }
 
@@ -448,6 +472,11 @@ export default class AdventurerSystem {
       const blackQuest = this.generateBlackMarketQuest();
       this.blackMarketQuests.set(blackQuest.id, blackQuest);
     }
+
+    // 更新AI系統
+    if (this.ai) {
+      this.ai.update(deltaTime);
+    }
   }
 
   /**
@@ -798,5 +827,34 @@ export default class AdventurerSystem {
       message: `${member.name} 在教會的神聖力量下復活了`,
       adventurer: member.getStatus()
     };
+  }
+
+  /**
+   * 啟用/禁用AI
+   */
+  setAIEnabled(enabled) {
+    if (this.ai) {
+      this.ai.setEnabled(enabled);
+      return { success: true, message: `AI ${enabled ? '已啟用' : '已禁用'}` };
+    }
+    return { success: false, message: 'AI系統未初始化' };
+  }
+
+  /**
+   * 獲取AI狀態
+   */
+  getAIStatus() {
+    return this.ai ? this.ai.getStatus() : null;
+  }
+
+  /**
+   * 更新AI配置
+   */
+  updateAIConfig(config) {
+    if (this.ai) {
+      this.ai.updateConfig(config);
+      return { success: true, message: 'AI配置已更新' };
+    }
+    return { success: false, message: 'AI系統未初始化' };
   }
 }

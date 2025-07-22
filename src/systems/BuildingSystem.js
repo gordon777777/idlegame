@@ -494,22 +494,43 @@ export default class BuildingSystem {
     if (buildingType.type === 'housing' && this.populationSystem) {
       // 增加住房容量
       this.populationSystem.increaseHousingCapacity(buildingType.housingCapacity || 0);
+      console.log(`Housing building ${buildingType.name} created, added ${buildingType.housingCapacity || 0} housing capacity`);
+    } else if (buildingType.type === 'adventurer_guild') {
+      // 處理特殊功能建築
+      console.log(`adventurer building ${buildingType.name} (${type}) created with special function: ${buildingType.specialFunction || 'none'}`);
+
+      // 處理工人分配
+      this.handleSpecialBuildingWorkers(building, buildingType, type);
+
+      // 特殊建築通常不需要註冊生產鏈，除非有特殊產出
+      if (buildingType.recipe && (buildingType.recipe.output && Object.keys(buildingType.recipe.output).length > 0)) {
+        this.resourceSystem.addProductionChain(building);
+        console.log(`Special building ${buildingType.name} registered production chain`);
+      }
+
+      // 處理特定特殊建築的邏輯
+      this.handleSpecificSpecialBuilding(building, type);
     } else {
-      // 分配工人到建築
+      // 處理生產建築
       if (this.populationSystem) {
         const hasWorkers = this.populationSystem.assignWorkersToBulding(building.id, type);
         if (!hasWorkers) {
           // 如果沒有足夠的工人，建築將處於非活動狀態
           building.isActive = false;
-          console.log(`Building ${buildingType.name} created but inactive due to insufficient workers`);
+          console.log(`Production building ${buildingType.name} created but inactive due to insufficient workers`);
         } else {
           building.isActive = true;
+          console.log(`Production building ${buildingType.name} is active with workers assigned`);
         }
       }
 
       // Register production chain with resource system
       this.resourceSystem.addProductionChain(building);
+      console.log(`Production building ${buildingType.name} registered production chain`);
     }
+
+    // 添加建築創建完成的 debug log
+    console.log(`Building creation completed: ${buildingType.name} (${type}) at position (${position.x}, ${position.y}), active: ${building.isActive}, ID: ${building.id}`);
 
     return building;
   }
@@ -757,5 +778,80 @@ export default class BuildingSystem {
     }
 
     return matchingBuildings;
+  }
+
+  /**
+   * Handle worker assignment for special buildings
+   * @param {Building} building - The building instance
+   * @param {Object} buildingType - Building type configuration
+   * @param {string} type - Building type key
+   */
+  handleSpecialBuildingWorkers(building, buildingType, type) {
+    if (this.populationSystem && buildingType.workerRequirement) {
+      console.log(`Special building ${buildingType.name} requires workers:`, buildingType.workerRequirement);
+      const hasWorkers = this.populationSystem.assignWorkersToBulding(building.id, type);
+      if (!hasWorkers) {
+        building.isActive = false;
+        console.log(`Special building ${buildingType.name} created but inactive due to insufficient workers`);
+        console.log(`  Required:`, buildingType.workerRequirement);
+        console.log(`  Available workers in population system:`, this.populationSystem.getAvailableWorkersSummary ? this.populationSystem.getAvailableWorkersSummary() : 'method not available');
+      } else {
+        building.isActive = true;
+        console.log(`Special building ${buildingType.name} is active with workers assigned`);
+      }
+    } else if (!this.populationSystem) {
+      console.log(`Special building ${buildingType.name}: PopulationSystem not available, setting active by default`);
+      building.isActive = true;
+    } else {
+      // 如果沒有工人需求，直接設為活動狀態
+      building.isActive = true;
+      console.log(`Special building ${buildingType.name} is active (no worker requirement)`);
+    }
+  }
+
+  /**
+   * Handle specific special building logic
+   * @param {Building} building - The building instance
+   * @param {string} type - Building type key
+   */
+  handleSpecificSpecialBuilding(building, type) {
+    switch (type) {
+      case 'adventurer_guild':
+        console.log(`Adventurer Guild created! Notifying AdventurerSystem...`);
+        // 通知場景中的冒險者系統檢查公會狀態
+        if (this.scene.adventurerSystem) {
+          // 延遲檢查，確保建築已完全創建
+          this.scene.time.delayedCall(100, () => {
+            this.scene.adventurerSystem.checkAdventurerGuild();
+            console.log(`AdventurerSystem notified of new guild. System active: ${this.scene.adventurerSystem.isActive}`);
+          });
+        }
+        break;
+
+      case 'inn':
+        console.log(`Inn created - adventurers can now rest and heal here`);
+        break;
+
+      case 'tavern':
+        console.log(`Tavern created - adventurers can gather information and access black market`);
+        break;
+
+      case 'weapon_shop':
+      case 'armor_shop':
+      case 'item_shop':
+        console.log(`${building.name} created - adventurers can purchase equipment here`);
+        break;
+
+      case 'church':
+        console.log(`Church created - adventurers can be resurrected here`);
+        break;
+
+      case 'training_camp':
+        console.log(`Training Camp created - adventurers can improve their abilities here`);
+        break;
+
+      default:
+        console.log(`Special building ${building.name} (${type}) created with no specific handling`);
+    }
   }
 }

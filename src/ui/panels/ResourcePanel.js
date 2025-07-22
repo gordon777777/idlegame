@@ -154,23 +154,28 @@ export default class ResourcePanel extends BasePanel {
 
     // 创建菜单背景
     const menuWidth = 200;
-    const menuHeight = Math.min(350, Object.keys(allResources).length * 30 + 50);
-    const menuBg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x222222, 0.9)
+    const maxMenuHeight = 350; // 最大菜单高度
+    const headerHeight = 40; // 标题和按钮区域高度
+    const contentHeight = maxMenuHeight - headerHeight; // 内容区域高度
+
+    const menuBg = this.scene.add.rectangle(0, 0, menuWidth, maxMenuHeight, 0x222222, 0.9)
       .setStrokeStyle(1, 0x444444);
 
     // 创建菜单标题
-    const menuTitle = this.scene.add.text(0, -menuHeight/2 + 15, '选择资源', {
+    const menuTitle = this.scene.add.text(0, -maxMenuHeight/2 + 15, '选择资源', {
       fontSize: '14px',
       fill: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5, 0.5);
 
     // 创建关闭按钮
-    const closeButton = this.scene.add.text(menuWidth/2 - 15, -menuHeight/2 + 15, 'X', {
+    const closeButton = this.scene.add.text(menuWidth/2 - 15, -maxMenuHeight/2 + 15, 'X', {
       fontSize: '14px',
       fill: '#ffffff'
     }).setOrigin(0.5, 0.5)
       .setInteractive()
+      .on('pointerover', () => closeButton.setFill('#ff6666'))
+      .on('pointerout', () => closeButton.setFill('#ffffff'))
       .on('pointerdown', () => {
         this.resourceMenu.destroy();
         this.resourceMenu = null;
@@ -179,9 +184,9 @@ export default class ResourcePanel extends BasePanel {
     // 添加背景和标题到菜单
     this.resourceMenu.add([menuBg, menuTitle, closeButton]);
 
-    // 创建资源列表
-    const resourceList = this.scene.add.container(0, 0);
-    this.resourceMenu.add(resourceList);
+    // 创建内容容器（可滚动的部分）
+    const contentContainer = this.scene.add.container(0, 0);
+    this.resourceMenu.add(contentContainer);
 
     // 按资源层级分组
     const resourcesByTier = {};
@@ -196,38 +201,103 @@ export default class ResourcePanel extends BasePanel {
       });
     });
 
-    // 创建分层标签
-    let yOffset = -menuHeight/2 + 40;
+    // 创建分层标签 - 使用简化的滚动方案
+    let yOffset = -maxMenuHeight/2 + headerHeight + 10;
+    const itemHeight = 20;
+    const maxVisibleItems = Math.floor(contentHeight / itemHeight);
+
+    // 收集所有资源项
+    const allResourceItems = [];
     Object.keys(resourcesByTier).sort().forEach(tier => {
       // 添加层级标题
-      const tierTitle = this.scene.add.text(-menuWidth/2 + 15, yOffset, `第${tier}级资源`, {
-        fontSize: '12px',
-        fill: '#aaaaaa'
-      }).setOrigin(0, 0.5);
-      resourceList.add(tierTitle);
-      yOffset += 20;
+      allResourceItems.push({
+        type: 'tier',
+        tier: tier,
+        displayName: `第${tier}级资源`
+      });
 
       // 添加该层级的资源
       resourcesByTier[tier].forEach(resource => {
-        const resourceItem = this.scene.add.text(-menuWidth/2 + 25, yOffset, resource.displayName, {
-          fontSize: '12px',
-          fill: '#ffffff'
-        }).setOrigin(0, 0.5)
-          .setInteractive()
-          .on('pointerover', () => resourceItem.setFill('#ffff00'))
-          .on('pointerout', () => resourceItem.setFill('#ffffff'))
-          .on('pointerdown', () => {
-            this.replaceResource(slotIndex, resource.key);
-            this.resourceMenu.destroy();
-            this.resourceMenu = null;
-          });
-
-        resourceList.add(resourceItem);
-        yOffset += 20;
+        allResourceItems.push({
+          type: 'resource',
+          key: resource.key,
+          displayName: resource.displayName
+        });
       });
-
-      yOffset += 5; // 层级之间的间隔
     });
+
+    // 当前显示的起始索引
+    let startIndex = 0;
+    const maxStartIndex = Math.max(0, allResourceItems.length - maxVisibleItems);
+
+    // 创建显示项的函数
+    const updateDisplay = () => {
+      // 清空内容容器
+      contentContainer.removeAll(true);
+
+      // 显示当前范围内的项目
+      for (let i = 0; i < maxVisibleItems && (startIndex + i) < allResourceItems.length; i++) {
+        const item = allResourceItems[startIndex + i];
+        const itemY = yOffset + i * itemHeight;
+
+        if (item.type === 'tier') {
+          // 层级标题
+          const tierTitle = this.scene.add.text(-menuWidth/2 + 15, itemY, item.displayName, {
+            fontSize: '12px',
+            fill: '#aaaaaa'
+          }).setOrigin(0, 0.5);
+          contentContainer.add(tierTitle);
+        } else {
+          // 资源项
+          const resourceItem = this.scene.add.text(-menuWidth/2 + 25, itemY, item.displayName, {
+            fontSize: '12px',
+            fill: '#ffffff'
+          }).setOrigin(0, 0.5)
+            .setInteractive()
+            .on('pointerover', () => resourceItem.setFill('#ffff00'))
+            .on('pointerout', () => resourceItem.setFill('#ffffff'))
+            .on('pointerdown', () => {
+              this.replaceResource(slotIndex, item.key);
+              this.resourceMenu.destroy();
+              this.resourceMenu = null;
+            });
+          contentContainer.add(resourceItem);
+        }
+      }
+    };
+
+    // 初始显示
+    updateDisplay();
+
+    // 添加滚动功能（如果需要）
+    if (allResourceItems.length > maxVisibleItems) {
+      // 添加滚动条
+      const scrollBarBg = this.scene.add.rectangle(menuWidth/2 - 10, 0, 8, contentHeight, 0x444444);
+      const scrollBarHeight = Math.max(20, contentHeight * maxVisibleItems / allResourceItems.length);
+      const scrollBarHandle = this.scene.add.rectangle(menuWidth/2 - 10, -contentHeight/2 + scrollBarHeight/2, 8, scrollBarHeight, 0x888888);
+      this.resourceMenu.add([scrollBarBg, scrollBarHandle]);
+
+      // 添加鼠标滚轮事件
+      menuBg.setInteractive();
+      menuBg.on('wheel', (pointer, deltaX, deltaY) => {
+        // 忽略未使用的參數
+        void pointer;
+        void deltaX;
+
+        if (deltaY > 0 && startIndex < maxStartIndex) {
+          startIndex = Math.min(startIndex + 3, maxStartIndex);
+          updateDisplay();
+        } else if (deltaY < 0 && startIndex > 0) {
+          startIndex = Math.max(startIndex - 3, 0);
+          updateDisplay();
+        }
+
+        // 更新滚动条位置
+        const scrollProgress = startIndex / maxStartIndex;
+        const scrollBarY = -contentHeight/2 + (contentHeight - scrollBarHeight) * scrollProgress + scrollBarHeight/2;
+        scrollBarHandle.y = scrollBarY;
+      });
+    }
 
     // 调整菜单位置，确保不超出屏幕
     const screenWidth = this.scene.scale.width;
@@ -241,11 +311,11 @@ export default class ResourcePanel extends BasePanel {
     if (menuX - menuWidth/2 < 0) {
       this.resourceMenu.x -= (menuX - menuWidth/2) - 10;
     }
-    if (menuY + menuHeight/2 > screenHeight) {
-      this.resourceMenu.y -= (menuY + menuHeight/2) - screenHeight + 10;
+    if (menuY + maxMenuHeight/2 > screenHeight) {
+      this.resourceMenu.y -= (menuY + maxMenuHeight/2) - screenHeight + 10;
     }
-    if (menuY - menuHeight/2 < 0) {
-      this.resourceMenu.y -= (menuY - menuHeight/2) - 10;
+    if (menuY - maxMenuHeight/2 < 0) {
+      this.resourceMenu.y -= (menuY - maxMenuHeight/2) - 10;
     }
   }
 

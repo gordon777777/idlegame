@@ -10,6 +10,7 @@ import EconomicSystem from '../systems/EconomicSystem';
 import AdventurerSystem from '../systems/AdventurerSystem';
 import DataManager from '../systems/DataManager';
 import DebugUtils from '../utils/DebugUtils';
+import AdventurerAITest from '../utils/AdventurerAITest';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -273,6 +274,26 @@ export default class GameScene extends Phaser.Scene {
         this.buildingSystem.exitPlacementMode();
       }
     });
+
+    // 初始化冒險者AI測試命令
+    try {
+      AdventurerAITest.addTestCommands(this);
+      console.log('冒險者AI測試命令已初始化');
+    } catch (error) {
+      console.error('初始化AI測試命令失敗:', error);
+    }
+
+    // 備用測試命令初始化（延遲執行）
+    setTimeout(() => {
+      try {
+        if (!window.testAdventurerAI) {
+          console.log('重新初始化AI測試命令...');
+          AdventurerAITest.addTestCommands(this);
+        }
+      } catch (error) {
+        console.error('備用初始化失敗:', error);
+      }
+    }, 2000);
 
     console.log('GameScene create method completed');
   }
